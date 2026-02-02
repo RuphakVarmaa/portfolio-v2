@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ruphak Varmaa S - Software Engineer & CS Student. Building clean web applications with Python, Java, React, and Cloud technologies.">
+    <meta name="keywords" content="Ruphak Varmaa, Software Engineer, Web Developer, Python, React, AWS, Azure">
+    <meta name="author" content="Ruphak Varmaa S">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Ruphak Varmaa S | Software Engineer">
+    <meta property="og:description" content="20-year-old CS student building clean web applications">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.ruphak.me">
+
+    <title>Ruphak Varmaa S | Software Engineer</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-follower" id="cursorFollower"></div>
+
+    <!-- Three.js Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Loading Screen -->
+    <div class="loader" id="loader">
+        <div class="loader-content">
+            <div class="loader-logo">
+                <span class="bracket">&lt;</span>RV<span class="bracket">/&gt;</span>
+            </div>
+            <div class="loader-bar">
+                <div class="loader-progress" id="loaderProgress"></div>
+            </div>
+            <p class="loader-text">Initializing experience...</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <span class="logo-text">
+                    <span class="bracket">&lt;</span>RV<span class="bracket">/&gt;</span>
+                </span>
+            </a>
+
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#about" class="nav-link" data-text="About">About</a></li>
+                <li><a href="#skills" class="nav-link" data-text="Skills">Skills</a></li>
+                <li><a href="#projects" class="nav-link" data-text="Projects">Projects</a></li>
+                <li><a href="#experience" class="nav-link" data-text="Experience">Experience</a></li>
+                <li><a href="#contact" class="nav-link" data-text="Contact">Contact</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <div class="toggle-icon">
+                        <i class="fas fa-moon"></i>
+                        <i class="fas fa-sun"></i>
+                    </div>
+                </button>
+                <a href="#contact" class="nav-cta magnetic-btn">
+                    <span>Let's Talk</span>
+                    <div class="btn-glow"></div>
+                </a>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge reveal-up">
+                <div class="badge-pulse"></div>
+                <span>Available for opportunities</span>
+            </div>
+
+            <h1 class="hero-title">
+                <div class="title-line reveal-up">
+                    <span class="title-small">Hello, I'm</span>
+                </div>
+                <div class="title-line reveal-up" data-delay="0.1">
+                    <span class="title-name glitch" data-text="Ruphak Varmaa">Ruphak Varmaa</span>
+                </div>
+                <div class="title-line reveal-up" data-delay="0.2">
+                    <span class="title-role">
+                        <span class="role-static">I build </span>
+                        <span class="role-dynamic">
+                            <span class="typing-wrapper">
+                                <span class="typing-text" id="typingText"></span>
+                                <span class="typing-cursor"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+            </h1>
+
+            <p class="hero-description reveal-up" data-delay="0.3">
+                <span class="word">20-year-old</span>
+                <span class="word">CS</span>
+                <span class="word">student</span>
+                <span class="word">crafting</span>
+                <span class="word highlight-word">digital</span>
+                <span class="word highlight-word">experiences</span>
+                <span class="word">with</span>
+                <span class="word">clean</span>
+                <span class="word">code</span>
+                <span class="word">and</span>
+                <span class="word highlight-word">cloud</span>
+                <span class="word highlight-word">technologies.</span>
+            </p>
+
+            <div class="hero-cta reveal-up" data-delay="0.4">
+                <a href="#projects" class="btn btn-primary magnetic-btn">
+                    <span class="btn-text">Explore My Work</span>
+                    <span class="btn-icon"><i class="fas fa-arrow-right"></i></span>
+                    <div class="btn-bg"></div>
+                </a>
+                <a href="#contact" class="btn btn-glass magnetic-btn">
+                    <span class="btn-text">Get In Touch</span>
+                    <div class="btn-shine"></div>
+                </a>
+            </div>
+
+            <div class="hero-stats reveal-up" data-delay="0.5">
+                <div class="stat-item">
+                    <span class="stat-number counter" data-target="6">0</span>
+                    <span class="stat-label">Projects</span>
+                    <div class="stat-line"></div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number counter" data-target="8">0</span>
+                    <span class="stat-label">Technologies</span>
+                    <div class="stat-line"></div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number counter" data-target="1">0</span>
+                    <span class="stat-label">Year Exp</span>
+                    <div class="stat-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-scroll">
+            <a href="#about" class="scroll-indicator">
+                <span class="scroll-text">Scroll</span>
+                <div class="scroll-line">
+                    <div class="scroll-dot"></div>
+                </div>
+            </a>
+        </div>
+
+        <div class="hero-social">
+            <div class="social-line"></div>
+            <a href="https://linkedin.com/in/ruphakvarmaa" target="_blank" rel="noopener" class="social-link magnetic-btn" aria-label="LinkedIn">
+                <i class="fab fa-linkedin-in"></i>
+            </a>
+            <a href="https://github.com/ruphakvarmaa" target="_blank" rel="noopener" class="social-link magnetic-btn" aria-label="GitHub">
+                <i class="fab fa-github"></i>
+            </a>
+            <a href="mailto:ruphak2022@gmail.com" class="social-link magnetic-btn" aria-label="Email">
+                <i class="fas fa-envelope"></i>
+            </a>
+            <div class="social-line"></div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about section" id="about">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">01</span>
+                <h2 class="section-title split-text">About Me</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="about-grid">
+                <div class="about-visual">
+                    <div class="visual-container">
+                        <div class="visual-frame">
+                            <div class="frame-corner top-left"></div>
+                            <div class="frame-corner top-right"></div>
+                            <div class="frame-corner bottom-left"></div>
+                            <div class="frame-corner bottom-right"></div>
+                            <div class="visual-image">
+                                <div class="image-placeholder">
+                                    <div class="placeholder-icon">
+                                        <i class="fas fa-code"></i>
+                                    </div>
+                                    <div class="code-lines">
+                                        <span></span><span></span><span></span>
+                                        <span></span><span></span>
+                                    </div>
+                                </div>
+                                <div class="image-overlay"></div>
+                            </div>
+                        </div>
+                        <div class="visual-decoration">
+                            <div class="deco-circle"></div>
+                            <div class="deco-dots"></div>
+                        </div>
+                    </div>
+
+                    <div class="floating-card experience-card glass-card">
+                        <div class="card-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="card-content">
+                            <span class="card-number">1+</span>
+                            <span class="card-label">Year of Experience</span>
+                        </div>
+                    </div>
+
+                    <div class="floating-card projects-card glass-card">
+                        <div class="card-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="card-content">
+                            <span class="card-number">6+</span>
+                            <span class="card-label">Projects Completed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-content">
+                    <div class="content-tag">
+                        <span class="tag-dot"></span>
+                        Introduction
+                    </div>
+
+                    <h3 class="about-subtitle split-text">
+                        Turning ideas into reality through code
+                    </h3>
+
+                    <div class="about-text">
+                        <p class="reveal-text">
+                            I'm a Computer Science student pursuing my B.E. in India (2024-2028).
+                            My journey in tech started with curiosity about how systems work, evolving into
+                            a passion for building practical, user-centric solutions.
+                        </p>
+                        <p class="reveal-text">
+                            I specialize in <strong>rapid prototyping</strong> and believe in
+                            <strong>shipping early, iterating fast</strong>. Whether it's a full-stack web app,
+                            a utility script, or a cloud deployment, I prioritize working software over perfect code.
+                        </p>
+                    </div>
+
+                    <div class="about-highlights">
+                        <div class="highlight-item glass-card">
+                            <div class="highlight-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <span>DSA & Problem Solving</span>
+                        </div>
+                        <div class="highlight-item glass-card">
+                            <div class="highlight-icon">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <span>Cloud (AWS & Azure)</span>
+                        </div>
+                        <div class="highlight-item glass-card">
+                            <div class="highlight-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <span>Open Source</span>
+                        </div>
+                        <div class="highlight-item glass-card">
+                            <div class="highlight-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <span>Fast Learner</span>
+                        </div>
+                    </div>
+
+                    <div class="about-cta">
+                        <a href="#contact" class="btn btn-primary magnetic-btn">
+                            <span class="btn-text">Let's Collaborate</span>
+                            <span class="btn-icon"><i class="fas fa-arrow-right"></i></span>
+                            <div class="btn-bg"></div>
+                        </a>
+                        <a href="#" class="btn btn-outline magnetic-btn" id="downloadResume">
+                            <span class="btn-icon-left"><i class="fas fa-download"></i></span>
+                            <span class="btn-text">Resume</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="skills section" id="skills">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">02</span>
+                <h2 class="section-title split-text">Skills & Expertise</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="skills-orbit">
+                <div class="orbit-center">
+                    <div class="center-content">
+                        <span class="center-text">Tech Stack</span>
+                    </div>
+                    <div class="orbit-ring ring-1">
+                        <div class="orbit-item" style="--i: 0" data-skill="Python">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 1" data-skill="Java">
+                            <i class="fab fa-java"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 2" data-skill="JavaScript">
+                            <i class="fab fa-js-square"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 3" data-skill="React">
+                            <i class="fab fa-react"></i>
+                        </div>
+                    </div>
+                    <div class="orbit-ring ring-2">
+                        <div class="orbit-item" style="--i: 0" data-skill="Node.js">
+                            <i class="fab fa-node-js"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 1" data-skill="AWS">
+                            <i class="fab fa-aws"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 2" data-skill="GitHub">
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <div class="orbit-item" style="--i: 3" data-skill="Linux">
+                            <i class="fab fa-linux"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="skills-grid">
+                <div class="skill-category glass-card">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3 class="category-title">Languages</h3>
+                    </div>
+                    <div class="skill-bars">
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">Python</span>
+                                <span class="skill-level">90%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="90">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">Java</span>
+                                <span class="skill-level">85%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="85">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">JavaScript</span>
+                                <span class="skill-level">75%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="75">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skill-category glass-card">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h3 class="category-title">Frameworks</h3>
+                    </div>
+                    <div class="skill-bars">
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">React</span>
+                                <span class="skill-level">70%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="70">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">Node.js</span>
+                                <span class="skill-level">65%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="65">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">Tailwind CSS</span>
+                                <span class="skill-level">80%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="80">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skill-category glass-card">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <h3 class="category-title">Cloud & Tools</h3>
+                    </div>
+                    <div class="skill-bars">
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">AWS & Azure</span>
+                                <span class="skill-level">80%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="80">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">Git & GitHub</span>
+                                <span class="skill-level">80%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="80">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-info">
+                                <span class="skill-name">SQL Server</span>
+                                <span class="skill-level">60%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="60">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="projects section" id="projects">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">03</span>
+                <h2 class="section-title split-text">Featured Projects</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="projects-filter">
+                <button class="filter-btn active magnetic-btn" data-filter="all">
+                    <span>All</span>
+                </button>
+                <button class="filter-btn magnetic-btn" data-filter="web">
+                    <span>Web Apps</span>
+                </button>
+                <button class="filter-btn magnetic-btn" data-filter="product">
+                    <span>Products</span>
+                </button>
+                <button class="filter-btn magnetic-btn" data-filter="tools">
+                    <span>Tools</span>
+                </button>
+            </div>
+
+            <div class="projects-grid">
+                <!-- Project 1: CivicEye -->
+                <article class="project-card" data-category="web">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-city"></i>
+                                </div>
+                                <div class="project-number">01</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">CivicEye</h3>
+                                <p class="project-brief">Civic Issue Tracker</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">CivicEye</h3>
+                            <p class="project-description">
+                                Full-stack application for reporting and tracking civic issues.
+                                Features authentication, REST APIs, admin dashboard, and real-time updates.
+                            </p>
+                            <div class="project-tech">
+                                <span>Node.js</span>
+                                <span>Express</span>
+                                <span>MongoDB</span>
+                                <span>Bootstrap</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Live</span>
+                                </a>
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 2: Garment Source -->
+                <article class="project-card" data-category="product">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-tshirt"></i>
+                                </div>
+                                <div class="project-number">02</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">Garment Source</h3>
+                                <p class="project-brief">Product Catalog</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">Garment Source</h3>
+                            <p class="project-description">
+                                Static product catalog for garment business with image optimization,
+                                SEO-structured data, and integrated contact functionality.
+                            </p>
+                            <div class="project-tech">
+                                <span>HTML5</span>
+                                <span>CSS3</span>
+                                <span>JavaScript</span>
+                                <span>SEO</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Live</span>
+                                </a>
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 3: DSA Tracker -->
+                <article class="project-card" data-category="tools">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="project-number">03</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">DSA Tracker</h3>
+                                <p class="project-brief">Practice Tracker</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">DSA Tracker</h3>
+                            <p class="project-description">
+                                Lightweight tool for tracking algorithm practice. Track progress,
+                                add notes, and organize LeetCode/Codeforces problems.
+                            </p>
+                            <div class="project-tech">
+                                <span>Python</span>
+                                <span>JavaScript</span>
+                                <span>LocalStorage</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 4: API Playground -->
+                <article class="project-card" data-category="web">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-plug"></i>
+                                </div>
+                                <div class="project-number">04</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">API Playground</h3>
+                                <p class="project-brief">API Experiments</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">API Playground</h3>
+                            <p class="project-description">
+                                REST API experiments focusing on authentication patterns,
+                                third-party integrations, and API design best practices.
+                            </p>
+                            <div class="project-tech">
+                                <span>Node.js</span>
+                                <span>Express</span>
+                                <span>REST</span>
+                                <span>OAuth</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 5: Utility Scripts -->
+                <article class="project-card" data-category="tools">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-terminal"></i>
+                                </div>
+                                <div class="project-number">05</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">Utility Scripts</h3>
+                                <p class="project-brief">Automation Tools</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">Utility Scripts</h3>
+                            <p class="project-description">
+                                Collection of Python and Node.js automation scripts for
+                                file processing, development workflows, and daily tasks.
+                            </p>
+                            <div class="project-tech">
+                                <span>Python</span>
+                                <span>Node.js</span>
+                                <span>Bash</span>
+                                <span>CLI</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 6: Portfolio -->
+                <article class="project-card" data-category="web">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="project-visual">
+                                <div class="visual-bg">
+                                    <i class="fas fa-user-astronaut"></i>
+                                </div>
+                                <div class="project-number">06</div>
+                            </div>
+                            <div class="project-info">
+                                <span class="project-year">2024</span>
+                                <h3 class="project-title">Portfolio v2</h3>
+                                <p class="project-brief">This Website</p>
+                            </div>
+                        </div>
+                        <div class="card-back glass-card">
+                            <h3 class="project-title">Portfolio v2</h3>
+                            <p class="project-description">
+                                Advanced portfolio featuring Three.js 3D graphics,
+                                GSAP animations, custom cursor, and modern glassmorphism design.
+                            </p>
+                            <div class="project-tech">
+                                <span>Three.js</span>
+                                <span>GSAP</span>
+                                <span>CSS3</span>
+                                <span>JavaScript</span>
+                            </div>
+                            <div class="project-links">
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Live</span>
+                                </a>
+                                <a href="#" class="project-link magnetic-btn">
+                                    <i class="fab fa-github"></i>
+                                    <span>Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section class="experience section" id="experience">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">04</span>
+                <h2 class="section-title split-text">Experience & Education</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-track">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                </div>
+
+                <div class="timeline-item" data-aos="fade-right">
+                    <div class="timeline-marker">
+                        <div class="marker-icon">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <div class="marker-pulse"></div>
+                    </div>
+                    <div class="timeline-content glass-card">
+                        <div class="content-header">
+                            <span class="timeline-date">2024</span>
+                            <span class="timeline-type">Work</span>
+                        </div>
+                        <h3 class="timeline-title">Software Developer Intern</h3>
+                        <span class="timeline-subtitle">Remote / Project Collaboration</span>
+                        <ul class="timeline-list">
+                            <li>Implemented REST APIs with MongoDB CRUD operations</li>
+                            <li>Developed reusable UI components with accessibility</li>
+                            <li>Git/GitHub version control with PR reviews</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item" data-aos="fade-left">
+                    <div class="timeline-marker">
+                        <div class="marker-icon">
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <div class="marker-pulse"></div>
+                    </div>
+                    <div class="timeline-content glass-card">
+                        <div class="content-header">
+                            <span class="timeline-date">2023 - Present</span>
+                            <span class="timeline-type">Open Source</span>
+                        </div>
+                        <h3 class="timeline-title">Open-Source Contributor</h3>
+                        <span class="timeline-subtitle">GitHub</span>
+                        <ul class="timeline-list">
+                            <li>Documentation fixes and improvements</li>
+                            <li>Bug fixes in JavaScript projects</li>
+                            <li>Issue reporting and pull request creation</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item" data-aos="fade-right">
+                    <div class="timeline-marker">
+                        <div class="marker-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="marker-pulse"></div>
+                    </div>
+                    <div class="timeline-content glass-card">
+                        <div class="content-header">
+                            <span class="timeline-date">2024 - 2028</span>
+                            <span class="timeline-type">Education</span>
+                        </div>
+                        <h3 class="timeline-title">B.E. in Computer Science & Engineering</h3>
+                        <span class="timeline-subtitle">India</span>
+                        <ul class="timeline-list">
+                            <li>Data Structures & Algorithms</li>
+                            <li>Object-Oriented Programming</li>
+                            <li>Database Management & Web Development</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact section" id="contact">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-number">05</span>
+                <h2 class="section-title split-text">Let's Connect</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="contact-wrapper">
+                <div class="contact-info">
+                    <div class="info-header">
+                        <h3 class="info-title">Get in touch</h3>
+                        <p class="info-text">
+                            I'm open to <strong>freelance opportunities</strong>,
+                            <strong>internships</strong>, and <strong>collaborations</strong>.
+                            Let's build something amazing together.
+                        </p>
+                    </div>
+
+                    <div class="info-cards">
+                        <a href="mailto:ruphak2022@gmail.com" class="info-card glass-card magnetic-btn">
+                            <div class="card-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="card-details">
+                                <span class="card-label">Email</span>
+                                <span class="card-value">ruphak2022@gmail.com</span>
+                            </div>
+                        </a>
+
+                        <a href="tel:+917708358305" class="info-card glass-card magnetic-btn">
+                            <div class="card-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div class="card-details">
+                                <span class="card-label">Phone</span>
+                                <span class="card-value">+91 7708358305</span>
+                            </div>
+                        </a>
+
+                        <div class="info-card glass-card">
+                            <div class="card-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="card-details">
+                                <span class="card-label">Location</span>
+                                <span class="card-value">Tiruppur, India</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="social-links">
+                        <a href="https://linkedin.com/in/ruphakvarmaa" target="_blank" class="social-btn magnetic-btn glass-card">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="https://github.com/ruphakvarmaa" target="_blank" class="social-btn magnetic-btn glass-card">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="mailto:ruphak2022@gmail.com" class="social-btn magnetic-btn glass-card">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <form class="contact-form glass-card" id="contactForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" id="name" name="name" required>
+                            <label for="name">Your Name</label>
+                            <div class="input-line"></div>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" required>
+                            <label for="email">Your Email</label>
+                            <div class="input-line"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <input type="text" id="subject" name="subject" required>
+                        <label for="subject">Subject</label>
+                        <div class="input-line"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <textarea id="message" name="message" rows="5" required></textarea>
+                        <label for="message">Your Message</label>
+                        <div class="input-line"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full magnetic-btn">
+                        <span class="btn-text">Send Message</span>
+                        <span class="btn-icon"><i class="fas fa-paper-plane"></i></span>
+                        <div class="btn-bg"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="#hero" class="footer-logo">
+                        <span class="bracket">&lt;</span>RV<span class="bracket">/&gt;</span>
+                    </a>
+                    <p class="footer-tagline">Building digital experiences with code</p>
+                </div>
+
+                <nav class="footer-nav">
+                    <a href="#about">About</a>
+                    <a href="#skills">Skills</a>
+                    <a href="#projects">Projects</a>
+                    <a href="#experience">Experience</a>
+                    <a href="#contact">Contact</a>
+                </nav>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Ruphak Varmaa S. All rights reserved.</p>
+                <p class="footer-credit">
+                    Crafted with <span class="heart">&hearts;</span> using Three.js & GSAP
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top -->
+    <button class="back-to-top" id="backToTop" aria-label="Back to top">
+        <i class="fas fa-chevron-up"></i>
+        <svg class="progress-ring" viewBox="0 0 100 100">
+            <circle class="progress-ring-circle" cx="50" cy="50" r="45"/>
+        </svg>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
