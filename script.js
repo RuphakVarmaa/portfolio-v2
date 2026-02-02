@@ -796,10 +796,9 @@ function initBackToTop() {
     });
 
     btn.addEventListener('click', () => {
-        gsap.to(window, {
-            scrollTo: { y: 0 },
-            duration: 1,
-            ease: 'power3.inOut'
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
         });
     });
 }
@@ -869,17 +868,18 @@ function initSplitText() {
 }
 
 /* ===================================
-   Smooth Scroll (Fallback)
+   Smooth Scroll
    =================================== */
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            gsap.to(window, {
-                scrollTo: { y: target, offsetY: 80 },
-                duration: 1,
-                ease: 'power3.inOut'
+            const offsetY = 80;
+            const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offsetY;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
             });
         }
     });
