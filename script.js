@@ -67,27 +67,31 @@ function initThreeJS() {
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
 
-    // Particle System
-    const particlesCount = 2000;
+    // Particle System - More visible colors
+    const particlesCount = 3000;
     const positions = new Float32Array(particlesCount * 3);
     const colors = new Float32Array(particlesCount * 3);
     const sizes = new Float32Array(particlesCount);
 
+    // Professional color palette
     const colorPalette = [
-        new THREE.Color('#6c5ce7'),
-        new THREE.Color('#a29bfe'),
-        new THREE.Color('#74b9ff'),
-        new THREE.Color('#81ecec')
+        new THREE.Color('#6c5ce7'),  // Purple
+        new THREE.Color('#a29bfe'),  // Light purple
+        new THREE.Color('#74b9ff'),  // Blue
+        new THREE.Color('#00cec9'),  // Teal
+        new THREE.Color('#fd79a8'),  // Pink
+        new THREE.Color('#55efc4'),  // Mint
     ];
 
     for (let i = 0; i < particlesCount; i++) {
         const i3 = i * 3;
 
-        // Position
-        positions[i3] = (Math.random() - 0.5) * 150;
-        positions[i3 + 1] = (Math.random() - 0.5) * 150;
-        positions[i3 + 2] = (Math.random() - 0.5) * 150;
+        // Position - spread particles more
+        positions[i3] = (Math.random() - 0.5) * 200;
+        positions[i3 + 1] = (Math.random() - 0.5) * 200;
+        positions[i3 + 2] = (Math.random() - 0.5) * 100;
 
         // Color
         const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
@@ -95,8 +99,8 @@ function initThreeJS() {
         colors[i3 + 1] = color.g;
         colors[i3 + 2] = color.b;
 
-        // Size
-        sizes[i] = Math.random() * 2;
+        // Size - varied sizes for depth
+        sizes[i] = Math.random() * 3 + 1;
     }
 
     const particlesGeometry = new THREE.BufferGeometry();
@@ -104,7 +108,7 @@ function initThreeJS() {
     particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     particlesGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-    // Custom Shader Material
+    // Custom Shader Material - Brighter particles
     const particlesMaterial = new THREE.ShaderMaterial({
         uniforms: {
             uTime: { value: 0 },
@@ -127,23 +131,23 @@ function initThreeJS() {
 
                 vec3 pos = position;
 
-                // Wave animation
-                pos.x += sin(uTime * 0.5 + position.y * 0.05) * 2.0;
-                pos.y += cos(uTime * 0.3 + position.x * 0.05) * 2.0;
-                pos.z += sin(uTime * 0.4 + position.z * 0.05) * 1.5;
+                // Smooth wave animation
+                pos.x += sin(uTime * 0.3 + position.y * 0.02) * 3.0;
+                pos.y += cos(uTime * 0.2 + position.x * 0.02) * 3.0;
+                pos.z += sin(uTime * 0.25 + position.z * 0.02) * 2.0;
 
-                // Mouse interaction
-                float dist = distance(pos.xy, uMouse * 50.0);
-                pos.z += smoothstep(20.0, 0.0, dist) * 10.0;
+                // Mouse interaction - stronger effect
+                float dist = distance(pos.xy, uMouse * 80.0);
+                pos.z += smoothstep(30.0, 0.0, dist) * 15.0;
 
                 vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
 
                 // Size attenuation
-                gl_PointSize = size * uPixelRatio * (100.0 / -mvPosition.z);
+                gl_PointSize = size * uPixelRatio * (150.0 / -mvPosition.z);
 
-                // Distance-based opacity
-                vOpacity = smoothstep(150.0, 0.0, -mvPosition.z);
+                // Distance-based opacity - brighter
+                vOpacity = smoothstep(200.0, 0.0, -mvPosition.z);
             }
         `,
         fragmentShader: `
@@ -151,14 +155,17 @@ function initThreeJS() {
             varying float vOpacity;
 
             void main() {
-                // Circular point
+                // Circular point with soft glow
                 float dist = distance(gl_PointCoord, vec2(0.5));
                 if (dist > 0.5) discard;
 
-                // Soft glow
+                // Enhanced glow effect
                 float glow = 1.0 - smoothstep(0.0, 0.5, dist);
+                float core = 1.0 - smoothstep(0.0, 0.2, dist);
 
-                gl_FragColor = vec4(vColor, glow * vOpacity * 0.6);
+                vec3 finalColor = vColor + core * 0.5;
+
+                gl_FragColor = vec4(finalColor, glow * vOpacity * 0.9);
             }
         `,
         transparent: true,
@@ -169,19 +176,40 @@ function initThreeJS() {
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particles);
 
-    // Connecting Lines
-    const linesGeometry = new THREE.BufferGeometry();
-    const linePositions = new Float32Array(300 * 3);
-    linesGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    // Floating geometric shapes
+    const shapes = [];
+    const shapeGeometries = [
+        new THREE.IcosahedronGeometry(3, 0),
+        new THREE.OctahedronGeometry(2.5, 0),
+        new THREE.TetrahedronGeometry(2, 0)
+    ];
 
-    const linesMaterial = new THREE.LineBasicMaterial({
-        color: 0x6c5ce7,
-        transparent: true,
-        opacity: 0.1
-    });
-
-    const lines = new THREE.LineSegments(linesGeometry, linesMaterial);
-    scene.add(lines);
+    for (let i = 0; i < 8; i++) {
+        const geometry = shapeGeometries[Math.floor(Math.random() * shapeGeometries.length)];
+        const material = new THREE.MeshBasicMaterial({
+            color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        const shape = new THREE.Mesh(geometry, material);
+        shape.position.set(
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 50
+        );
+        shape.userData = {
+            rotationSpeed: {
+                x: (Math.random() - 0.5) * 0.02,
+                y: (Math.random() - 0.5) * 0.02,
+                z: (Math.random() - 0.5) * 0.02
+            },
+            floatSpeed: Math.random() * 0.5 + 0.5,
+            floatOffset: Math.random() * Math.PI * 2
+        };
+        shapes.push(shape);
+        scene.add(shape);
+    }
 
     // Mouse tracking
     const mouse = new THREE.Vector2();
@@ -213,52 +241,24 @@ function initThreeJS() {
         particlesMaterial.uniforms.uMouse.value = mouse;
 
         // Rotate particles
-        particles.rotation.y = elapsedTime * 0.05;
-        particles.rotation.x = Math.sin(elapsedTime * 0.1) * 0.1;
+        particles.rotation.y = elapsedTime * 0.03;
+        particles.rotation.x = Math.sin(elapsedTime * 0.05) * 0.1;
 
-        // Move camera based on scroll
-        camera.position.y = -scrollY * 0.02;
-        camera.position.z = 50 + scrollY * 0.01;
+        // Animate shapes
+        shapes.forEach((shape, i) => {
+            shape.rotation.x += shape.userData.rotationSpeed.x;
+            shape.rotation.y += shape.userData.rotationSpeed.y;
+            shape.rotation.z += shape.userData.rotationSpeed.z;
+            shape.position.y += Math.sin(elapsedTime * shape.userData.floatSpeed + shape.userData.floatOffset) * 0.02;
+        });
 
-        // Update connecting lines
-        updateLines();
+        // Move camera based on scroll and mouse
+        camera.position.y = -scrollY * 0.01;
+        camera.position.x = mouse.x * 5;
+        camera.position.z = 50 + scrollY * 0.005;
 
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
-    }
-
-    function updateLines() {
-        const positions = particlesGeometry.attributes.position.array;
-        const linePositions = linesGeometry.attributes.position.array;
-        const threshold = 15;
-        let lineIndex = 0;
-
-        for (let i = 0; i < 100 && lineIndex < linePositions.length; i++) {
-            const i3 = i * 3;
-            const x1 = positions[i3];
-            const y1 = positions[i3 + 1];
-            const z1 = positions[i3 + 2];
-
-            for (let j = i + 1; j < 100 && lineIndex < linePositions.length - 6; j++) {
-                const j3 = j * 3;
-                const x2 = positions[j3];
-                const y2 = positions[j3 + 1];
-                const z2 = positions[j3 + 2];
-
-                const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2);
-
-                if (dist < threshold) {
-                    linePositions[lineIndex++] = x1;
-                    linePositions[lineIndex++] = y1;
-                    linePositions[lineIndex++] = z1;
-                    linePositions[lineIndex++] = x2;
-                    linePositions[lineIndex++] = y2;
-                    linePositions[lineIndex++] = z2;
-                }
-            }
-        }
-
-        linesGeometry.attributes.position.needsUpdate = true;
     }
 
     // Handle resize
@@ -274,7 +274,7 @@ function initThreeJS() {
 }
 
 /* ===================================
-   Custom Cursor
+   Custom Cursor - Enhanced
    =================================== */
 function initCustomCursor() {
     const cursor = document.getElementById('cursor');
@@ -285,23 +285,40 @@ function initCustomCursor() {
     let mouseX = 0, mouseY = 0;
     let cursorX = 0, cursorY = 0;
     let followerX = 0, followerY = 0;
+    let isClicking = false;
 
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
 
-    // Smooth cursor animation
+    document.addEventListener('mousedown', () => {
+        isClicking = true;
+        cursor.classList.add('clicking');
+        follower.classList.add('clicking');
+    });
+
+    document.addEventListener('mouseup', () => {
+        isClicking = false;
+        cursor.classList.remove('clicking');
+        follower.classList.remove('clicking');
+    });
+
+    // Smooth cursor animation with easing
     function animateCursor() {
-        // Cursor follows immediately
-        cursorX += (mouseX - cursorX) * 0.2;
-        cursorY += (mouseY - cursorY) * 0.2;
+        // Cursor follows with spring effect
+        const dx = mouseX - cursorX;
+        const dy = mouseY - cursorY;
+        cursorX += dx * 0.15;
+        cursorY += dy * 0.15;
         cursor.style.left = cursorX + 'px';
         cursor.style.top = cursorY + 'px';
 
-        // Follower has more delay
-        followerX += (mouseX - followerX) * 0.1;
-        followerY += (mouseY - followerY) * 0.1;
+        // Follower has more delay for trail effect
+        const fdx = mouseX - followerX;
+        const fdy = mouseY - followerY;
+        followerX += fdx * 0.08;
+        followerY += fdy * 0.08;
         follower.style.left = followerX + 'px';
         follower.style.top = followerY + 'px';
 
@@ -310,8 +327,8 @@ function initCustomCursor() {
 
     animateCursor();
 
-    // Hover effects
-    const hoverElements = document.querySelectorAll('a, button, .magnetic-btn, .project-card, .skill-item');
+    // Hover effects on interactive elements
+    const hoverElements = document.querySelectorAll('a, button, .magnetic-btn, .project-card, .skill-item, .glass-card, input, textarea');
 
     hoverElements.forEach(el => {
         el.addEventListener('mouseenter', () => {
@@ -323,6 +340,17 @@ function initCustomCursor() {
             cursor.classList.remove('hover');
             follower.classList.remove('hover');
         });
+    });
+
+    // Hide cursor when leaving window
+    document.addEventListener('mouseleave', () => {
+        cursor.style.opacity = '0';
+        follower.style.opacity = '0';
+    });
+
+    document.addEventListener('mouseenter', () => {
+        cursor.style.opacity = '1';
+        follower.style.opacity = '1';
     });
 }
 

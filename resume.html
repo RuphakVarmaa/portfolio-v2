@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruphak Varmaa S - Resume</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #6c5ce7;
+        }
+        h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; color: #6c5ce7; margin-bottom: 10px; }
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #555;
+        }
+        .contact-info a { color: #6c5ce7; text-decoration: none; }
+        .section { margin-bottom: 20px; }
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #6c5ce7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .summary { font-size: 13px; color: #444; }
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 12px;
+        }
+        .skills-grid div { display: flex; gap: 5px; }
+        .skills-grid strong { color: #1a1a2e; min-width: 80px; }
+        .experience-item, .project-item { margin-bottom: 15px; }
+        .exp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 3px;
+        }
+        .exp-title { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .exp-date { font-size: 11px; color: #6c5ce7; }
+        .exp-company { font-size: 12px; color: #666; margin-bottom: 5px; }
+        ul { padding-left: 18px; font-size: 12px; color: #444; }
+        li { margin-bottom: 3px; }
+        .project-title { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+        .project-desc { font-size: 12px; color: #444; }
+        .cert-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px; }
+        .cert-item { background: #f8f9fa; padding: 8px; border-radius: 5px; text-align: center; }
+        .cert-name { font-weight: 600; color: #1a1a2e; }
+        .cert-year { font-size: 11px; color: #666; }
+        @media print {
+            body { padding: 20px; }
+            .section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Ruphak Varmaa S</h1>
+        <p class="subtitle">Computer Science Undergraduate — DSA • Cloud • Full-Stack Development</p>
+        <div class="contact-info">
+            <span>📞 +91 7708358305</span>
+            <span>✉️ <a href="mailto:ruphakv@gmail.com">ruphakv@gmail.com</a></span>
+            <span>📍 Tiruppur, Tamil Nadu</span>
+            <span><a href="https://linkedin.com/in/ruphakvarmaa">LinkedIn</a></span>
+            <span><a href="https://github.com/ruphakvarmaa">GitHub</a></span>
+        </div>
+    </header>
+
+    <section class="section">
+        <h2 class="section-title">Summary</h2>
+        <p class="summary">
+            Computer Science undergraduate with strong foundations in Data Structures, cloud platforms (AWS & Azure certified),
+            and full-stack development. Experienced in building scalable web applications, cloud-based solutions, and applied
+            machine learning projects.
+        </p>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Skills</h2>
+        <div class="skills-grid">
+            <div><strong>Languages:</strong> Java, Python, C++, JavaScript</div>
+            <div><strong>Web:</strong> React, HTML, CSS, Node.js, REST APIs</div>
+            <div><strong>Databases:</strong> MySQL, PostgreSQL, Azure SQL</div>
+            <div><strong>Cloud:</strong> Microsoft Azure (AZ-900), AWS (CLF-C02)</div>
+            <div><strong>Tools:</strong> GitHub, VS Code, IntelliJ IDEA, Postman</div>
+            <div><strong>AI/ML:</strong> OpenCV, Machine Learning fundamentals</div>
+            <div><strong>Core CS:</strong> Data Structures, Algorithms, OOP, DBMS</div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Education</h2>
+        <div class="experience-item">
+            <div class="exp-header">
+                <span class="exp-title">B.E. Computer Science and Engineering</span>
+                <span class="exp-date">2024 – 2028</span>
+            </div>
+            <p class="exp-company">India | CGPA: 7.6/10.0</p>
+            <ul>
+                <li>Strong performance in core CS subjects including DSA, OOP, DBMS, and Software Engineering</li>
+                <li>Completed AWS Cloud Practitioner and Azure AZ-900 certifications</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Experience</h2>
+        <div class="experience-item">
+            <div class="exp-header">
+                <span class="exp-title">Google Student Ambassador (Intern)</span>
+                <span class="exp-date">Sept 2025 – Feb 2026</span>
+            </div>
+            <p class="exp-company">Google, Bangalore, Karnataka</p>
+            <ul>
+                <li>Assisted peers in adopting modern development practices using Google tools and cloud platforms</li>
+                <li>Conducted hands-on workshops on Cloud Computing and Machine Learning, reaching 300+ students</li>
+            </ul>
+        </div>
+        <div class="experience-item">
+            <div class="exp-header">
+                <span class="exp-title">Chief Development Officer (Co-Founder)</span>
+                <span class="exp-date">Sept 2022 – Sept 2024</span>
+            </div>
+            <p class="exp-company">Neural Inverse, Coimbatore, Tamil Nadu</p>
+            <ul>
+                <li>Implemented an image tagging pipeline using Azure Cognitive Services for automated image analysis</li>
+                <li>Designed and optimized Azure SQL schemas, improving query efficiency for datasets up to 10,000+ records</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Projects</h2>
+        <div class="project-item">
+            <span class="project-title">Structural Crack Analysis Network (SCAN)</span>
+            <p class="project-desc">Web application for automated crack detection using Python, OpenCV, and Streamlit. Implemented image processing techniques to classify crack severity. Deployed on Streamlit Cloud with real-time processing.</p>
+        </div>
+        <div class="project-item">
+            <span class="project-title">GarmentSource – B2B E-Commerce Portal</span>
+            <p class="project-desc">B2B platform for textile industry using React, Node.js, and PostgreSQL. Implemented authentication, supplier management, and transaction workflows. Admin dashboard supporting 50+ business units.</p>
+        </div>
+        <div class="project-item">
+            <span class="project-title">Portfolio & Project Hub</span>
+            <p class="project-desc">Advanced portfolio website with Three.js 3D graphics, GSAP animations, and modern glassmorphism design. Optimized performance and SEO; deployed using GitHub Pages.</p>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Certifications</h2>
+        <div class="cert-grid">
+            <div class="cert-item">
+                <div class="cert-name">AWS Cloud Practitioner</div>
+                <div class="cert-year">CLF-C02 • 2024</div>
+            </div>
+            <div class="cert-item">
+                <div class="cert-name">Azure Fundamentals</div>
+                <div class="cert-year">AZ-900 • 2024</div>
+            </div>
+            <div class="cert-item">
+                <div class="cert-name">NPTEL – IIoT 4.0</div>
+                <div class="cert-year">2025</div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

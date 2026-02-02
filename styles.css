@@ -98,46 +98,55 @@ button {
 }
 
 /* ===================================
-   Custom Cursor
+   Custom Cursor - Enhanced
    =================================== */
 .cursor {
     position: fixed;
-    width: 8px;
-    height: 8px;
-    background: var(--accent-primary);
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
     border-radius: 50%;
     pointer-events: none;
     z-index: 10000;
-    mix-blend-mode: difference;
     transform: translate(-50%, -50%);
-    transition: width 0.3s, height 0.3s, background 0.3s;
+    transition: width 0.3s, height 0.3s, background 0.3s, opacity 0.3s;
+    box-shadow: 0 0 20px rgba(108, 92, 231, 0.5), 0 0 40px rgba(108, 92, 231, 0.3);
 }
 
 .cursor-follower {
     position: fixed;
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--accent-primary);
+    width: 45px;
+    height: 45px;
+    border: 2px solid rgba(108, 92, 231, 0.5);
     border-radius: 50%;
     pointer-events: none;
     z-index: 9999;
     transform: translate(-50%, -50%);
-    transition: width 0.3s, height 0.3s, border 0.3s;
-    opacity: 0.5;
+    transition: width 0.4s, height 0.4s, border 0.3s, background 0.3s;
+    backdrop-filter: blur(2px);
 }
 
 .cursor.hover {
-    width: 60px;
-    height: 60px;
-    background: transparent;
-    border: 2px solid var(--accent-primary);
-    mix-blend-mode: normal;
+    width: 50px;
+    height: 50px;
+    background: rgba(108, 92, 231, 0.1);
+    border: 2px solid #6c5ce7;
+    box-shadow: 0 0 30px rgba(108, 92, 231, 0.6), 0 0 60px rgba(108, 92, 231, 0.3);
 }
 
 .cursor-follower.hover {
-    width: 80px;
-    height: 80px;
-    opacity: 0.3;
+    width: 70px;
+    height: 70px;
+    border-color: rgba(162, 155, 254, 0.8);
+    background: rgba(108, 92, 231, 0.05);
+}
+
+.cursor.clicking {
+    transform: translate(-50%, -50%) scale(0.8);
+}
+
+.cursor-follower.clicking {
+    transform: translate(-50%, -50%) scale(0.9);
 }
 
 @media (max-width: 768px) {
@@ -155,8 +164,55 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 1;
+}
+
+/* Professional Gradient Background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(108, 92, 231, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(116, 185, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(162, 155, 254, 0.08) 0%, transparent 60%);
     z-index: -1;
     pointer-events: none;
+}
+
+/* Animated gradient orbs */
+body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+        radial-gradient(circle at 30% 30%, rgba(108, 92, 231, 0.03) 0%, transparent 30%),
+        radial-gradient(circle at 70% 70%, rgba(0, 210, 211, 0.03) 0%, transparent 30%);
+    animation: gradientMove 20s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+}
+
+@keyframes gradientMove {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(2%, 2%) rotate(5deg); }
+    50% { transform: translate(-1%, 3%) rotate(-3deg); }
+    75% { transform: translate(3%, -2%) rotate(3deg); }
+}
+
+[data-theme="light"] body::before {
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(108, 92, 231, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(116, 185, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(162, 155, 254, 0.05) 0%, transparent 60%);
 }
 
 /* ===================================
