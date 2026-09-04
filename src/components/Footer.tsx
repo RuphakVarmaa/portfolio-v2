@@ -6,6 +6,7 @@ import {
   FilePdf,
   GithubLogo,
   LinkedinLogo,
+  Phone,
 } from '@phosphor-icons/react'
 import { profile } from '../data/portfolio'
 
@@ -42,6 +43,10 @@ export function Footer() {
       </div>
 
       <div className="footer-links">
+        <a href={`tel:${profile.phone.replaceAll(' ', '')}`}>
+          <Phone aria-hidden="true" />
+          {profile.phone}
+        </a>
         <a href={profile.linkedin} target="_blank" rel="noreferrer">
           <LinkedinLogo aria-hidden="true" />
           LinkedIn
@@ -54,7 +59,6 @@ export function Footer() {
           <FilePdf aria-hidden="true" />
           Resume
         </a>
-        <a href={`tel:${profile.phone.replaceAll(' ', '')}`}>{profile.phone}</a>
       </div>
 
       <div className="footer-bottom">
