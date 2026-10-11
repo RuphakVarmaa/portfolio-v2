@@ -1,0 +1,50 @@
+/*
+ * A boxed <details> for the extra depth in a demo (the policy rulebook, the review rule list, the paste box):
+ * ink border, a 44 px summary row with a chevron that turns when it opens. Shared by both panels so the two
+ * look and behave the same. Native <details>: keyboard and screen reader behaviour come with the element.
+ */
+
+.box {
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.box summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.box summary::-webkit-details-marker {
+  display: none;
+}
+
+.box summary::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-1) var(--ease-relay);
+}
+
+.box[open] summary {
+  border-bottom: var(--rule);
+}
+
+.box[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.body {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-3);
+}

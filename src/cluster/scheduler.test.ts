@@ -235,6 +235,37 @@ test('pullThePlug with no index prefers the busy node and never throws on an idl
   assert.deepEqual(result.inFlight, [handle.id])
 })
 
+test('restart replaces a worker under the same NodeId without narrating an unplugging', async () => {
+  const { scheduler, clock, hosts, hostFor } = rig()
+  assert.deepEqual(scheduler.restart('retrieval'), { node: 'retrieval-a', inFlight: [] }, 'nothing spawned: a harmless no-op')
+  const ensured = scheduler.ensureService('retrieval')
+  hostFor('retrieval-a').ready()
+  await ensured
+  const before = hosts.length
+  assert.deepEqual(scheduler.restart('retrieval', 0), { node: 'retrieval-a', inFlight: [] })
+  assert.equal(hostFor('retrieval-a').terminated, true, 'Worker.terminate() was really called')
+  assert.equal(scheduler.getState().nodes['retrieval-a'].status, 'dead')
+  assert.equal(scheduler.getState().lastEvent, undefined, 'no "unplugged" sentence: nothing to announce')
+  clock.advance(0)
+  assert.equal(hosts.length, before + 1, 'respawned under the same NodeId')
+  assert.equal(scheduler.getState().spans.length, 0, 'nothing was running, so there is no span to cut short')
+  hostFor('retrieval-a').ready()
+  assert.equal(scheduler.getState().nodes['retrieval-a'].status, 'ready')
+  assert.equal(scheduler.getState().nodes['retrieval-a'].respawns, 1)
+})
+
+test('restart with a job running requeues it like any other loss of a worker', () => {
+  const { scheduler, clock, hostFor } = rig()
+  const job = scheduler.submit('review.analyze', { source: 'x', filename: 'x.js' })
+  hostFor('review-a').ready()
+  clock.advance(5)
+  const restarted = scheduler.restart('review', 0)
+  assert.deepEqual(restarted, { node: 'review-a', inFlight: [job.id] })
+  assert.equal(scheduler.getState().spans.find((span) => span.id === job.id)?.outcome, 'terminated')
+  assert.equal(scheduler.getState().queue[0].id, job.id)
+  assert.ok(!/unplugged/.test(scheduler.getState().lastEvent ?? ''), 'it is a restart, not an unplugging')
+})
+
 test('a job submitted with transferables is never retried', async () => {
   const { scheduler, hostFor } = rig()
   const bitmap = {} as ImageBitmap

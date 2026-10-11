@@ -1,0 +1,741 @@
+/*
+ * Vision demo (S3). Switchboard rules: square corners, ink borders, hard offset shadows, stencil labels,
+ * vermilion only for "happening now" (the LIVE lamp, the needle, the backpressure stamp, an evicted card, a
+ * download in progress). Palette and motion come from the tokens; nothing here animates outside the --dur-*
+ * tokens, which are 0 under lite motion. The demo is a container, so it lays out by its own width, not the
+ * viewport's: one column up to 34rem, the viewfinder beside its controls from there.
+ */
+
+.vz {
+  container: vz / inline-size;
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.bench {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'stage' 'sources' 'queue' 'gauges';
+  min-width: 0;
+}
+
+/* Beside the controls the viewfinder has a definite width (its 320 px picture, the mat and the border), so the picture can be measured. */
+.bench[hidden] {
+  display: none;
+}
+
+@container vz (min-width: 34rem) {
+  .bench {
+    grid-template-columns: calc(320px + 2 * var(--s-2) + 3px) minmax(0, 1fr);
+    grid-template-areas: 'stage sources' 'queue queue' 'gauges gauges';
+  }
+}
+
+/* A stencil label that is also a heading (Label.tsx): the heading element selectors must not win. */
+.label {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* ===== The viewfinder ===== */
+
+.stageBox {
+  grid-area: stage;
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.stageHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.liveTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.lamp {
+  width: 2rem;
+  height: 2rem;
+  overflow: visible;
+}
+
+.glow {
+  fill: var(--live);
+}
+
+.bezel {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.lensOn {
+  fill: var(--live);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.lensOff {
+  fill: var(--lamp-off);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.glare {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* The mat: the picture is mounted on paper like a print, at its own 320 px so every dither pixel is a whole number of screen pixels. */
+.stage {
+  position: relative;
+  margin: 0;
+  padding: var(--s-2);
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+  box-shadow: var(--key-shadow);
+}
+
+.stage[data-drop] {
+  outline: 2px dashed var(--cobalt);
+  outline-offset: -8px;
+}
+
+/* The room the picture has (at most its own 320 px): the engine dithers at this width, so nothing is ever stretched or squeezed. */
+.frame {
+  width: 100%;
+  max-width: 320px;
+  margin-inline: auto;
+}
+
+.sheet {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.overlay svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.finder,
+.halo,
+.bracket {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.finder {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* A paper-coloured outline under every stroke, so it reads over dark and light dither alike. */
+.halo {
+  stroke: var(--paper);
+  stroke-width: 6;
+}
+
+.bracket {
+  stroke: var(--cobalt);
+  stroke-width: 3;
+}
+
+.chip {
+  position: absolute;
+  transform: translateY(-100%);
+  padding: 0 0.35rem;
+  border: 1.5px solid var(--cobalt);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.chip[data-inside] {
+  transform: none;
+}
+
+.chip[data-right] {
+  transform: translate(-100%, -100%);
+}
+
+.chip[data-right][data-inside] {
+  transform: translateX(-100%);
+}
+
+.tag,
+.dropTag {
+  position: absolute;
+  left: var(--s-3);
+  top: var(--s-3);
+  padding: 0 0.5rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.dropTag {
+  top: auto;
+  bottom: var(--s-3);
+  border-color: var(--cobalt);
+}
+
+.stamp {
+  position: absolute;
+  top: var(--s-5);
+  right: var(--s-2);
+  background: var(--paper);
+}
+
+/* The detector's download, on the picture it is for. */
+.loading {
+  position: absolute;
+  inset: auto var(--s-2) var(--s-2);
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.progress {
+  width: 100%;
+  height: 0.75rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+  accent-color: var(--live);
+  appearance: none;
+}
+
+.progress::-webkit-progress-bar {
+  background: var(--paper-2);
+}
+
+.progress::-webkit-progress-value {
+  background: var(--live);
+}
+
+.progress::-moz-progress-bar {
+  background: var(--live);
+}
+
+/* ===== Sources: the camera, an image, the clip ===== */
+
+.sources {
+  grid-area: sources;
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+/* One column beside the viewfinder, two under it; the camera button always has a row to itself, and so does a lone last button. */
+.buttons > :first-child,
+.buttons > :last-child:nth-child(even) {
+  grid-column: 1 / -1;
+}
+
+@container vz (min-width: 34rem) {
+  .buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.status,
+.note,
+.speedNote,
+.meterNote,
+.hint {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+.status {
+  min-height: 2.9em;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+/* ===== The queue: the rack, the motion sensors, the worker's speed ===== */
+
+.queue {
+  grid-area: queue;
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: var(--rule);
+  min-width: 0;
+}
+
+.queueHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-4);
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+.queueControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--s-4) var(--s-6);
+}
+
+.motion {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+  max-width: 22rem;
+}
+
+.speed {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+  max-width: 22rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.speedOptions {
+  display: inline-flex;
+  justify-self: start;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+}
+
+.speedOption {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.speedOption + .speedOption {
+  border-left: 1.5px solid var(--ink);
+}
+
+.speedFace {
+  display: grid;
+  place-items: center;
+  min-width: 5rem;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color var(--dur-1) linear;
+}
+
+.speedOption:hover .speedFace {
+  background: var(--paper-3);
+}
+
+.speedFace[data-on],
+.speedOption:hover .speedFace[data-on] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.speedOption input:focus-visible + .speedFace {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ----- The rack: a 536 x 80 drawing, scaled as a whole; the cards are HTML laid over it by percent ----- */
+
+.rack {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.track {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  max-width: 34rem;
+  aspect-ratio: 536 / 80;
+}
+
+.rackSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pocket,
+.bayBox,
+.flow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.pocket {
+  fill: var(--paper-2);
+  stroke: var(--ink-rule);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.bayBox {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+}
+
+.flow {
+  stroke: var(--cobalt);
+  stroke-width: var(--stroke-draw);
+}
+
+/* A card: positioned by --x (percent of the track), so a change of slot is a slide, never a jump. */
+.card {
+  position: absolute;
+  top: 10.625%;
+  left: 0;
+  width: 15.672%;
+  height: 78.75%;
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+  transform: translateX(calc(var(--x) * 1cqw));
+  transition: transform var(--dur-2) var(--ease-relay);
+  animation: arrive var(--dur-2) var(--ease-relay) backwards;
+}
+
+/* The worker's bay with nothing in it right now: the last card, outlined, not lifted. */
+.card[data-idle] {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.card[data-kind='motion'] {
+  display: grid;
+  place-items: center;
+  border-color: var(--cobalt);
+  box-shadow: 2px 2px 0 var(--cobalt);
+}
+
+/* Evicted: the oldest card is bumped up and out of the rack to make room for the new one. */
+.card[data-ghost] {
+  z-index: 2;
+  border-color: var(--live);
+  box-shadow: 2px 2px 0 var(--live);
+  animation: bump var(--dur-3) var(--ease-out) forwards;
+}
+
+/* A new card slides in from the left over the IN arrow; it is solid the whole way (nothing on this board is translucent). */
+@keyframes arrive {
+  from {
+    transform: translateX(calc((var(--x) - 9) * 1cqw));
+  }
+}
+
+@keyframes bump {
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--x) * 1cqw)) translateY(-55%) rotate(10deg);
+  }
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.cardTag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0 0.25rem;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-variation-settings: 'wdth' 90;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+@container (max-width: 25rem) {
+  .cardTag {
+    display: none;
+  }
+}
+
+.glyph {
+  width: 72%;
+  height: auto;
+}
+
+.glyphBase {
+  fill: none;
+  stroke: var(--ink-rule);
+  stroke-width: 1;
+}
+
+.glyphBar {
+  fill: none;
+  stroke: var(--cobalt);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.bayLamp {
+  position: absolute;
+  top: -0.7rem;
+  right: -0.35rem;
+  z-index: 3;
+  line-height: 0;
+}
+
+.bayLamp .lamp {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.rackLabels {
+  position: relative;
+  max-width: 34rem;
+  height: 1.25rem;
+}
+
+.rackLabels span {
+  position: absolute;
+  transform: translateX(var(--shift, -50%));
+  color: var(--ink-muted);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* ===== Gauges ===== */
+
+.gaugeHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+}
+
+.recTag {
+  padding: 0 0.5rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.gauges {
+  grid-area: gauges;
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: var(--rule);
+  min-width: 0;
+}
+
+.meters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.meterCell {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.compare > div {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+}
+
+.compareValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+@container vz (max-width: 26rem) {
+  .meters {
+    gap: var(--s-2);
+  }
+  .compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ===== Footer: the detector, the recorded run, the recorder ===== */
+
+.foot {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: var(--rule);
+}
+
+/* With the bench hidden (the Basic tier, an unsupported browser) the footer is the whole demo: no rule above nothing. */
+.bench[hidden] + .foot {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.tap {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+}
+
+.tap .progress {
+  max-width: 32rem;
+}
+
+.ready {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 600;
+}
+
+.block {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.rec {
+  border-style: dashed;
+  border-color: var(--live);
+}
+
+.blockActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+}
+
+@media (forced-colors: active) {
+  .speedFace[data-on] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  .bracket,
+  .finder {
+    stroke: CanvasText;
+  }
+  .halo {
+    stroke: Canvas;
+  }
+  .card[data-ghost] {
+    border-color: Highlight;
+  }
+}
+
+/* ===== Fallback: what the prerender, the Basic tier and a failed load show ===== */
+
+.fallback {
+  display: grid;
+  place-items: center;
+  min-height: 18rem;
+  padding: var(--s-4);
+  border: 1.5px dashed var(--ink-rule);
+  color: var(--ink-muted);
+  text-align: center;
+}

@@ -3,8 +3,8 @@
  * never redefine them. Light ("paper") is the default; dark ("ink") is the same two inks inverted.
  * Never lime, never purple, never gradients (the only exception is the quantized lamp glow, drawn in SVG).
  *
- * Contrast (computed, text on --paper): ink 14.9:1, ink-muted >= 7:1, cobalt 6.75:1 (links only, always
- * underlined, never below 16 px), vermilion 3.83:1 (marks, needles, lamps, stamps; text only >= 18 px).
+ * Contrast (computed, text on --paper): ink 14.9:1, ink-muted >= 7:1, cobalt 7.79:1 (links and wires; links
+ * are always underlined and never below 16 px), vermilion 3.83:1 (marks, needles, lamps, stamps; text only >= 18 px).
  */
 
 /* Metric-matched fallbacks: the fallback face takes the web font's space, so the swap does not shift layout. */
@@ -30,7 +30,7 @@
   --ink: #1c1b18; /* text, drawings: 14.9:1 on paper */
   --ink-muted: #4b4741; /* captions, labels: 7.98:1 on paper, 7.23:1 on paper-2 (spec value #4e4a44 was 6.89:1 on paper-2). Never on paper-3 (6.39:1). */
   --ink-rule: #b9b1a2; /* hairlines, ruled paper */
-  --cobalt: #1f3fd1; /* wires, allow-state, links: 6.75:1 on paper */
+  --cobalt: #1c38bb; /* wires, allow-state, links: 7.79:1 on paper, 7.06:1 on paper-2 (the spec's #1F3FD1 is 6.75 and 6.12) */
   --cobalt-soft: color-mix(in oklab, var(--cobalt) 18%, var(--paper));
   --live: #d8431f; /* vermilion: things happening NOW. Marks, needles, lamps, stamps. Never body text. */
   --live-text: #a32e0e; /* vermilion for text >= 18 px only */

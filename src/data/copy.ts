@@ -496,7 +496,7 @@ export const copy = {
         'Switchboard diagram: a control-plane relay in the centre connected by patch cables to lamps for Retrieval, Vision, Policy and Review. Lamps light when each worker is ready; cables pulse when a message passes.',
       plain: 'Each lamp is a real worker. It lights the moment the worker says it is ready.',
       sensorsLamp: 'SENSORS',
-      sensorsCaption: "your phone can do something the laptop can't — scroll to Vision.",
+      sensorsCaption: "Your phone can do something the laptop can't — scroll to Vision.",
       controlPlane: 'CONTROL PLANE',
       /** Names for lamp buttons: "Retrieval — Agentic RAG Document Intelligence — ready". */
       lampName: (short: string, title: string, status: string) => `${short} — ${title} — ${status}`,

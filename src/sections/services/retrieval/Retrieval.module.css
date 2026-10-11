@@ -1,0 +1,866 @@
+/*
+ * SERVICE 01, the reference desk (S2). Switchboard rules as everywhere: square corners, ink borders, hard
+ * offset shadows, stencil labels, one vermilion for "happening now" (the lit lamp, the stamp, the cited
+ * sentence, the model download). A retrieved passage is a stamped index card on ruled paper; the question's
+ * words are marked in cobalt (a match is a connection), the cited sentence is banded in vermilion tint and
+ * underlined the way it will be on the page itself. Container queries (a 480 px card, a 520 px footer) keep
+ * the layout right in a narrow column and on the full-width project page alike. Motion uses the --dur
+ * tokens only, so it is instant under lite motion.
+ */
+
+.demo {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+  container-type: inline-size;
+  /* The demo swaps whole blocks in and out; a removed anchor cannot keep the page still (see hold-place.ts). */
+  overflow-anchor: none;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: var(--rule);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.note {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---- the worker lamp ---- */
+
+.lamp {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.lampSvg {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+}
+
+.bezel {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.lensOff,
+.lensOn {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  transition: fill var(--dur-1) linear;
+}
+
+.lensOff {
+  fill: var(--lamp-off);
+}
+
+.lensOn,
+.glow {
+  fill: var(--live);
+}
+
+.glare {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.lampWords {
+  display: grid;
+  line-height: 1.25;
+  font-size: var(--fs-small);
+}
+
+/* ---- the status plate ---- */
+
+.plate {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-3);
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.plateItem {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+@container (max-width: 419px) {
+  .plateItem {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+.plateValue {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ---- the question ---- */
+
+.form {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.fieldLabel {
+  display: block;
+}
+
+.askRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.input {
+  flex: 1;
+  /* A percentage width makes the field compressible: without it the input's own ~180 px width props up the card on a 320 px phone. */
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  box-shadow: inset 2px 2px 0 var(--paper-3);
+  font-family: var(--font-text);
+  font-size: 1.0625rem;
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.hint {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.chipsBox {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0.4rem 0.85rem;
+  border: 1.5px dashed var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--ease-relay),
+    background-color var(--dur-1) linear;
+}
+
+.chip:hover {
+  border-style: solid;
+  background: var(--paper-3);
+}
+
+.chip:active {
+  transform: translate(2px, 2px);
+}
+
+.idle {
+  max-width: var(--measure);
+  padding: var(--s-3) 0 var(--s-3) var(--s-3);
+  border-left: 3px solid var(--ink);
+}
+
+/* ---- the answer ---- */
+
+.results {
+  display: grid;
+  gap: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: var(--rule-strong);
+  min-width: 0;
+}
+
+.resultsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-1) var(--s-4);
+}
+
+.resultsTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.empty {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1.5px dashed var(--ink);
+}
+
+.problem {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  padding: var(--s-3) var(--s-4);
+  border: 1.5px solid var(--ink);
+  border-left: 6px solid var(--live);
+  background: var(--paper-2);
+}
+
+/* ---- the measured stages ---- */
+
+.timings {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1.5px solid var(--ink);
+  background: var(--ink-rule);
+}
+
+@container (min-width: 560px) {
+  .stages {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.stageCell {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-2) var(--s-2) 0;
+  background: var(--paper-2);
+}
+
+.stageTotal {
+  background: var(--paper);
+}
+
+.stageName {
+  font-family: var(--font-stencil);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.stageMs {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The share of the total each stage took: a rule that grows to its width, hatched like the pipeline's lit parts. */
+.stageBar {
+  display: block;
+  width: calc(var(--share, 0) * 1%);
+  min-width: 2px;
+  height: 5px;
+  margin-top: var(--s-1);
+  background: var(--live);
+}
+
+.timingNote {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.5;
+}
+
+/* ---- index cards ---- */
+
+.cards {
+  display: grid;
+  gap: var(--s-5);
+  margin: 0;
+  padding: 14px 0 0;
+  list-style: none;
+}
+
+.cardItem {
+  position: relative;
+  min-width: 0;
+}
+
+.card {
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+}
+
+.cardTop {
+  border-width: 2px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-height: 44px;
+  padding: var(--s-3);
+  list-style: none;
+  cursor: pointer;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  background: var(--paper-2);
+}
+
+.rank {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+
+.rank svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.rank path {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.rankNumeral {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.where {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.whereLabel {
+  overflow-wrap: anywhere;
+}
+
+.preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.card[open] .preview {
+  display: none;
+}
+
+.score {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  font-family: var(--font-mono);
+  font-variation-settings: 'wdth' 90;
+  text-align: end;
+}
+
+.scoreMain {
+  font-size: var(--fs-mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.scoreSub {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.stampPos {
+  position: absolute;
+  top: -15px;
+  right: 56px;
+  pointer-events: none;
+  background: var(--paper);
+}
+
+.chevron {
+  flex: none;
+  transition: transform var(--dur-1) var(--ease-relay);
+}
+
+.card[open] .chevron {
+  transform: rotate(90deg);
+}
+
+@container (max-width: 479px) {
+  .summary {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .score {
+    grid-column: 2 / 3;
+    justify-items: start;
+    text-align: start;
+  }
+  .stampPos {
+    right: 44px;
+  }
+}
+
+.cardBody {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-top: 1.5px solid var(--ink);
+}
+
+/* Ruled paper: every line box is 24 px and the box has no vertical padding, so the text sits on the rules. */
+.passage {
+  padding: 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  background-color: var(--paper-2);
+  background-image: var(--ruled);
+  background-size: 24px 24px;
+  min-width: 0;
+}
+
+.partLabel {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 24px;
+}
+
+.partLabel:not(:first-child) {
+  margin-top: 24px;
+}
+
+.partHeading {
+  margin: 0;
+  font-family: var(--font-stencil);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 24px;
+  text-transform: uppercase;
+}
+
+.partText {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.cutNote {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 24px;
+}
+
+.passage mark {
+  padding: 0 1px;
+  border-bottom: 2px solid var(--cobalt);
+  background: var(--cobalt-soft);
+  color: inherit;
+}
+
+/* The cited sentence: the same underline the page will show for four seconds once it is found there. */
+.evidence {
+  background: var(--live-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--live);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  box-decoration-break: clone;
+}
+
+.cardFoot {
+  display: grid;
+  gap: var(--s-4);
+  align-items: start;
+}
+
+@container (min-width: 520px) {
+  .cardFoot {
+    grid-template-columns: 14.5rem minmax(0, 1fr);
+  }
+}
+
+.windows {
+  display: grid;
+  gap: var(--s-1);
+  margin: 0;
+  min-width: 0;
+}
+
+.windowsSvg {
+  width: 100%;
+  max-width: 232px;
+  height: auto;
+  overflow: visible;
+}
+
+.page {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.band {
+  fill: var(--live-soft);
+}
+
+.hatch {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 1;
+}
+
+.rule {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+}
+
+.end {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.bracket,
+.bracketActive {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bracket {
+  stroke: var(--ink-muted);
+  stroke-width: 1.25;
+}
+
+.bracketActive {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.windowsCaption {
+  display: grid;
+  gap: 2px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.4;
+}
+
+.windowsRule {
+  font-size: 0.6875rem;
+}
+
+.cardMeta {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.facts {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.facts dt {
+  font-family: var(--font-stencil);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.citeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+
+.citeFrom {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+.citeNote {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---- tier 1: the embedding model, on a tap ---- */
+
+.tap {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: var(--rule-strong);
+}
+
+.tapLabel {
+  margin: 0;
+}
+
+.tapBody {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: start;
+}
+
+.tapCost,
+.tapNote {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.tapMeasured {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  overflow-wrap: anywhere;
+}
+
+.tapDone {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 700;
+}
+
+.tapError {
+  max-width: var(--measure);
+  padding: var(--s-2) var(--s-3);
+  border-left: 6px solid var(--live);
+  background: var(--paper-2);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+.progress {
+  width: min(100%, 20rem);
+}
+
+.progress svg {
+  width: 100%;
+  height: 18px;
+  overflow: visible;
+}
+
+.progressFrame {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.progressFill {
+  fill: var(--live);
+}
+
+.progressHatch {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2;
+}
+
+.progressTick {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.engine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-5);
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1.5px solid var(--ink);
+}
+
+.engine legend {
+  padding: 0 var(--s-1);
+}
+
+.engineOption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.engineOption input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+/*
+ * The rules that live outside this module's names: what a citation does to the page (cite.ts). The sentence
+ * itself gets the vermilion band and a 2 px vermilion underline for four seconds through the CSS Custom Highlight
+ * API, so exactly the cited words are marked and nothing else is touched. Where the browser has no highlights,
+ * the class cite.ts puts on the paragraph does it instead (spec 4.3: `.cited`, a 2 px --live underline).
+ * `.cited` is global on purpose: it styles the page's own elements, wherever they are.
+ */
+::highlight(quorum-cited) {
+  background-color: var(--live-soft);
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--live);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+@supports not selector(::highlight(quorum-cited)) {
+  :global(.cited) {
+    text-decoration: underline;
+    text-decoration-color: var(--live);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+}
+
+/* Forced colors drop backgrounds and box shadows: keep every state on a border, an outline or an underline. */
+@media (forced-colors: active) {
+  .card {
+    box-shadow: none;
+  }
+  .stageCell {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .stageBar {
+    background: Highlight;
+  }
+  .progressFill {
+    fill: Highlight;
+  }
+  .passage mark {
+    border-bottom: 2px solid Highlight;
+  }
+  .lensOn,
+  .glow {
+    fill: Highlight;
+  }
+}

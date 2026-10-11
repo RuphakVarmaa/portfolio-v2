@@ -17,7 +17,11 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / 1_000_000).toFixed(2)} MB`
 }
 
-/** `formatMs(412.4)` -> `412 ms`; under 10 ms keeps one decimal. */
+/**
+ * `formatMs(412.4)` -> `412 ms`; under 10 ms keeps one decimal. A panel whose stages are shorter than that
+ * says how it wants them printed: ServicePanel takes a `formatStageMs` prop (the review panel passes
+ * `formatDuration` from src/lib/review/timing.ts, which prints `46 µs`; retrieval prints `<0.1 ms`).
+ */
 export function formatMs(ms: number): string {
   return ms < 10 ? `${(Math.round(ms * 10) / 10).toString()} ms` : `${Math.round(ms)} ms`
 }

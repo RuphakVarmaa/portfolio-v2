@@ -1,0 +1,14 @@
+{
+  "dim": 384,
+  "generatedAt": null,
+  "generatedBy": null,
+  "model": "all-MiniLM-L6-v2 q8",
+  "sentences": [
+    "Nearest-neighbour search over vectors finds the passages closest in meaning to a question.",
+    "A bounded queue that drops the oldest item keeps latency flat when the consumer falls behind.",
+    "Row-level policies stop one tenant from ever reading another tenant's rows.",
+    "Every pull request is reviewed automatically and the findings are posted inline.",
+    "Where did this answer come from? Every passage points back to the text it was cut from."
+  ],
+  "vectors": null
+}

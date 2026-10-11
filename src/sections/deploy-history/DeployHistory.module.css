@@ -1,0 +1,304 @@
+/*
+ * Deploy History (S6). Roles as releases: a cobalt cable runs down the left edge and every release hangs a
+ * luggage tag (its release tag) from a hex jack on that cable. The shapes are CSS masks of hand-drawn paths
+ * (seeded pen wobble), painted with the theme tokens, so Paper and Ink both work and no image is requested.
+ * Nothing here moves. Markup stays light: one class on the list, element selectors for the rest.
+ */
+
+.releases {
+  --gutter-col: 2.25rem; /* the cable's column */
+  --col-gap: var(--s-3);
+  --jack-y: 22px; /* jack centre, from the top of a release: half the tag's height */
+  --gap: var(--s-7);
+  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 26'%3E%3Cpath d='M27.95 12.96L21.44 24.5L8.18 24.1L1.93 12.69L8.4 1.92L21.77 1.98Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3Ccircle cx='15' cy='13' r='3' fill='%23000'/%3E%3C/svg%3E");
+  --tag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 136 44' preserveAspectRatio='none'%3E%3Cpath d='M1.1 11.5L12.1 1.2L123.7 1.7L134.4 12.1L134.3 31.7L124.2 42.8L12.5 42.7L1.2 32.5ZM14.8 22a4.2 4.2 0 1 0 8.4 0a4.2 4.2 0 1 0-8.4 0' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --spine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 96' preserveAspectRatio='none'%3E%3Cpath d='M12 0C11.9 5.6 11.3 21.1 11.3 31.8C11.4 42.5 12.2 53.8 12.3 64.5C12.4 75.2 12 90.6 12 95.8' fill='none' stroke='%23000' stroke-width='2.6'/%3E%3C/svg%3E");
+  display: grid;
+  gap: var(--gap);
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.releases > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--gutter-col) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-2) var(--col-gap);
+}
+
+/* Narrow: the cable's column, then everything stacked in reading order. */
+@media (max-width: 899px) {
+  .releases > li > * {
+    grid-column: 2;
+  }
+}
+
+/* The cable between this jack and the next (the last release has none), and the jack: a hex bezel with a contact. */
+.releases > li::before,
+.releases > li::after,
+.tag::after {
+  content: '';
+  position: absolute;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.releases > li:not(:last-child)::before {
+  left: calc(var(--gutter-col) / 2 - 12px);
+  top: calc(var(--jack-y) + 13px);
+  width: 24px;
+  height: calc(100% + var(--gap) - 26px);
+  background: var(--cobalt);
+  -webkit-mask: var(--spine) 0 0 / 24px 96px repeat-y;
+  mask: var(--spine) 0 0 / 24px 96px repeat-y;
+}
+
+.releases > li::after {
+  left: calc(var(--gutter-col) / 2 - 15px);
+  top: calc(var(--jack-y) - 13px);
+  width: 30px;
+  height: 26px;
+  -webkit-mask: var(--hex) 0 0 / 100% 100% no-repeat;
+  mask: var(--hex) 0 0 / 100% 100% no-repeat;
+}
+
+/* ---- the release tag, and the lead from the jack to it ---- */
+
+.tag {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: start;
+  width: 8.5rem;
+  height: 44px;
+  padding-left: 0.85rem; /* clear of the hole */
+  font-family: var(--font-stencil);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.tag::after {
+  inset: 0;
+  -webkit-mask: var(--tag) 0 0 / 100% 100% no-repeat;
+  mask: var(--tag) 0 0 / 100% 100% no-repeat;
+}
+
+.tag::before {
+  content: '';
+  position: absolute;
+  top: calc(50% - 1.5px);
+  right: 100%;
+  width: calc(var(--gutter-col) / 2 - 13px + var(--col-gap));
+  height: 3px;
+  background: var(--cobalt);
+}
+
+/* ---- the release ---- */
+
+.releases h3 {
+  min-width: 0;
+}
+
+.org,
+.when {
+  margin: 0;
+}
+
+.org {
+  font-family: var(--font-stencil);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.when {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  white-space: nowrap;
+}
+
+.proof {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-1) 0;
+}
+
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+/* A closed <details> is a keycap; an open one takes the full row so its content has room. */
+.more details[open] {
+  flex: 1 1 100%;
+}
+
+.more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  list-style: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more summary::before {
+  content: '+';
+  content: '+' / '';
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.more details[open] > summary::before {
+  content: '\2212';
+  content: '\2212' / '';
+}
+
+.more summary:hover {
+  background: var(--paper-3);
+}
+
+/* Open = pressed in, like the site's toggle buttons. */
+.more details[open] > summary {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.more details > p {
+  max-width: var(--measure);
+  margin: var(--s-3) 0 0;
+}
+
+/* The stack diff is one line of added entries, like the diff it is named after: a cobalt edge and the plus signs. */
+.more details > .diff {
+  padding: var(--s-1) var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--cobalt);
+  background: var(--paper-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  line-height: 28px;
+}
+
+/* ---- education and certifications: the same ledger, on ruled paper ---- */
+
+.ledger {
+  margin: var(--s-7) 0 0;
+  padding: 24px var(--s-4);
+  border: var(--rule-strong);
+  background: var(--paper-2) var(--ruled) 0 0 / 24px 24px;
+  list-style: none;
+}
+
+/* Every line box is 24 px and the box has no vertical padding, so the text sits on the rules. */
+.ledger li {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--s-3);
+  line-height: 24px;
+}
+
+.ledger span {
+  justify-self: start;
+  padding: 0 0.5em;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+
+/* ---- wide: the tag and the dates in a left column, the release beside them ---- */
+
+@media (min-width: 900px) {
+  .releases {
+    --col-gap: var(--s-4);
+  }
+
+  .releases > li {
+    grid-template-columns: var(--gutter-col) 12.5rem minmax(0, 1fr);
+    grid-template-areas:
+      'rail tag head'
+      'rail when org'
+      'rail . proof'
+      'rail . more';
+  }
+
+  .tag {
+    grid-area: tag;
+  }
+  .releases h3 {
+    grid-area: head;
+  }
+  .org {
+    grid-area: org;
+  }
+  .when {
+    grid-area: when;
+  }
+  .proof {
+    grid-area: proof;
+  }
+  .more {
+    grid-area: more;
+  }
+}
+
+/* ---- modes ---- */
+
+@media (forced-colors: active) {
+  .releases > li::before,
+  .releases > li::after,
+  .tag::before,
+  .tag::after {
+    display: none;
+  }
+  .tag {
+    border: 2px solid CanvasText;
+  }
+  .releases > li {
+    border-left: 4px solid CanvasText;
+    padding-left: var(--s-3);
+  }
+  .more details[open] > summary {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  .more details > .diff {
+    border-left-color: Highlight;
+  }
+}

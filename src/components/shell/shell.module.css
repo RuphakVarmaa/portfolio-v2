@@ -556,6 +556,18 @@
   }
 }
 
+/* A 320 px phone: lamp, three readouts and the LEADER tag ran 50 px past the edge. Tighter gaps, and the uptime (the
+   least useful of the three) steps aside. */
+@media (max-width: 23.5rem) {
+  .stripInner,
+  .stripReadouts {
+    gap: var(--s-2);
+  }
+  .stripUp {
+    display: none;
+  }
+}
+
 @media (forced-colors: active) {
   .stripLampCore[data-beat] {
     background: Highlight;

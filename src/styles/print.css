@@ -1,0 +1,62 @@
+/*
+ * Print rules for the résumé page (S6). Imported by src/pages/ResumePage.tsx, so it ships in the site's one CSS
+ * file; every rule here is either inside `@media print` or scoped to `[data-resume]`, so nothing changes how any
+ * page looks on screen. The page's own layout for paper is the `@media print` block in Resume.module.css.
+ *
+ *   - A4, with margins, for the résumé only (a named page: a browser without the `page` property prints on its
+ *     default paper and the layout still fits).
+ *   - Ink on white, whichever theme is on screen: the tokens are redefined for print, so nothing needs to know.
+ *   - Links are printed as their addresses: a link whose text is not already its address (no `data-url`)
+ *     gets the address in brackets after it. mailto: and tel: links already show their address as text.
+ *   - The site chrome (header, strip, key sheet, skip link) carries `data-no-print`, hidden in base.css.
+ */
+
+@page resume {
+  size: A4;
+  margin: 12mm 14mm 14mm;
+}
+
+[data-resume] {
+  page: resume;
+}
+
+@media print {
+  :root,
+  html[data-theme='dark'] {
+    --paper: #fff;
+    --paper-2: #fff;
+    --paper-3: #fff;
+    --ink: #000;
+    --ink-muted: #1c1c1c;
+    --ink-rule: #777;
+    --cobalt: #000;
+    --live: #000;
+    --live-text: #000;
+    --lamp-off: #fff;
+    --focus: #000;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* The strip's reserved room and the viewport-height minimum would only add a blank page. */
+  html body {
+    min-height: 0;
+    padding-bottom: 0 !important;
+    overflow: visible;
+  }
+
+  [data-resume] a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  [data-resume] a[href^='http']:not([data-url])::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.9em;
+  }
+}

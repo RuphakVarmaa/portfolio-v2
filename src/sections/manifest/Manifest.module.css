@@ -1,0 +1,294 @@
+/*
+ * Manifest (S6). A manifest sheet on ruled paper with a two-position lever switch beside it: PEOPLE reads the
+ * skills as sentences, AGENT prints the file machines read as a numbered, tractor-feed printout. The status
+ * line under the switch shows what the browser measured fetching that file. Tokens only; nothing moves except
+ * the lever, and only when pressed.
+ */
+
+.bench {
+  display: grid;
+  gap: var(--s-6);
+  margin-top: var(--s-6);
+}
+
+@media (min-width: 1024px) {
+  .bench {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    align-items: start;
+    gap: var(--s-7);
+  }
+}
+
+.main {
+  min-width: 0;
+}
+
+/* ---- the switch and the measured status ---- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-5);
+  min-height: 48px; /* the switch arrives after hydration; its room is held */
+  margin-bottom: var(--s-4);
+}
+
+.lever {
+  overflow: visible;
+}
+
+.plate {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.arm {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  transform-box: view-box;
+  transform-origin: 22px 21px;
+  transform: rotate(-32deg);
+  transition: transform var(--dur-1) var(--ease-relay);
+}
+
+.lever[data-agent] .arm {
+  transform: rotate(32deg);
+}
+
+.ball {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  transition: fill var(--dur-1) linear;
+}
+
+.lever[data-agent] .ball {
+  fill: var(--cobalt);
+}
+
+.pivot {
+  fill: var(--ink);
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 24px;
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+/* Lit once the file has actually been fetched: the same lamp language as the board, with a quantized glow. */
+.lamp {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+  transition:
+    background-color var(--dur-1) linear,
+    box-shadow var(--dur-1) linear;
+}
+
+.lamp[data-lit] {
+  background: var(--live);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--live) 60%, transparent),
+    0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent),
+    0 0 0 6px color-mix(in oklab, var(--live) 12%, transparent);
+  margin-right: 4px;
+}
+
+/* ---- the sheet ---- */
+
+.sheet {
+  border: var(--rule-strong);
+  background: var(--paper-2);
+}
+
+.label {
+  margin: 0;
+  padding: 0 var(--s-5);
+  border-bottom: var(--rule-strong);
+  background: var(--paper);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 44px;
+  text-transform: uppercase;
+}
+
+/* The agent view names a path: shown exactly as written, in mono, never upper-cased. */
+.sheet[data-view='agent'] .label {
+  font-family: var(--font-mono);
+  font-variation-settings: 'wdth' 90;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.status {
+  margin: 0;
+  padding: var(--s-5);
+}
+
+/* People: the skills as sentences, every line box 24 px so the text sits on the rules. */
+.skills {
+  margin: 0;
+  padding: 24px var(--s-5);
+  background-color: var(--paper-2);
+  background-image: var(--ruled);
+  background-size: 24px 24px;
+  list-style: none;
+}
+
+.skills li {
+  max-width: 72ch;
+  line-height: 24px;
+}
+
+.skills b {
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* ---- the agent printout: tractor-feed holes, ruled lines, numbered lines of the file's own text ---- */
+
+.json {
+  --holes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='24'%3E%3Ccircle cx='10' cy='12' r='3.2' fill='%23f3eee4' stroke='%23b9b1a2'/%3E%3C/svg%3E");
+  max-height: 32rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-left: 44px;
+  background-color: var(--paper-2);
+  background-image: var(--ruled), var(--holes);
+  background-size:
+    24px 24px,
+    20px 24px;
+  background-repeat: repeat, repeat-y;
+  background-position:
+    0 0,
+    12px 0;
+  background-attachment: local, local;
+}
+
+html[data-theme='dark'] .json {
+  --holes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='24'%3E%3Ccircle cx='10' cy='12' r='3.2' fill='%23141311' stroke='%233c3832'/%3E%3C/svg%3E");
+}
+
+.json:focus-visible {
+  outline-offset: -4px;
+}
+
+.json pre {
+  margin: 0;
+  overflow: visible;
+}
+
+.json code {
+  display: block;
+  counter-reset: line;
+}
+
+.line {
+  position: relative;
+  display: block;
+  padding: 0 var(--s-4) 0 5.5ch;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.line::before {
+  content: counter(line);
+  content: counter(line) / '';
+  counter-increment: line;
+  position: absolute;
+  left: 0;
+  width: 4ch;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  user-select: none;
+}
+
+/* Keys, punctuation and values are told apart by weight, a tint and muted ink, never by colour alone. */
+.k {
+  background: var(--cobalt-soft);
+  font-weight: 700;
+}
+
+.n {
+  font-weight: 700;
+}
+
+.p {
+  color: var(--ink-muted);
+}
+
+/* ---- the three files ---- */
+
+.files {
+  margin: 0;
+  padding: 0;
+  border: var(--rule-strong);
+  background: var(--paper); /* links are cobalt: 7.79:1 on paper, 7.06:1 on paper-2 */
+  list-style: none;
+}
+
+.files li {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+}
+
+.files li + li {
+  border-top: var(--rule-strong);
+}
+
+/* With JavaScript each row gets a copy button after hydration: hold the room (a 44 px link and a 44 px button). */
+html[data-js] .files li {
+  min-height: 7.75rem;
+}
+
+.files a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+@media (max-width: 639px) {
+  .label,
+  .skills,
+  .status {
+    padding-inline: var(--s-4);
+  }
+}
+
+@media (forced-colors: active) {
+  .lamp[data-lit] {
+    outline: 3px solid Highlight;
+  }
+  .k {
+    border-bottom: 2px solid CanvasText;
+    background: none;
+  }
+}

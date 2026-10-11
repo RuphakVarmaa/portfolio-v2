@@ -1,0 +1,1201 @@
+/*
+ * 1 Control Room: the hero and the board (spec 3.2, 4.1).
+ *
+ * Switchboard rules (docs/INTERFACES.md): square corners, strong ink borders, hard offset shadows, stencil
+ * labels, one vermilion for "happening now". No gradients, no blur. Every motion runs on the --dur-* and
+ * --ease-* tokens, which are 0 under lite motion, so a transition written here is instant there. Static
+ * line work uses `vector-effect: non-scaling-stroke`, so the pen is exactly var(--stroke-draw) px at every
+ * board size (and follows prefers-contrast: more).
+ *
+ * The prerendered HTML counts against a byte budget, so most elements carry no class: they are addressed by
+ * structure (`.index li`, `.plate > span`). The board has two layouts of the same switchboard, landscape from
+ * 700 px and portrait below (one media query, used everywhere a layout differs); the board is a size
+ * container, so lamp art and nameplates scale in `cqw`.
+ */
+
+/* ===== shared ==================================================================================== */
+
+/* Stencil lettering (labels, plates, numbers) and the mono face (tape, status words). */
+.relayLabel,
+.hx text,
+.tag text,
+.plate > span:first-child:not(:last-child),
+.plate > span:last-child > span:first-child {
+  font-family: var(--font-stencil);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.boot,
+.plate > span:last-child > span:last-child {
+  font-family: var(--font-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+/* All drawn line work: a pen of exactly --stroke-draw at every size, round joins. */
+.hex,
+.shadowFill,
+.lampBezel,
+.lens,
+.halfLeft,
+.halfRight,
+.focusRing,
+.glare,
+.hairline,
+.relayBase,
+.relayBody,
+.lines path,
+.lines circle,
+.plugMetal,
+.plugBoot {
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.hx use,
+.tagHex,
+.shadowFill,
+.lampBezel,
+.lens,
+.relayBody,
+.lines path,
+.lines circle,
+.plugMetal,
+.plugBoot {
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+}
+
+/* The sprite: the hexagon, the lamp, the dither pattern. Zero size, never display:none (a pattern inside it would break). */
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ===== hero ===================================================================================== */
+
+.hero {
+  padding-block: var(--s-3) var(--s-7);
+}
+
+/* One column in reading order: eyebrow, identity, headline, lead, prompt, then the index (the four projects are on a phone's first screen). */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'e' 'i' 't' 'l' 'p' 's';
+}
+
+.eyebrow {
+  grid-area: e;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.identity {
+  grid-area: i;
+  max-width: 62ch;
+  margin-top: var(--s-1);
+  color: var(--ink-muted);
+  font-size: clamp(0.8125rem, 0.75rem + 0.3vw, 0.9375rem);
+  line-height: 1.4;
+}
+
+.title {
+  grid-area: t;
+  margin-top: var(--s-1);
+  font-size: clamp(2.5rem, 0.6rem + 8.6vw, 3.75rem);
+  letter-spacing: -0.012em;
+}
+
+.lead {
+  grid-area: l;
+  max-width: var(--measure);
+  margin-top: var(--s-3);
+  font-size: clamp(1.0625rem, 0.95rem + 0.55vw, 1.625rem);
+  line-height: 1.4;
+}
+
+.prompt {
+  grid-area: p;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-3);
+}
+
+.side {
+  grid-area: s;
+  min-width: 0;
+  margin-top: var(--s-3);
+}
+
+.plain {
+  margin-top: var(--s-4);
+}
+
+/* The hexagon with its stencil number: the same bezel as the section numbers (drawn once, in the sprite). */
+.hx {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  overflow: visible;
+}
+
+.eyebrow .hx {
+  width: clamp(1.875rem, 1.4rem + 1.5vw, 2.5rem);
+  height: clamp(1.875rem, 1.4rem + 1.5vw, 2.5rem);
+}
+
+.hx use {
+  fill: var(--paper-2);
+}
+
+.hx text {
+  fill: var(--ink);
+  font-size: 21px;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+@media (min-width: 640px) {
+  .hero {
+    padding-block: var(--s-6) var(--s-8);
+  }
+  .identity {
+    margin-top: var(--s-2);
+  }
+  .title {
+    margin-top: var(--s-3);
+    font-size: clamp(2.6rem, 0.85rem + 6.2vw, 6.75rem);
+  }
+  .lead {
+    margin-top: var(--s-4);
+  }
+  .prompt {
+    margin-top: var(--s-4);
+  }
+  .side {
+    margin-top: var(--s-5);
+  }
+  .links a {
+    padding-right: var(--s-3);
+  }
+  .links a + a {
+    padding-left: var(--s-3);
+  }
+}
+
+/* Two columns: letterhead, headline, lead and prompt on the left; the index, résumé links and authorship line on the right. */
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas: 'e s' 'i s' 't s' 'l s' 'p s';
+    grid-template-rows: repeat(4, auto) 1fr;
+    column-gap: var(--s-7);
+  }
+  .side {
+    margin-top: 0;
+  }
+}
+
+/* ===== quorum prompt ============================================================================ */
+
+.hint {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* No keyboard on a phone: the "or press 2" hint is for people who have one. */
+@media (pointer: coarse) {
+  .hint {
+    display: none;
+  }
+}
+
+/* The reward line. Empty until a peer tab really joined; from 640 px its two lines are reserved, so it never moves anything. */
+.reward {
+  flex-basis: 100%;
+  max-width: 72ch;
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+.reward[data-shown] {
+  padding: var(--s-2) var(--s-3);
+  border-left: 4px solid var(--cobalt);
+  background: var(--paper-2);
+  animation: reward-in var(--dur-3) var(--ease-out) both;
+}
+
+@keyframes reward-in {
+  from {
+    background: var(--live-soft);
+  }
+}
+
+@media (min-width: 640px) {
+  .reward {
+    box-sizing: border-box;
+    min-height: 3.75rem;
+  }
+}
+
+/* ===== service index ============================================================================ */
+
+/* A heading that reads as a caption: sentence case under the stencil label. It is kept for the outline and hidden on phones. */
+.indexHeading {
+  margin: var(--s-1) 0 var(--s-3);
+  color: var(--ink-muted);
+  font-family: var(--font-text);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+@media (max-width: 639px) {
+  .indexHeading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.index {
+  list-style: none;
+  border-top: var(--rule-strong);
+}
+
+.index li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  grid-template-areas: 'n a' 'n m';
+  column-gap: var(--s-3);
+  align-items: center;
+  padding: 0.4rem 0.25rem 0.4rem 0;
+  border-bottom: var(--rule);
+}
+
+.index li:hover {
+  background: var(--paper-2);
+}
+
+.index .hx {
+  grid-area: n;
+}
+
+.index a {
+  grid-area: a;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* The whole row is the target; the ring goes around the row. */
+.index a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.index a:focus-visible {
+  outline: none;
+}
+
+.index a:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.index b {
+  grid-area: m;
+  font-family: var(--font-display);
+  /* 19 px at 390: the longest metric ("120ms query latency, down from 340ms", 294 px) fits one line. */
+  font-size: clamp(1.1875rem, 0.7rem + 1.6vw, 1.625rem);
+  letter-spacing: 0.005em;
+  line-height: 1.1;
+}
+
+/* The small lamp on each row, and the pips on the nameplates: lit (vermilion), waiting (dashed), off. */
+.index i,
+.plate i {
+  border: var(--stroke-draw) solid var(--ink);
+  border-radius: 50%;
+  background: var(--lamp-off);
+  transition: background-color var(--dur-1) linear;
+}
+
+.index i {
+  /* A pilot lamp on the hexagon's top right corner: the number on the board's cable, lit when that service is. */
+  grid-area: n;
+  place-self: center;
+  translate: 0.8rem -0.8rem;
+  width: 0.8125rem;
+  height: 0.8125rem;
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.index i[data-s='on'],
+.plate i[data-s='on'] {
+  background: var(--live);
+}
+
+.index i[data-s='wait'],
+.plate i[data-s='wait'] {
+  border-style: dashed;
+  background: var(--paper);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: var(--s-1);
+}
+
+.links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-right: var(--s-2);
+  font-weight: 700;
+}
+
+.links a + a {
+  padding-left: var(--s-2);
+  border-left: var(--rule);
+}
+
+.authorship {
+  max-width: var(--measure);
+  margin-top: var(--s-2);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+/* ===== boot line: the visitor's own boot, on ruled paper ========================================= */
+
+.boot {
+  /* Lines the tape reserves, so the measured text arriving never moves anything. Martian Mono at 13 px is 9 px
+     a character; the longest line the page can print is about 165 characters, which wraps to this many lines. */
+  --lines: 2;
+  margin: var(--s-6) 0 0;
+  min-height: calc(var(--lines) * 24px + 3px);
+  padding: 0 var(--s-3);
+  border: var(--rule-strong);
+  background-color: var(--paper-2);
+  background-image: var(--ruled);
+  background-size: 24px 24px;
+  font-size: 0.8125rem;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .boot {
+    --lines: 3;
+  }
+}
+@media (max-width: 579px) {
+  .boot {
+    --lines: 5;
+  }
+}
+@media (max-width: 339px) {
+  .boot {
+    --lines: 6;
+  }
+}
+
+/* Once the line is the visitor's own measurement, a cobalt margin marks it as a trace. */
+.boot[data-measured] {
+  padding-left: calc(var(--s-3) + 4px);
+  box-shadow: inset 4px 0 0 var(--cobalt);
+}
+
+/* ===== skip the machine: the board as a list ===================================================== */
+
+.off {
+  margin-top: var(--s-6);
+  padding: var(--s-5);
+}
+
+.off > p:first-child {
+  font: 600 var(--fs-h3) / 1 var(--font-display);
+  text-transform: uppercase;
+}
+
+.off > p + p {
+  margin: var(--s-2) 0 var(--s-4);
+}
+
+.off ul {
+  list-style: none;
+  border-top: var(--rule);
+}
+
+.off li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: var(--rule);
+}
+
+.off li > :first-child {
+  min-width: 6.5rem;
+}
+
+.off li a {
+  font-weight: 700;
+}
+
+.off li > :last-child {
+  margin-left: auto;
+  text-transform: uppercase;
+}
+
+/* ===== the board ================================================================================ */
+
+.boardFigure {
+  margin: var(--s-4) 0 0;
+}
+
+.board {
+  container: board / inline-size;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+  aspect-ratio: 400 / 780;
+  border: var(--rule-strong);
+  background: var(--paper-2);
+  /* An engraved line just inside the edge. */
+  box-shadow:
+    inset 0 0 0 5px var(--paper-2),
+    inset 0 0 0 6.5px var(--ink-rule);
+}
+
+/* Rivets in the four corners. */
+.board > i {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: var(--stroke-draw) solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.board > i::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - 0.75px) 1.5px auto;
+  height: 1.5px;
+  background: var(--ink);
+  transform: rotate(-35deg);
+}
+
+.board > i:nth-of-type(1) {
+  top: 12px;
+  left: 12px;
+}
+.board > i:nth-of-type(2) {
+  top: 12px;
+  right: 12px;
+}
+.board > i:nth-of-type(3) {
+  bottom: 12px;
+  left: 12px;
+}
+.board > i:nth-of-type(4) {
+  right: 12px;
+  bottom: 12px;
+}
+
+/* ---- line work of the sprite's lamp and the hexagon ---- */
+
+.hairline {
+  fill: none;
+  stroke: var(--ink-rule);
+  stroke-width: 1;
+}
+
+.shadowFill {
+  fill: var(--ink);
+}
+
+.ditherDot {
+  fill: var(--live);
+}
+
+/* ---- relay ---- */
+
+.relayBox {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: 43%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.relaySvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+}
+
+.relayBody {
+  fill: var(--paper);
+}
+
+.lines path,
+.lines circle {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.lines .paperFill,
+.lines .sockets circle,
+.lines .screws circle,
+.lines .contacts circle {
+  fill: var(--paper-2);
+}
+
+/* The winding: one vertical line, thick as the coil is wide, dashed into a ladder of strokes (it scales with the relay). */
+.lines .winding {
+  stroke-width: 52px;
+  stroke-dasharray: 2.2 6;
+  stroke-linecap: butt;
+  vector-effect: none;
+}
+
+.lines .windowGlass {
+  fill: var(--paper);
+}
+
+.lines .hairline {
+  stroke: var(--ink-rule);
+  stroke-width: 1;
+}
+
+.lines .pivotPin,
+.lines .brass {
+  fill: var(--ink);
+}
+
+/* The contact the arm lands on: a vermilion spark that useBoardMotion flashes. At rest it is invisible. */
+.lines .contacts [data-contact] {
+  fill: var(--live);
+  stroke: none;
+  opacity: 0;
+}
+
+.lines .coilLamp {
+  fill: var(--lamp-off);
+  /* Lights the moment a job runs; stays on 240 ms after the last one ends, so a stream of frames reads as one steady glow. */
+  transition: fill var(--dur-1) linear 240ms;
+}
+
+.lines .coilLamp[data-lit] {
+  fill: var(--live);
+  transition-delay: 0ms;
+}
+
+/* The arm is moved by the Web Animations API (one throw per scheduler message); nothing here animates it. */
+.arm {
+  transform-origin: 0 0;
+}
+
+/* The NODES / TERM display, laid over the window. Percentages of the relay box match RELAY_WINDOW in board-art.ts. */
+.relayWindow {
+  position: absolute;
+  left: 8%;
+  top: 54.67%;
+  width: 84%;
+  height: 40%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.1rem;
+  text-align: center;
+}
+
+.relayLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+}
+
+.relayReadouts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 1.1ch;
+}
+
+/* The shared Readout at its medium size, because only that size flashes on change (spec 4.1); the relay's window is smaller than a masthead, so the size is set here (grown with the relay from 700 px, below). */
+.relayReadouts > span {
+  font-size: 1rem;
+}
+
+/* ---- cables (client only) ---- */
+
+.cables {
+  --cw: 6.2;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cablesWide {
+  --cw: 5.2;
+  display: none;
+}
+
+.cableLine,
+.cableSheen,
+.pulse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cableLine {
+  stroke: var(--cobalt);
+  stroke-width: calc(var(--cw) * (1 + var(--lean, 0) * 0.32));
+  stroke-dasharray: 1;
+  animation: cable-draw var(--dur-boot) var(--ease-out) both;
+  /* 90 ms between cables (a tenth of the draw); every delay here derives from --dur-boot, so under lite motion the whole board is there at once. */
+  animation-delay: calc(var(--i) * var(--dur-boot) * 0.1);
+  /* Back to cobalt 240 ms after the last job of that service ends; vermilion at once when one starts. */
+  transition:
+    stroke var(--dur-1) linear 240ms,
+    stroke-width var(--dur-1) linear;
+}
+
+.cable[data-hot] .cableLine {
+  stroke: var(--live);
+  transition-delay: 0ms;
+}
+
+/*
+ * Pointing at a lamp, or tabbing to it, leans on its cable: the line thickens, so the lamp, the cable and the
+ * number hanging on it read as one thing. (CSS only: :has() needs no state in React. A browser without it just
+ * skips this rule.)
+ */
+.board:has([data-lamp='retrieval']:is(:hover, :focus-visible)) [data-cable='retrieval'],
+.board:has([data-lamp='vision']:is(:hover, :focus-visible)) [data-cable='vision'],
+.board:has([data-lamp='policy']:is(:hover, :focus-visible)) [data-cable='policy'],
+.board:has([data-lamp='review']:is(:hover, :focus-visible)) [data-cable='review'],
+.board:has([data-lamp='sensors']:is(:hover, :focus-visible)) [data-cable='sensors'] {
+  --lean: 1;
+}
+
+/* A thin lighter line along the cable, so it reads as round. */
+.cableSheen {
+  stroke: color-mix(in oklab, var(--cobalt) 38%, var(--paper-2));
+  stroke-width: calc(var(--cw) * 0.24);
+  stroke-dasharray: 1;
+  transform: translate(-1px, -1px);
+  animation: cable-draw var(--dur-boot) var(--ease-out) both;
+  animation-delay: calc(var(--i) * var(--dur-boot) * 0.1);
+}
+
+/*
+ * The pulse: a short dash that useBoardMotion runs along the cable (Web Animations API) on every message. At rest it
+ * is hidden. It is paper-coloured, not vermilion: the cable itself turns vermilion while a job runs, and a vermilion
+ * dash on a vermilion cable would not show. Paper has contrast with the cobalt and the vermilion cable in both themes.
+ */
+.pulse {
+  stroke: var(--paper);
+  stroke-width: calc(var(--cw) * 0.9);
+  stroke-dasharray: 0.16 2;
+  stroke-dashoffset: 0.16;
+  opacity: 0;
+}
+
+@keyframes cable-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.plugMetal {
+  fill: var(--paper-2);
+}
+
+.plugBoot {
+  fill: var(--ink);
+}
+
+/* The numbered tag on each service cable (wide board only: the small board's cables are too short for one). */
+.tag {
+  display: none;
+}
+
+.tagHex {
+  fill: var(--paper);
+  stroke-linejoin: round;
+}
+
+.tag text {
+  fill: var(--ink);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.cablesWide .tag {
+  display: inline;
+  animation: plug-in 1ms linear both;
+  animation-delay: calc((var(--i) * 0.1 + 0.5) * var(--dur-boot));
+}
+
+/* The relay end is plugged in as the cable starts to draw; the lamp end as it arrives. */
+.plugRelay,
+.plugLamp {
+  animation: plug-in 1ms linear both;
+}
+
+.plugRelay {
+  animation-delay: calc(var(--i) * var(--dur-boot) * 0.1);
+}
+
+.plugLamp {
+  animation-delay: calc((var(--i) * 0.1 + 0.78) * var(--dur-boot));
+}
+
+@keyframes plug-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- lamps ---- */
+
+.lamps {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  list-style: none;
+  pointer-events: none;
+}
+
+/*
+ * A lamp is anchored by its centre (percent of the board, from lamp-positions.ts). The art is 110 board units
+ * wide in the landscape layout (9.17 % of 1200) and 77.8 in the portrait one (19.45 % of 400). The button is
+ * the art's box: at least 44 px square. The nameplate hangs off it and is part of the same button.
+ */
+.lampItem {
+  --w: 19.45cqw;
+  position: absolute;
+  left: calc(var(--nx) * 1%);
+  top: calc(var(--ny) * 1%);
+  width: max(var(--w), 44px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.lampItem[data-row='mid'] {
+  --w: 15.7cqw;
+}
+
+.lamp {
+  /* The lamp's state, as custom properties the sprite's lamp reads: lens colour, the three glow rings, the dark half of a two-worker lamp. */
+  --lens: var(--lamp-off);
+  --g1: 0;
+  --g2: 0;
+  --g3: 0;
+  all: unset;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.lamp[data-lit] {
+  --lens: var(--live);
+  --g1: 0.12;
+  --g2: 0.3;
+  --g3: 0.6;
+}
+
+/*
+ * One of two workers is down (policy-b unplugged): that half of the lens goes dark and the near glow ring goes
+ * out, at once. When the worker is back the dark half lingers for --hd (a hold, so a failover that takes 40 ms
+ * can still be seen; the status word and the pips on the plate follow the real state without delay).
+ */
+.lamp {
+  --hd: 700ms;
+  --hu: var(--dur-1);
+}
+
+.lamp[data-half] {
+  --g3: 0;
+  --hd: 0ms;
+  --hu: 0ms;
+}
+
+.lamp[data-half='l'] {
+  --hl: 1;
+}
+
+.lamp[data-half='r'] {
+  --hr: 1;
+}
+
+.lamp:focus-visible {
+  --f: 1;
+}
+
+/*
+ * Tabbing to a lamp scrolls it into view: with its nameplate (above the top row, below the others), and clear of
+ * the sticky header and of the status strip fixed to the bottom edge, which would otherwise cover a lamp that
+ * arrives at the bottom of the screen (WCAG 2.2, focus not obscured). html's scroll-padding-top and
+ * scroll-padding-bottom (base.css) already clear the header and the strip for every control on the page; the
+ * margins here add only what is the board's own business: the nameplate hangs off the lamp, outside the
+ * button's box. The bottom one is 5rem in all, less the 0.75rem (--s-3) that html's padding already holds.
+ */
+.lampItem[data-row='top'] .lamp {
+  scroll-margin-top: 4.5rem;
+}
+
+.lampItem:not([data-row='top']) .lamp {
+  scroll-margin-bottom: calc(5rem - var(--s-3));
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The art is drawn in the sprite: these rules style its parts, and the lamp's custom properties flow in through the <use>. */
+.tilt {
+  transform: rotate(var(--t, 0deg));
+}
+
+.lampBezel {
+  fill: var(--paper);
+}
+
+/* Four steps, hard edged, never smooth (spec 2.5): the 12 %, 30 % and 60 % rings, then the lens itself. */
+.g1,
+.g2,
+.g3 {
+  fill: var(--live);
+  transition: opacity var(--dur-1) linear;
+}
+
+.g1 {
+  opacity: var(--g1);
+}
+.g2 {
+  opacity: var(--g2);
+}
+.g3 {
+  opacity: var(--g3);
+}
+
+/*
+ * Ink theme: the outermost step is a 1-bit dither of 2 px dots instead of a flat disc (spec 2.5). The sprite draws
+ * that step twice, flat (.g1) and dithered (.gd, its fill is the pattern); the lamp's custom properties pick one.
+ * They have to be custom properties: a selector with `html[data-theme]` in front of a sprite part does not match
+ * inside the <use> shadow tree, but custom properties inherit into it.
+ */
+.gd {
+  opacity: var(--gd, 0);
+  transition: opacity var(--dur-1) linear;
+}
+
+html[data-theme='dark'] .lamp[data-lit] {
+  --g1: 0;
+  --gd: 0.8;
+}
+
+.lens {
+  fill: var(--lens);
+  transition: fill var(--dur-1) linear;
+}
+
+.halfLeft,
+.halfRight {
+  fill: var(--lamp-off);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  transition: opacity var(--hu, 0ms) linear var(--hd, 0ms);
+}
+
+.halfLeft {
+  opacity: var(--hl, 0);
+}
+
+.halfRight {
+  opacity: var(--hr, 0);
+}
+
+.glare {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* Keyboard focus: a hexagonal ring around the bezel (and an outline on the nameplate below). */
+.focusRing {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 3px;
+  opacity: var(--f, 0);
+}
+
+.lamp:focus-visible .plate {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---- nameplates ---- */
+
+.plate {
+  position: absolute;
+  left: 50%;
+  display: grid;
+  gap: 0.2rem;
+  width: min(46.5cqw, 14.5rem);
+  padding: 0.4rem 0.55rem 0.45rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+  transform: translateX(-50%);
+  transition:
+    translate var(--dur-1) var(--ease-relay),
+    box-shadow var(--dur-1) var(--ease-relay);
+}
+
+/* Each nameplate is almost half the portrait board wide: above the top lamps, below the bottom ones. */
+.lampItem[data-row='top'] .plate {
+  bottom: calc(100% + 0.5rem);
+}
+
+.lampItem[data-row='bottom'] .plate {
+  top: calc(100% + 0.5rem);
+}
+
+/* The sensors plate hangs on its cable like a tag, under the lamp. */
+.lampItem[data-row='mid'] .plate {
+  top: calc(100% + 0.5rem);
+  width: min(26cqw, 9rem);
+}
+
+/* A key: it lifts a pixel under the pointer and sinks into its shadow when pressed, like the buttons. */
+.lamp:hover .plate {
+  box-shadow: 3px 3px 0 var(--ink);
+  translate: -1px -1px;
+}
+
+.lamp:active .plate {
+  box-shadow: 0 0 0 var(--ink);
+  translate: 2px 2px;
+}
+
+/*
+ * The nameplate's parts, by position (the HTML carries no class on them): a title span (absent on the sensors tag),
+ * then the foot, which is always the last span: name, an optional pips span, status.
+ */
+.plate > span:first-child:not(:last-child) {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* name | pips | status, spread along one line; the status drops to its own row when the plate is too narrow. */
+.plate > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 0.5rem;
+  padding-top: 0.2rem;
+  border-top: var(--rule);
+}
+
+.plate > span:last-child > span:first-child {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+}
+
+.plate > span:last-child > span:nth-child(2):not(:last-child) {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.plate i {
+  width: 9px;
+  height: 9px;
+}
+
+.plate > span:last-child > span:last-child {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+/* ---- caption under the board ---- */
+
+.boardCaption {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* The same caption shape as "In plain words" (a cobalt rule, a stencil label), but always shown: it is a hint about this device, not a plain-language aid. */
+.sensorsCaption {
+  max-width: var(--measure);
+  margin: 0;
+  padding: var(--s-1) 0 var(--s-1) var(--s-3);
+  border-left: 3px solid var(--cobalt);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.sensorsLabel {
+  margin-right: 0.35em;
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ===== the landscape board (from 700 px) ======================================================== */
+
+@media (min-width: 700px) {
+  .board {
+    max-width: none;
+    aspect-ratio: 1200 / 720;
+  }
+  .relayBox {
+    width: 25%;
+  }
+  /* The readouts grow with the relay (they are 16 px on the small board). */
+  .relayReadouts > span {
+    font-size: clamp(1.1rem, 1.7cqw, 1.75rem);
+  }
+  .relayLabel {
+    font-size: clamp(0.75rem, 1.05cqw, 0.9375rem);
+  }
+  .cablesWide {
+    display: block;
+  }
+  .cablesNarrow {
+    display: none;
+  }
+  .lampItem {
+    --w: 9.17cqw;
+    left: calc(var(--wx) * 1%);
+    top: calc(var(--wy) * 1%);
+  }
+  .lampItem[data-row='mid'] {
+    --w: 7.2cqw;
+  }
+  .plate {
+    width: clamp(9.5rem, 21cqw, 14.5rem);
+  }
+  .lampItem[data-row='mid'] .plate {
+    top: 50%;
+    left: calc(100% + 0.9rem);
+    width: clamp(7rem, 15cqw, 11rem);
+    transform: translateY(-50%);
+  }
+  .plate > span:first-child:not(:last-child) {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ===== modes ==================================================================================== */
+
+/* "Skip the machine": the board and its lamps are gone, so are the lamps in the index. */
+html[data-machine='off'] .index i {
+  display: none;
+}
+
+/* Reduced transparency: no translucent glow; a solid halo step stands in for the soft ones. */
+@media (prefers-reduced-transparency: reduce) {
+  .g1,
+  .gd,
+  .g2 {
+    display: none;
+  }
+  .lamp[data-lit] {
+    --g3: 1;
+  }
+  .g3 {
+    fill: color-mix(in oklab, var(--live) 60%, var(--paper-2));
+  }
+}
+
+/* Forced colors drop backgrounds and most colour: keep lit and unlit, hot and cold, apart with system colours. */
+@media (forced-colors: active) {
+  .lamp {
+    --lens: Canvas;
+  }
+  .lamp[data-lit] {
+    --lens: Highlight;
+  }
+  .cableLine {
+    stroke: LinkText;
+  }
+  .cable[data-hot] .cableLine {
+    stroke: Highlight;
+  }
+  .pulse {
+    stroke: Canvas;
+  }
+  .lines .coilLamp[data-lit],
+  .index i[data-s='on'],
+  .plate i[data-s='on'] {
+    fill: Highlight;
+    background: Highlight;
+  }
+}

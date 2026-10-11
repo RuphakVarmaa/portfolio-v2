@@ -17,7 +17,8 @@ export interface PlainCaptionProps {
 export function PlainCaption({ children, label = 'In plain words', className }: PlainCaptionProps) {
   return (
     <p className={cx(styles.plain, className)} data-plain-caption="">
-      <span className={styles.plainLabel}>{label}</span> {children}
+      <span className={styles.plainLabel}>{label}</span>
+      {typeof children === 'string' ? ` ${children}` : <> {children}</>}
     </p>
   )
 }

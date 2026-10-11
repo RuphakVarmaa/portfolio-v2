@@ -1,0 +1,787 @@
+/*
+ * The policy panel (S4). Switchboard rules as everywhere: square corners, ink borders, hard offset shadows,
+ * stencil labels. Cobalt is current and allow, vermilion is a refusal or a plug pulled, dashed grey is a part
+ * the current never reached. Container queries (a 560 px playground, a 640 px fuzz) keep the layout
+ * right in a narrow column and on the full-width project page alike. Motion uses the --dur tokens only.
+ */
+
+.playground {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: var(--rule);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.note {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.hint {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---- worker lamps ---- */
+
+.lamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lampItem {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.lampSvg {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+}
+
+.bezel {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.lensOff,
+.lensOn {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  transition: fill var(--dur-1) linear;
+}
+
+.lensOff {
+  fill: var(--lamp-off);
+}
+
+.lensOn,
+.glow {
+  fill: var(--live);
+}
+
+.glare {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.lampWords {
+  display: grid;
+  line-height: 1.25;
+  font-size: var(--fs-small);
+}
+
+/* ---- the four selectors ---- */
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3) var(--s-4);
+}
+
+@container (min-width: 560px) {
+  .fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.field {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.selectWrap {
+  position: relative;
+  display: block;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2.25rem 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 700;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select:hover {
+  background: var(--paper-3);
+}
+
+/* A 320 px phone: two selectors per row leave each about 106 px, which cut "Member" to "Membe". */
+@media (max-width: 23.5rem) {
+  .select {
+    padding: 0 1.75rem 0 var(--s-2);
+    font-size: 0.9375rem;
+  }
+  .selectWrap::after {
+    right: 10px;
+  }
+}
+
+/* ---- the verdict ---- */
+
+.verdict {
+  display: grid;
+  align-content: center;
+  gap: var(--s-4);
+  /* Room for the whole answer (stamp, ladder, reason, timing) from the first moment, so the verdict
+     arriving does not push the tape and the fuzz down. Measured: 250 px wide, 370 px stacked. */
+  min-height: 23.5rem;
+  padding: var(--s-4);
+  border: var(--rule-strong);
+  background: var(--paper-2);
+}
+
+@container (min-width: 560px) {
+  .verdict {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    min-height: 16.5rem;
+    gap: var(--s-5);
+  }
+}
+
+.stampCell {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3);
+}
+
+.policyLine,
+.engine,
+.recovery,
+.resultLine {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  overflow-wrap: anywhere;
+}
+
+.engine {
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.ladderWrap {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.why {
+  max-width: var(--measure);
+}
+
+.ladder {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.ladderSvg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.rail,
+.wireOn,
+.wireOff,
+.bladeClosed,
+.bladeOpen,
+.bladeIdle,
+.coilOn,
+.coilOff {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rail {
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+}
+
+/* The current is a solid cobalt line over the dashed grey wire; it appears in each wire as its contact closes. */
+.wireOn {
+  stroke: var(--cobalt);
+  stroke-width: 2.5;
+  animation: ladder-current var(--dur-1) linear both;
+  animation-delay: calc(var(--dur-1) * var(--n, 0));
+}
+
+.wireOff,
+.bladeIdle,
+.coilOff {
+  stroke: var(--ink-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+/* A blade is one line from terminal to terminal. Closed it lies flat; open it is swung up about its left
+   terminal (the transform origin is set on the element, in the drawing's own coordinates). */
+.bladeClosed,
+.bladeOpen,
+.bladeIdle {
+  transform-box: view-box;
+}
+
+.bladeClosed {
+  stroke: var(--cobalt);
+  stroke-width: 3.5;
+  animation: ladder-throw var(--dur-1) var(--ease-relay) both;
+  animation-delay: calc(var(--dur-1) * var(--n, 0));
+}
+
+.bladeOpen {
+  stroke: var(--live);
+  stroke-width: 3.5;
+  transform: rotate(-25deg);
+}
+
+.bladeIdle {
+  transform: rotate(-25deg);
+}
+
+@keyframes ladder-throw {
+  from {
+    transform: rotate(-25deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes ladder-current {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.terminal {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+}
+
+.plate,
+.plateStopped,
+.plateIdle {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.plateStopped {
+  stroke: var(--live);
+  stroke-width: 2.5;
+}
+
+.plateIdle {
+  stroke: var(--ink-muted);
+  stroke-dasharray: 3 4;
+}
+
+.coilOn {
+  fill: var(--cobalt-soft);
+  stroke: var(--cobalt);
+  stroke-width: 3;
+  animation: ladder-current var(--dur-1) linear both;
+  animation-delay: calc(var(--dur-1) * var(--n, 0));
+}
+
+.rungs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.rung {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding-inline: 2px;
+}
+
+.rungState {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+.rung[data-state='stopped'] .rungState,
+.rung[data-state='denied'] .rungState,
+.rung[data-state='allowed'] .rungState {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* A 320 px phone: the four ladder words ("passed", "allowed") are wider than their 55 px columns and overprint each other. */
+@media (max-width: 23.5rem) {
+  .rungState {
+    font-size: 0.6875rem;
+    font-variation-settings: 'wdth' 75;
+  }
+}
+
+/* ---- the rulebook, as a patch bay ---- */
+
+/* The table and its key sit side by side when there is room, one under the other when there is not. */
+@container (min-width: 560px) {
+  .rulebookBody {
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--s-5);
+  }
+}
+
+.matrix {
+  width: 100%;
+  max-width: 24rem;
+  border-collapse: collapse;
+}
+
+.matrix th {
+  padding: 0 var(--s-1);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.matrix thead th {
+  padding-bottom: var(--s-1);
+  text-align: center;
+}
+
+.matrix tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.matrix th[data-current] {
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.matrix tbody tr {
+  border-top: 1px solid var(--ink-rule);
+}
+
+.matrix td {
+  height: 40px;
+  text-align: center;
+}
+
+/* A 320 px phone: the table (open by default on the project page) needs 242 px and the card has 236. */
+@media (max-width: 23.5rem) {
+  .matrix th {
+    letter-spacing: 0.04em;
+  }
+}
+
+.jack {
+  display: block;
+  margin: 0 auto;
+}
+
+.jackOn {
+  fill: var(--cobalt);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.jackPin {
+  fill: var(--paper);
+}
+
+.jackOff {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+
+.jackNow {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- the fuzz ---- */
+
+.fuzz {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: var(--rule-strong);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+@media (max-width: 479px) {
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}
+
+.fuzzGrid {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+}
+
+@container (min-width: 640px) {
+  .fuzzGrid {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.fuzzBody {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.ledgerBox {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.ledger {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (min-width: 520px) {
+  .ledger {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+.cell {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  min-height: 6rem;
+  padding: var(--s-2) 2px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+  text-align: center;
+}
+
+.cell[data-state='queued'] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.cell[data-state='running'] {
+  box-shadow: inset 0 3px 0 var(--live);
+}
+
+.cell[data-retried],
+.cell[data-state='failed'] {
+  border: 2px solid var(--live);
+}
+
+.cell[data-state='failed'] {
+  border-style: dashed;
+}
+
+.cellNo {
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cellMark {
+  display: grid;
+  place-items: center;
+  height: 18px;
+}
+
+.cellText {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3) var(--s-4);
+  margin: 0;
+}
+
+@container (min-width: 480px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.statValue {
+  margin: 0;
+}
+
+.recovery,
+.resultLine {
+  padding-left: var(--s-3);
+  border-left: 3px solid var(--cobalt);
+  font-weight: 600;
+}
+
+/* The headline of a fuzz: a status while it runs (so the block below does not move when it ends), the result line after. */
+.resultLine {
+  min-height: 2lh;
+}
+
+.resultLine[data-state='running'],
+.resultLine[data-state='preparing'] {
+  border-left-style: dashed;
+  color: var(--ink-muted);
+}
+
+.resultLine[data-state='failed'] {
+  border-left-color: var(--live);
+}
+
+.recovery {
+  border-left-color: var(--live);
+}
+
+.runCaption {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* Forced colors keep every state on a border or an outline. */
+@media (forced-colors: active) {
+  .cell[data-state='running'] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  .rung[data-state='stopped'] .rungState {
+    outline: 2px solid Highlight;
+  }
+  /* SVG keeps the colours it is given, so every part of the drawings names a system colour. */
+  .rail,
+  .terminal,
+  .plate,
+  .bezel,
+  .lensOff,
+  .lensOn {
+    stroke: CanvasText;
+  }
+  .terminal,
+  .plate,
+  .plateStopped,
+  .plateIdle,
+  .bezel,
+  .lensOff {
+    fill: Canvas;
+  }
+  .wireOff,
+  .bladeIdle,
+  .coilOff,
+  .plateIdle {
+    stroke: GrayText;
+  }
+  .plateStopped {
+    stroke: LinkText;
+  }
+  .glare {
+    stroke: Canvas;
+  }
+  .jackOn {
+    fill: Highlight;
+    stroke: CanvasText;
+  }
+  .jackPin {
+    fill: Canvas;
+  }
+  .jackOff {
+    stroke: GrayText;
+  }
+  .jackNow {
+    stroke: LinkText;
+  }
+  .wireOn,
+  .bladeClosed {
+    stroke: Highlight;
+  }
+  .coilOn {
+    fill: Canvas;
+    stroke: Highlight;
+  }
+  .bladeOpen {
+    stroke: LinkText;
+  }
+  .lensOn,
+  .glow {
+    fill: Highlight;
+  }
+}
+
+/* ---- holding the demo's place (spec 8.1: CLS 0) ---- */
+
+/* Visitors with JavaScript and workers get the playground a moment after the page is up. Until then the static
+   fallback keeps about the playground's height, so nothing below it jumps when it appears. The heights are
+   measured, for the widths the playground's own layout steps at (the same container, so the same steps). */
+.hold {
+  container-type: inline-size;
+}
+
+/* `--room` is the playground's height at this column width with the rulebook closed; the project page opens
+   the rulebook, which adds `--open`. Both are measured. */
+html[data-js] .hold[data-reserve] .fallback {
+  --room: 66rem;
+  --open: 0rem;
+  min-height: calc(var(--room) + var(--open));
+}
+
+html[data-js] .hold[data-reserve][data-open] .fallback {
+  --open: 14rem;
+}
+
+@container (max-width: 639.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 69.5rem;
+  }
+}
+
+@container (max-width: 559.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 83rem;
+  }
+  html[data-js] .hold[data-reserve][data-open] .fallback {
+    --open: 17.7rem;
+  }
+}
+
+@container (max-width: 409.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 89.5rem;
+  }
+  html[data-js] .hold[data-reserve][data-open] .fallback {
+    --open: 19.3rem;
+  }
+}
+
+@container (max-width: 299.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 98rem;
+  }
+}
+
+@container (max-width: 239.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 105rem;
+  }
+}
+
+/* ---- the static fallback (prerendered, Basic tier, failed load) ---- */
+
+.fallback {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.rules {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.rules dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}

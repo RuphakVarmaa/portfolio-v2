@@ -84,7 +84,7 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
         }}
       >
         <div className={styles.tapeInner}>
-          <svg className={styles.tapeHoles} aria-hidden="true" focusable="false">
+          <svg className={styles.tapeHoles} aria-hidden="true">
             <defs>
               <pattern id={holesId} width="20" height="24" patternUnits="userSpaceOnUse">
                 <circle cx="10" cy="12" r="3.2" className={styles.tapeHole} />

@@ -160,10 +160,10 @@ export function Schematic(props: SchematicProps) {
     <>
       <figure className={cx(styles.schematic, className)} role="group" aria-labelledby={`${prefix}t`} aria-describedby={`${prefix}d`} data-schematic="">
         <div className={styles.schematicCanvas} style={canvasVars}>
-          <svg className={styles.schematicNarrow} viewBox={`0 0 ${specs.narrow.width} ${specs.narrow.height}`} aria-hidden="true" focusable="false">
+          <svg className={styles.schematicNarrow} viewBox={`0 0 ${specs.narrow.width} ${specs.narrow.height}`} aria-hidden="true">
             {connectors('narrow')}
           </svg>
-          <svg className={styles.schematicWide} viewBox={`0 0 ${specs.wide.width} ${specs.wide.height}`} aria-hidden="true" focusable="false">
+          <svg className={styles.schematicWide} viewBox={`0 0 ${specs.wide.width} ${specs.wide.height}`} aria-hidden="true">
             <title id={`${prefix}t`}>{title}</title>
             <desc id={`${prefix}d`}>{desc}</desc>
             {connectors('wide')}
@@ -184,7 +184,7 @@ export function Schematic(props: SchematicProps) {
                 onClick={(event) => openPart(node.id, event.currentTarget)}
               >
                 <span className={styles.nodeMain}>{main}</span>
-                {sub ? <span className={styles.nodeSub}>({sub})</span> : null}
+                {sub ? <span className={styles.nodeSub}>{`(${sub})`}</span> : null}
                 {note ? <span className={styles.nodeNote}>{note}</span> : null}
               </button>
             )

@@ -41,6 +41,11 @@ html[data-machine='on'] body {
   padding-bottom: calc(var(--strip-h) + env(safe-area-inset-bottom, 0px));
 }
 
+/* ...and keep whatever receives focus or is scrolled to clear of it too (WCAG 2.2 "focus not obscured"). */
+html[data-machine='on'] {
+  scroll-padding-bottom: calc(var(--strip-h) + var(--s-3) + env(safe-area-inset-bottom, 0px));
+}
+
 ::selection {
   background: var(--selection);
   color: var(--ink);
@@ -130,7 +135,7 @@ canvas {
   max-width: 100%;
 }
 
-/* ---- links: cobalt, always underlined (6.75:1 on paper is for links only, never below 16 px) ---- */
+/* ---- links: cobalt, always underlined (7.79:1 on paper, 7.06:1 on paper-2; never below 16 px) ---- */
 
 a {
   color: var(--cobalt);

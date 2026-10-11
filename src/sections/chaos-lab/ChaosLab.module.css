@@ -1,0 +1,930 @@
+/*
+ * The Chaos Lab: a breaker panel on warm paper. Square corners, strong ink borders, stencil labels, jewel
+ * lamps, patch-cable cobalt for "connected" and vermilion only for "happening now". Every motion runs on
+ * the --dur-* tokens, which are 0 under lite motion. No gradients, no blur, no translucency.
+ * Also styles the span chart (SpanLanes) and the table twin that /experiments/ reuses.
+ */
+
+/* ===== the panel ===== */
+
+.bench {
+  position: relative;
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-7) var(--s-4) var(--s-5);
+  border: var(--rule-strong);
+  background: var(--paper-2);
+}
+
+/* Two columns from 1024 px. The areas live only here: named areas without a template make stray lines. */
+@media (min-width: 1024px) {
+  .bench {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas: 'breakers aside' 'log log';
+    gap: var(--s-6);
+    padding: var(--s-7) var(--s-6) var(--s-6);
+  }
+  .breakers {
+    grid-area: breakers;
+  }
+  .aside {
+    grid-area: aside;
+  }
+  .logBox {
+    grid-area: log;
+  }
+}
+
+/*
+ * The cluster plate stays in view while the three experiments scroll past: closing a tab is something you
+ * do in another window, and the term and the lamps are what you come back to read. Only where the plate is
+ * sure to fit under the header and above the status strip (it is about 44rem tall once the stamp is earned).
+ */
+@media (min-width: 1024px) and (min-height: 820px) {
+  .asideStick {
+    position: sticky;
+    top: calc(var(--header-h) + var(--s-4));
+  }
+}
+
+/* Without JavaScript only the three explanations are on the page: one column, no empty plates. */
+:global(html:not([data-js])) .bench {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+}
+
+:global(html:not([data-js])) .breakers {
+  grid-area: auto;
+}
+
+:global(html:not([data-js])) .aside,
+:global(html:not([data-js])) .logBox {
+  display: none;
+}
+
+.rivet {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.rivet::after {
+  content: '';
+  position: absolute;
+  inset: 3.5px -1px auto;
+  border-top: 1.5px solid var(--ink);
+}
+
+/* The grid item beside the breakers: it stretches over the whole first row, so its sticky child has room to travel. */
+.aside {
+  min-width: 0;
+  min-height: 17rem;
+}
+
+.asideStick {
+  display: grid;
+  align-content: start;
+  gap: var(--s-5);
+}
+
+.logBox {
+  min-width: 0;
+  min-height: 16.5rem;
+}
+
+.status,
+.operator {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.operator {
+  justify-items: start;
+}
+
+.operator p {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+/* The header's Sound switch is 32 px tall; here it is a primary control, so it gets a full touch target. */
+.operator .bigToggle {
+  min-height: 44px;
+  padding-inline: var(--s-4);
+}
+
+.readouts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-6);
+}
+
+.progress {
+  font-family: var(--font-stencil);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  padding: 0 0.65em;
+  border: 1.5px dashed var(--ink-muted);
+  color: var(--ink-muted);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+.steps li[data-done] {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.off {
+  margin-top: var(--s-4);
+  max-width: var(--measure);
+}
+
+/* "Skip the machine": the breakers collapse to a plain list. */
+:global(html[data-machine='off']) .bench {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+:global(html[data-machine='off']) .breaker {
+  padding-inline: 0;
+  border-width: 1px 0 0;
+  border-color: var(--ink-rule);
+  background: none;
+}
+
+/* ===== bezel and breakers ===== */
+
+.bezel {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.bezel path {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.bezelNumber {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-stencil);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.breakers {
+  display: grid;
+  gap: var(--s-5);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breaker {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-4);
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+/* Grid items default to `min-width: auto`, which lets a wide child (a table, a chart) stretch the whole column. */
+.breaker > *,
+.figure > * {
+  min-width: 0;
+}
+
+.breakerHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 40px;
+}
+
+.breakerTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(1.375rem, 1.1rem + 1.1vw, 1.875rem);
+  line-height: 1;
+}
+
+.plate {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 26px;
+  padding: 0 0.6em;
+  border: 1.5px solid var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+  transition: background-color var(--dur-1) linear;
+}
+
+.plate[data-state='running'] {
+  border-color: var(--live);
+}
+
+.plate[data-state='running'] .dot {
+  background: var(--live);
+}
+
+.plate[data-state='proved'] {
+  border-color: var(--cobalt);
+}
+
+/* Proved in an earlier visit (the stamp's progress is remembered): the same mark, drawn dashed. */
+.plate[data-state='earlier'] {
+  border-color: var(--cobalt);
+  border-style: dashed;
+}
+
+.plate[data-state='failed'] {
+  border-style: dashed;
+}
+
+.breaker .leverButton {
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 30rem;
+  min-height: 96px;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-5) var(--s-2) var(--s-2);
+  font-size: 1.125rem;
+  text-align: start;
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  max-width: 30rem;
+  padding: var(--s-2) var(--s-5) var(--s-2) var(--s-2);
+  border: 1.5px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.instruction p {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* On the narrowest phones the 132 px switch plate would leave the words about 80 px: stack them instead. */
+@media (max-width: 23.5rem) {
+  .breaker .leverButton,
+  .instruction {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3) var(--s-3);
+  }
+}
+
+.note,
+.problem {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--fs-small);
+}
+
+.note {
+  color: var(--ink-muted);
+}
+
+.problem {
+  padding: var(--s-2) var(--s-3);
+  border-left: 4px solid var(--live);
+}
+
+/* ===== the lever (a knife switch) ===== */
+
+.lever {
+  flex: none;
+  display: block;
+  width: 112px;
+  height: auto;
+  overflow: visible;
+}
+
+.lever * {
+  vector-effect: non-scaling-stroke;
+}
+
+.leverPlate {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.leverRivet {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.25;
+}
+
+.leverWire {
+  fill: none;
+  stroke: var(--cobalt);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.leverClip,
+.leverHandle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.leverHandle {
+  stroke-width: 2.5;
+}
+
+.leverPost,
+.leverKnob {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.leverPivot {
+  fill: var(--ink);
+}
+
+.leverBlade {
+  transform-box: view-box;
+  transform-origin: 28px 66px;
+  transform: rotate(-62deg);
+  transition: transform var(--dur-1) var(--ease-relay);
+}
+
+.lever[data-closed] .leverBlade {
+  transform: none;
+}
+
+.leverBladeShape {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+  transition: stroke var(--dur-1) linear;
+}
+
+.lever[data-closed] .leverBladeShape {
+  stroke: var(--cobalt);
+}
+
+.leverSpark {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ===== tab lamps ===== */
+
+.lampList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lampItem {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 6.5rem;
+}
+
+.lampItem[data-ghost] {
+  color: var(--ink-muted);
+}
+
+.tabLamp {
+  width: 84px;
+  height: 84px;
+  overflow: visible;
+}
+
+.lampBezel {
+  fill: var(--paper-2);
+  stroke: currentColor;
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.lampBezel[data-ghost] {
+  stroke-dasharray: 4 3;
+}
+
+.lampRing {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+  stroke-linejoin: round;
+}
+
+.lensLit,
+.lensOff {
+  stroke: var(--ink);
+  stroke-width: var(--stroke-draw);
+}
+
+.lensLit {
+  fill: var(--live);
+}
+
+.lensOff {
+  fill: var(--lamp-off);
+}
+
+.lensOff[data-ghost] {
+  fill: none;
+  stroke: currentColor;
+  stroke-dasharray: 3 3;
+}
+
+.lampGlare {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+/*
+ * One ring per heartbeat heard from the leader (NodeLamps re-keys it on every beat, so the animation restarts).
+ * It grows out from behind the bezel and fades. Under lite motion --dur-3 is 0, so it is never seen.
+ */
+.beat {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: beat var(--dur-3) var(--ease-out) both;
+}
+
+@keyframes beat {
+  from {
+    opacity: 0.85;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+.halo,
+.glow,
+.ditherDot {
+  fill: var(--live);
+}
+
+/* Ink theme: the outer halo is a 1-bit dither of 2 px dots instead of a flat tint. */
+:global(html[data-theme='dark']) .halo {
+  fill: var(--dither);
+  fill-opacity: 1;
+}
+
+.lampId {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.lampTags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.tag {
+  padding: 0 0.4em;
+  border: 1.5px solid currentColor;
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag[data-leader] {
+  outline: 1.5px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ===== what an experiment proved ===== */
+
+/* A worker or tab id inside a sentence: mono, and never broken across lines ("tab-" / "4a8c"). */
+.nodeId {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  font-variation-settings: 'wdth' 90;
+  white-space: nowrap;
+}
+
+.reward {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-left: 4px solid var(--cobalt);
+  background: var(--paper-2);
+}
+
+.rewardText {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.receipts {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  line-height: 1.5;
+}
+
+.receipts :global(.stencil) {
+  margin-right: 0.5em;
+  color: var(--ink);
+}
+
+/* ===== the ten batches ===== */
+
+.cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  transition: background-color var(--dur-1) linear;
+}
+
+.cell[data-state='queued'],
+.cell[data-state='retrying'] {
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+
+.cell[data-state='running'],
+.cell[data-state='retrying'] {
+  border-color: var(--live);
+}
+
+.cell[data-state='running'] {
+  outline: 1.5px solid var(--live);
+  outline-offset: 1px;
+}
+
+.cell[data-state='done'],
+.cell[data-state='retried'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.cell[data-state='failed'] {
+  border-style: double;
+  border-width: 4px;
+}
+
+/* A retried batch carries a vermilion corner flag: a shape, not just a colour. */
+.cell[data-state='retried']::after {
+  content: '';
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  border: 6px solid transparent;
+  border-top-color: var(--live);
+  border-right-color: var(--live);
+}
+
+/* ===== the span chart ===== */
+
+.figure {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.lanes {
+  position: relative;
+  min-width: 0;
+  /* The chart measures its box and draws to fit; until it has measured (one frame) it draws at a default width. */
+  overflow: hidden;
+  border: var(--rule);
+  background: var(--paper);
+}
+
+.lanesSvg {
+  display: block;
+  max-width: none;
+}
+
+.lanesEmpty {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+}
+
+.laneText,
+.tickText,
+.barText,
+.barTextDark,
+.dimText {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+.laneText {
+  fill: var(--ink);
+}
+
+.tickText {
+  fill: var(--ink-muted);
+}
+
+.barText {
+  fill: var(--paper);
+  font-weight: 700;
+}
+
+.barTextDark,
+.dimText {
+  fill: var(--ink);
+  font-weight: 700;
+}
+
+.barTextDark {
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+}
+
+.axis,
+.tick,
+.laneRule {
+  fill: none;
+  stroke: var(--ink-rule);
+  stroke-width: 1;
+}
+
+.tick {
+  stroke: var(--ink);
+}
+
+.barOk {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.barSliver {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.barKilled,
+.barError,
+.barOpen {
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+}
+
+.barKilled {
+  stroke: var(--live);
+}
+
+.barError,
+.barOpen {
+  stroke: var(--ink);
+  stroke-dasharray: 3 2;
+}
+
+.barError {
+  fill: var(--paper);
+}
+
+.barOpen {
+  fill: none;
+}
+
+.hatchLine {
+  stroke: var(--live);
+  stroke-width: 1.25;
+}
+
+.retryFlag,
+.cross,
+.dim {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dim {
+  stroke-width: 1.75;
+}
+
+.dimExt {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+/* The key under a span chart: three of the chart's own marks, each with its words. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.legend svg {
+  flex: none;
+  overflow: visible;
+}
+
+.tableBox {
+  min-width: 0;
+  font-size: var(--fs-small);
+}
+
+.tableBox summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.tableBox summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A drawn disclosure triangle (the default marker disappears with display: flex). */
+.tableBox summary::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 12px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transition: transform var(--dur-1) var(--ease-relay);
+}
+
+.tableBox[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.table caption {
+  padding-bottom: var(--s-2);
+  text-align: start;
+}
+
+.table th,
+.table td {
+  padding: 2px var(--s-3) 2px 0;
+  border-bottom: var(--rule);
+  font-weight: 400;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table thead th {
+  font-weight: 700;
+}
+
+/* Forced colors drop fills: keep status on the borders and outlines the system colours preserve. */
+@media (forced-colors: active) {
+  .tableBox summary::before {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+  .steps li[data-done],
+  .cell[data-state='done'],
+  .cell[data-state='retried'] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  .plate[data-state='running'],
+  .plate[data-state='proved'],
+  .plate[data-state='earlier'] {
+    border-width: 3px;
+  }
+}

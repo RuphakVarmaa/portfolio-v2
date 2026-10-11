@@ -1,0 +1,28 @@
+/*
+ * The static fallback of the retrieval demo (prerendered HTML, the Basic tier without Web Workers, a failed
+ * load). Its own module so the panel's entry chunk carries five class names, not the demo's ninety.
+ * The min-height is the demo's first view, so the panel does not jump when the demo arrives.
+ */
+
+.fallback {
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+  min-height: 22rem;
+}
+
+.note {
+  max-width: var(--measure);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.samples {
+  display: grid;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1.4;
+}

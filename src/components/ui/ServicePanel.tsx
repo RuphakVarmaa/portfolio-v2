@@ -39,6 +39,11 @@ export interface ServicePanelProps {
   stamp: 'PORT' | 'RULES ONLY'
   /** Measured stage timings from the last real run. Names should match `copy.pipeline`. */
   stages?: readonly Stage[]
+  /**
+   * How a stage time is printed. Default `formatMs` (`412 ms`, `<0.1 ms`). A panel that times a stage by
+   * repeating it can pass a finer one (`46 µs`); a panel whose clock is coarse keeps the default.
+   */
+  formatStageMs?: (ms: number) => string
   /** Renders the "Show me the pipeline" button; run a real job and feed `stages` as results arrive. */
   onShowPipeline?: () => void
   /** True while a pipeline run is in flight (button shows busy). */
@@ -63,6 +68,7 @@ export function ServicePanel({
   schematic,
   stamp,
   stages,
+  formatStageMs = formatMs,
   onShowPipeline,
   pipelineBusy,
   demoFooter,
@@ -115,7 +121,8 @@ export function ServicePanel({
           ))}
         </ul>
         <p className={styles.stack}>
-          <span className="stencil">{labels.stackLabel}</span> {project.stack.join(' · ')}
+          <span className="stencil">{labels.stackLabel}</span>
+          {` ${project.stack.join(' · ')}`}
         </p>
       </header>
 
@@ -142,7 +149,26 @@ export function ServicePanel({
           <p className={styles.honest} data-flip="">
             {copy.caption}
           </p>
+        </div>
 
+        {/* A group, not an <aside>: the work trace is part of the article, and nested landmarks hurt navigation. */}
+        <div className={cx(styles.trace, 'ruled')} role="group" aria-labelledby={`${anchor}-trace`} data-flip="">
+          <SubHeading id={`${anchor}-trace`} className={styles.subHeading}>
+            {labels.traceHeading}
+          </SubHeading>
+          <dl className={styles.traceList}>
+            {TRACE_ORDER.map((key) => (
+              <div key={key} className={styles.traceItem}>
+                <dt className="stencil">{labels.traceLabels[key]}</dt>
+                <dd>{copy.trace[key]}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        {/* The drawing and its stage list. Beside the demo on a wide screen (the lit parts and their timings are in view while you
+            use it), under the trace; stacked after the trace on a phone. */}
+        <div className={styles.serviceSide}>
           <div data-flip="">
             <Schematic {...schematic} />
           </div>
@@ -164,35 +190,20 @@ export function ServicePanel({
                   return (
                     <li key={name} className={styles.stage} data-measured={ms !== undefined || undefined}>
                       <span>{name}</span>
-                      <span className={styles.stageMs}>{ms === undefined ? '—' : formatMs(ms)}</span>
+                      <span className={styles.stageMs}>{ms === undefined ? '—' : formatStageMs(ms)}</span>
                     </li>
                   )
                 })}
                 {extraStages.map((stage) => (
                   <li key={stage.name} className={styles.stage} data-measured="">
                     <span>{stage.name}</span>
-                    <span className={styles.stageMs}>{formatMs(stage.ms)}</span>
+                    <span className={styles.stageMs}>{formatStageMs(stage.ms)}</span>
                   </li>
                 ))}
               </ol>
               {measured.size === 0 ? <p className={styles.pipelineIdle}>{labels.pipelineIdle}</p> : null}
             </div>
           ) : null}
-        </div>
-
-        {/* A group, not an <aside>: the work trace is part of the article, and nested landmarks hurt navigation. */}
-        <div className={cx(styles.trace, 'ruled')} role="group" aria-labelledby={`${anchor}-trace`} data-flip="">
-          <SubHeading id={`${anchor}-trace`} className={styles.subHeading}>
-            {labels.traceHeading}
-          </SubHeading>
-          <dl className={styles.traceList}>
-            {TRACE_ORDER.map((key) => (
-              <div key={key} className={styles.traceItem}>
-                <dt className="stencil">{labels.traceLabels[key]}</dt>
-                <dd>{copy.trace[key]}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
       </div>
     </article>

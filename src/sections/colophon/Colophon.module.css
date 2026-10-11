@@ -1,0 +1,630 @@
+/*
+ * Colophon (S6). A riveted maker's plate carries the authorship line; beside it the links and a changelog drawn
+ * as a git log (cobalt rail, one jack-dot per version). Below: this session (live telemetry beside the display
+ * preferences), then the build trace, last on the page so that nothing under it is pushed down when it loads.
+ * Masks and tokens only; nothing moves.
+ */
+
+.layout {
+  --rivet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='4.6' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='6' cy='6' r='1.3' fill='%23000'/%3E%3C/svg%3E");
+  display: grid;
+  align-items: start;
+  gap: var(--s-7);
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: var(--s-8);
+  }
+  .build {
+    grid-column: 1 / -1;
+  }
+}
+
+.session h3,
+.prefs h3,
+.build h3,
+.sub {
+  margin-bottom: var(--s-4);
+}
+
+.sub {
+  margin-top: var(--s-5);
+  margin-bottom: var(--s-2);
+}
+
+/* ---- the maker's plate ---- */
+
+.plate {
+  position: relative;
+  padding: 44px 40px;
+  border: var(--rule-strong);
+  background: var(--paper-2);
+  box-shadow: var(--key-shadow);
+  outline: 1px solid var(--ink-rule);
+  outline-offset: -26px;
+}
+
+.plate::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background: var(--ink);
+  -webkit-mask:
+    var(--rivet) top left / 12px 12px no-repeat,
+    var(--rivet) top right / 12px 12px no-repeat,
+    var(--rivet) bottom left / 12px 12px no-repeat,
+    var(--rivet) bottom right / 12px 12px no-repeat;
+  mask:
+    var(--rivet) top left / 12px 12px no-repeat,
+    var(--rivet) top right / 12px 12px no-repeat,
+    var(--rivet) bottom left / 12px 12px no-repeat,
+    var(--rivet) bottom right / 12px 12px no-repeat;
+  pointer-events: none;
+}
+
+.statement {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.credits {
+  max-width: var(--measure);
+  margin-top: var(--s-5);
+  font-size: var(--fs-small);
+}
+
+.credits a,
+.note a {
+  color: var(--ink); /* on the paper-2 plate and panel a cobalt link would be 6.1:1: ink text, cobalt underline */
+  text-decoration-color: var(--cobalt);
+  text-decoration-thickness: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* ---- links and the changelog ---- */
+
+.aside {
+  min-width: 0;
+}
+
+.links {
+  margin: 0;
+  padding: 0;
+  border: var(--rule-strong);
+  background: var(--paper); /* links are cobalt: 7.79:1 on paper, 7.06:1 on paper-2 */
+  list-style: none;
+}
+
+.links li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  min-height: 52px;
+  padding: var(--s-1) var(--s-4);
+}
+
+.links li + li {
+  border-top: var(--rule);
+}
+
+.links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  font-size: 1.0625rem;
+}
+
+/* The Experiments link's lamp: dark until the Chaos Lab's stamp is earned, then lit with the board's quantized glow. */
+.lamp {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+  transition:
+    background-color var(--dur-1) linear,
+    box-shadow var(--dur-1) linear;
+}
+
+.lamp[data-lit] {
+  background: var(--live);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--live) 60%, transparent),
+    0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent),
+    0 0 0 6px color-mix(in oklab, var(--live) 12%, transparent);
+  margin-right: 6px;
+}
+
+/* A git log: a cobalt rail, one dot per version, the whole entry a hash link. */
+.log {
+  margin: 0 0 0 7px;
+  padding: 0;
+  border-left: 3px solid var(--cobalt);
+  list-style: none;
+}
+
+.log li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding-left: var(--s-5);
+}
+
+.log li::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  width: 17px;
+  height: 17px;
+  margin-top: -8.5px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--paper);
+}
+
+.log li:target {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  background: var(--cobalt-soft);
+}
+
+.log li:target a {
+  color: var(--ink); /* cobalt on cobalt-soft is 5.1:1 */
+}
+
+.log a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.log b {
+  margin-right: 0.5ch;
+  font-family: var(--font-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+/* ---- this session: live telemetry and the preferences ---- */
+
+/*
+ * The telemetry and the toggles arrive after the page does (a lazy chunk; hydration). Their room is held from
+ * the start, so nothing beside or below them moves when they appear. The values are the panels' heights,
+ * measured at each width, rounded up; the blank tail at the in-between widths is under 7rem.
+ */
+.sessionSlot {
+  min-height: 36.5rem;
+}
+
+.controls {
+  min-height: 22rem;
+}
+
+.box {
+  padding: var(--s-5);
+}
+
+@media (min-width: 640px) {
+  .sessionSlot {
+    min-height: 26.5rem;
+  }
+  .controls {
+    min-height: 13rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .controls {
+    min-height: 18.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .controls {
+    min-height: 13rem;
+  }
+}
+
+.paint {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: var(--rule-strong);
+}
+
+.paint li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+
+.paint li + li {
+  border-top: var(--rule);
+}
+
+.reading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s-1);
+}
+
+/* The readout reserves its width in ch (no layout shift) but sits flush left under its label. */
+.reading > span > span {
+  text-align: start;
+}
+
+.unit {
+  font-family: var(--font-readout);
+  font-size: 1rem;
+  font-weight: 800;
+  font-variation-settings: 'ROND' 100;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 640px) {
+  .paint {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .paint li {
+    display: grid;
+    align-content: start;
+    gap: var(--s-1);
+    padding: var(--s-4);
+  }
+  .paint li + li {
+    border-top: 0;
+    border-left: var(--rule-strong);
+  }
+}
+
+.rows details + details {
+  border-top: var(--rule);
+}
+
+.rows summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 52px;
+  padding: 0 var(--s-4);
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rows summary::-webkit-details-marker {
+  display: none;
+}
+
+.rows summary > :first-child {
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rows summary > :first-child::before {
+  content: '+';
+  content: '+' / '';
+  display: inline-block;
+  width: 1.4em;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.rows details[open] > summary > :first-child::before {
+  content: '\2212';
+  content: '\2212' / '';
+}
+
+.rows summary > :last-child {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.rows summary:hover {
+  background: var(--paper-3);
+}
+
+.rows details > p,
+.rows details > ul,
+.rows details > table {
+  margin: 0;
+  padding: 0 var(--s-4) var(--s-4);
+  font-size: var(--fs-small);
+}
+
+.rows details > ul {
+  list-style: none;
+}
+
+.rows details > table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.rows th,
+.rows td {
+  padding: var(--s-1) var(--s-2) var(--s-1) 0;
+  font-weight: 400;
+  text-align: start;
+}
+
+.rows th[scope='col'] {
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sources {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--rule-strong);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---- the build trace ---- */
+
+.note {
+  margin: 0;
+}
+
+.trace {
+  padding: var(--s-4) var(--s-5) var(--s-5);
+}
+
+.built {
+  margin: 0 0 var(--s-4);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+/* HTML, CSS and fonts: three figures side by side, a hairline over each. */
+.stats {
+  display: grid;
+  gap: var(--s-3) var(--s-5);
+  margin: 0;
+}
+
+.stats > div {
+  padding-top: var(--s-2);
+  border-top: var(--rule-strong);
+}
+
+.facts dt {
+  font-size: var(--fs-small);
+}
+
+.stats dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.stats b {
+  font-size: 1.25rem;
+}
+
+.stats small {
+  display: block;
+  color: var(--ink-muted);
+  font-family: var(--font-text);
+  font-variation-settings: normal;
+}
+
+.fine {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.cols {
+  display: grid;
+  gap: 0 var(--s-6);
+}
+
+@media (min-width: 640px) {
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The JavaScript files, a group at a time: a solid bar was needed before the page was interactive, an outlined one loads only when something asks. */
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  margin: var(--s-3) 0 var(--s-1);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.group b {
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bar {
+  display: block;
+  box-sizing: border-box;
+  width: max(6px, calc(var(--w) * 100%));
+  height: 10px;
+  border: 1.5px solid var(--ink);
+}
+
+.bar[data-key] {
+  display: inline-block;
+  width: 16px;
+}
+
+.bar[data-initial] {
+  background: var(--ink);
+}
+
+.list {
+  display: grid;
+  margin: 0;
+}
+
+.list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-1) 0;
+  border-top: var(--rule);
+}
+
+.list dt {
+  min-width: 0;
+}
+
+.list code {
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+
+.list small {
+  color: var(--ink-muted);
+}
+
+.list dd {
+  display: grid;
+  flex: none;
+  grid-template-columns: 4.5rem 8ch;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  font-variant-numeric: tabular-nums;
+}
+
+.list dd > :last-child {
+  text-align: end;
+}
+
+@media (min-width: 1024px) {
+  .list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--s-6);
+  }
+}
+
+/* Models and runtime: label left, value right, a hairline between: a ledger. */
+.facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-4);
+  padding: var(--s-2) 0;
+  border-top: var(--rule);
+}
+
+.facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  text-align: end;
+}
+
+.csp {
+  margin: var(--s-2) 0 0;
+  padding: var(--s-3);
+  border: var(--rule-strong);
+  background: var(--paper);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.csp span {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.cspTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-3);
+}
+
+.cspTools p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+@media (max-width: 639px) {
+  .plate {
+    padding: 40px 32px;
+  }
+  .trace {
+    padding-inline: var(--s-4);
+  }
+  .list dd {
+    grid-template-columns: 8ch;
+  }
+  .list .bar {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .plate::before,
+  .log li::before {
+    display: none;
+  }
+  .lamp[data-lit] {
+    outline: 3px solid Highlight;
+  }
+  .bar[data-initial] {
+    background: CanvasText;
+  }
+  .log {
+    border-left-color: CanvasText;
+  }
+}

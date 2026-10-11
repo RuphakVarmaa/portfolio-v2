@@ -1,0 +1,178 @@
+import assert from 'node:assert/strict'
+import { readdirSync, readFileSync } from 'node:fs'
+import { test } from 'node:test'
+import { BEZEL_R, LAMP_ART_W, RELAY_SHARE } from './board-art.ts'
+import { LAMP_BEZEL, SENSORS_BEZEL } from './board-cables.ts'
+import { BOARD_SIZE, LAMP_ORDER } from './lamp-positions.ts'
+
+/**
+ * Static guards over this section's own source: the rules the spec states as "never" (no render loop, no
+ * timer-driven motion, no gradients, no hard-coded colours), and the numbers the stylesheet repeats from
+ * the TypeScript (so a change in one cannot silently drift from the other).
+ */
+
+const dir = new URL('./', import.meta.url)
+const files = readdirSync(dir).filter((name) => /\.(ts|tsx)$/.test(name) && !name.endsWith('.test.ts'))
+const read = (name: string) => readFileSync(new URL(name, dir), 'utf8')
+const css = read('ControlRoom.module.css')
+
+/** Source without comments, so a sentence like "there is no render loop" is not mistaken for code. */
+const code = (name: string) =>
+  read(name)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+test('there is no render loop and no timer in this section: nothing moves unless a real message arrived', () => {
+  assert.ok(files.length >= 14, 'the section files were found')
+  for (const name of files) {
+    const text = code(name)
+    assert.ok(!/\b(requestAnimationFrame|cancelAnimationFrame|setInterval|setTimeout|requestIdleCallback)\b/.test(text), `${name} uses a timer or a frame loop`)
+  }
+})
+
+test('the relay throws and the cables pulse only from scheduler.onMessage', () => {
+  const motion = code('useBoardMotion.ts')
+  assert.equal(motion.match(/scheduler\.onMessage\(/g)?.length, 1)
+  assert.equal(motion.match(/\bthrowRelay\(/g)?.length, 2, 'one definition, one call (inside the onMessage handler)')
+  assert.equal(motion.match(/\bpulseCable\(/g)?.length, 2, 'one definition, one call (inside the onMessage handler)')
+  const handler = motion.slice(motion.indexOf('scheduler.onMessage('))
+  assert.ok(handler.includes('throwRelay(') && handler.includes('pulseCable('))
+  // The throws run on the board only while it is on screen, and never under lite motion.
+  assert.ok(handler.includes("dataset.visible !== '1'") && handler.includes('document.hidden'))
+  assert.ok(/if \(!root \|\| motionLite\) return/.test(motion))
+  // Ping and pong never reach the relay: the scheduler does not report them, and this code does not ask.
+  assert.ok(!/ping|pong/.test(motion))
+})
+
+test('the motion code finds its parts by the data hooks the markup carries', () => {
+  const svg = read('BoardSvg.tsx')
+  assert.ok(svg.includes('data-arm=""'))
+  assert.match(svg, /data-contact=\{i === 0 \? 'in' : 'out'\}/, 'the left contact is `in` (+18 degrees swings the tip left), the right one `out`')
+  assert.ok(read('Cables.tsx').includes('data-pulse={cable.id}'))
+  assert.ok(read('Board.tsx').includes('data-board=""'), 'telemetry samples frames only while data-board is 10 % on screen')
+  const motion = read('useBoardMotion.ts')
+  for (const hook of ['[data-arm]', '[data-contact="${direction}"]', '[data-pulse="${lamp}"]']) assert.ok(motion.includes(hook), hook)
+})
+
+test('nothing touches window, document or navigator at module scope (the page is prerendered on the server)', () => {
+  for (const name of files) {
+    for (const line of code(name).split('\n')) {
+      if (/^\s/.test(line) || line === '') continue
+      assert.ok(!/\b(window|document|navigator|localStorage|sessionStorage|matchMedia)\b/.test(line), `${name}: ${line}`)
+    }
+  }
+})
+
+test('every sprite id that is referenced is defined, once', () => {
+  const sources = files.map(read).join('\n') + css
+  const referenced = new Set([...sources.matchAll(/(?:href="|url\()#(qb-[\w-]+)/g)].map((m) => m[1]))
+  const defined = [...sources.matchAll(/\bid="(qb-[\w-]+)"/g)].map((m) => m[1])
+  assert.deepEqual([...referenced].sort(), ['qb-dither', 'qb-hx', 'qb-lamp', 'qb-rb'])
+  for (const id of referenced) assert.equal(defined.filter((d) => d === id).length, 1, `#${id} is defined ${defined.filter((d) => d === id).length} times`)
+})
+
+test('the stylesheet follows the design rules: no gradients, no blur, no literal colours, square corners, no !important', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.ok(!/gradient\(/.test(bare), 'no gradients (the lamp glow is four hard steps)')
+  assert.ok(!/\bblur\(|\bfilter\s*:|\bbackdrop-filter/.test(bare), 'no blur, no filters')
+  assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(bare), 'colours come from the tokens')
+  assert.ok(!/\brgba?\(|\bhsla?\(/.test(bare), 'colours come from the tokens')
+  assert.ok(!/!important/.test(bare))
+  for (const [, value] of bare.matchAll(/border-radius:\s*([^;]+);/g)) assert.match(value, /^(0|50%)$/, 'a switchboard is square; only lamps and pips are round')
+})
+
+test('the sprite is styled by plain class selectors: an ancestor outside the <use> does not match inside its shadow tree', () => {
+  // The lamp and the hexagon are drawn once in the sprite and `<use>`d. In the instance, a selector such as
+  // `html[data-theme='dark'] .g1` does not match (the ancestor is outside the cloned subtree), so state has to
+  // reach the parts as custom properties, which do inherit. (That is how the Ink theme's dithered halo was lost once.)
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const parts = ['hex', 'g1', 'gd', 'g2', 'g3', 'tilt', 'shadowFill', 'lampBezel', 'focusRing', 'lens', 'halfLeft', 'halfRight', 'glare', 'ditherDot']
+  const selectors = [...bare.matchAll(/([^{}]+)\{/g)].flatMap((match) => match[1].split(',').map((selector) => selector.trim()))
+  assert.ok(selectors.length > 100)
+  for (const part of parts) {
+    assert.ok(selectors.some((selector) => selector.startsWith(`.${part}`)), `.${part} is styled somewhere`)
+    for (const selector of selectors) {
+      assert.ok(!new RegExp(`[\\s>+~]\\.${part}(?![\\w-])`).test(selector), `.${part} has an ancestor in: ${selector}`)
+    }
+  }
+})
+
+test('every transition and animation runs on the motion tokens (instant under lite motion), or is a one-millisecond step', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.ok(!/(transition|animation)-duration/.test(bare))
+  for (const [, value] of bare.matchAll(/\b(?:transition|animation):\s*([^;]+);/g)) {
+    for (const part of value.split(/,(?![^(]*\))/)) {
+      // --hu is a custom property that is var(--dur-1) in the resting state and 0ms while a lamp is degraded (the dark half appears at once).
+      assert.ok(/var\(--dur-/.test(part) || /var\(--hu/.test(part) || /\b1ms\b/.test(part), `not on a motion token: ${part.trim()}`)
+    }
+  }
+})
+
+test('the stylesheet repeats the numbers the geometry is built from', () => {
+  const lamp = (selector: string) => Number(new RegExp(`${selector}\\s*\\{[^}]*--w:\\s*([\\d.]+)cqw`).exec(css)?.[1])
+  const near = (actual: number, expected: number, tolerance = 0.06) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} vs ${expected}`)
+  const share = (bezel: number, board: number) => ((LAMP_ART_W * bezel) / BEZEL_R / board) * 100
+  // The lamp art is 110 board units wide on the landscape board and 110 x (36 / 51) on the portrait one.
+  near(lamp('\\.lampItem'), share(LAMP_BEZEL.narrow, BOARD_SIZE.narrow.width))
+  near(lamp('\\.lampItem\\[data-row=\'mid\'\\]'), share(SENSORS_BEZEL.narrow, BOARD_SIZE.narrow.width))
+  const wide = /@media \(min-width: 700px\) \{[\s\S]*?\.lampItem \{\s*--w:\s*([\d.]+)cqw/.exec(css)
+  near(Number(wide?.[1]), share(LAMP_BEZEL.wide, BOARD_SIZE.wide.width))
+  const wideMid = /@media \(min-width: 700px\) \{[\s\S]*?\.lampItem\[data-row='mid'\] \{\s*--w:\s*([\d.]+)cqw/.exec(css)
+  near(Number(wideMid?.[1]), share(SENSORS_BEZEL.wide, BOARD_SIZE.wide.width))
+  // The relay is 43 % of the portrait board and 25 % of the landscape one; the board's aspect ratios are its drawing spaces.
+  assert.match(css, new RegExp(`\\.relayBox \\{[^}]*width: ${RELAY_SHARE.narrow * 100}%`))
+  assert.match(css, new RegExp(`@media \\(min-width: 700px\\) \\{[\\s\\S]*?\\.relayBox \\{\\s*width: ${RELAY_SHARE.wide * 100}%`))
+  assert.match(css, new RegExp(`aspect-ratio: ${BOARD_SIZE.narrow.width} / ${BOARD_SIZE.narrow.height}`))
+  assert.match(css, new RegExp(`aspect-ratio: ${BOARD_SIZE.wide.width} / ${BOARD_SIZE.wide.height}`))
+})
+
+test('the layout switches at one width (700 px) wherever the board differs between its two layouts', () => {
+  const widths = new Set([...css.matchAll(/@media \(min-width: (\d+)px\)/g)].map((m) => m[1]))
+  assert.ok(widths.has('700'))
+  // 640 (type and spacing), 700 (the board), 1024 (two columns) are the only min-width breakpoints.
+  assert.deepEqual([...widths].sort(), ['1024', '640', '700'])
+})
+
+test('the markup carries the hooks the global state selectors rely on', () => {
+  const board = read('Board.tsx')
+  assert.ok(board.includes('data-machine-only=""') && board.includes('data-js-only=""') && board.includes('data-no-print=""'))
+  assert.ok(read('OffList.tsx').includes('data-machine-off-only=""'))
+  assert.ok(read('QuorumPrompt.tsx').includes('role="status"'), 'the reward line is a live region')
+  assert.ok(read('QuorumPrompt.tsx').includes('data-js-only=""'), 'the key hint does nothing without JavaScript')
+})
+
+test('the board assembles at once under lite motion: every animation delay derives from --dur-boot, none is a fixed time', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const delays = [...bare.matchAll(/animation-delay:\s*([^;]+);/g)].map((match) => match[1])
+  assert.ok(delays.length >= 5, 'the cables, their sheen, both plugs and the tag are staggered')
+  for (const delay of delays) assert.ok(delay.includes('var(--dur-boot)'), `a fixed delay stays under lite motion: ${delay}`)
+})
+
+test('pointing at a lamp, or tabbing to it, leans on its own cable (and only its own)', () => {
+  assert.ok(read('Lamp.tsx').includes('data-lamp={id}'))
+  assert.ok(read('Cables.tsx').includes('data-cable={cable.id}'))
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  for (const id of LAMP_ORDER) {
+    assert.ok(
+      bare.includes(`.board:has([data-lamp='${id}']:is(:hover, :focus-visible)) [data-cable='${id}']`),
+      `${id} has a lean rule that names its own cable`,
+    )
+  }
+  assert.match(bare, /\.cableLine \{[^}]*stroke-width: calc\(var\(--cw\) \* \(1 \+ var\(--lean, 0\)/)
+})
+
+test('keyboard focus scrolls a lamp into view with its nameplate, clear of the header and the strip (WCAG 2.2 focus not obscured)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.match(bare, /\.lampItem\[data-row='top'\] \.lamp \{\s*scroll-margin-top:/)
+  assert.match(bare, /\.lampItem:not\(\[data-row='top'\]\) \.lamp \{\s*scroll-margin-bottom: calc\(5rem - var\(--s-3\)\)/)
+  // the strip clearance itself is global (base.css), so every control near the bottom edge gets it, not only lamps
+  const base = readFileSync(new URL('../../styles/base.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.match(base, /html\[data-machine='on'\] \{\s*scroll-padding-bottom: calc\(var\(--strip-h\) \+ var\(--s-3\)/)
+})
+
+test('the index and the board read paths and ids from the shared constants, not from retyped strings', () => {
+  const index = code('ServiceIndex.tsx')
+  assert.ok(index.includes('copy.contact.resume') && index.includes('SECTION_IDS.contact'))
+  assert.ok(!index.includes('/Ruphak-Varmaa-Resume.pdf') && !index.includes("'/resume/'"))
+  assert.ok(index.includes("from '../../data/portfolio.ts'") && index.includes('project.headlineMetric') && index.includes('project.title'))
+})

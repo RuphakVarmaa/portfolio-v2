@@ -1,3 +1,7 @@
+# ruphak.me: crawlers and agents are welcome.
+# Machine-readable: /profile.json (every fact as JSON), /llms.txt (a short summary for language models),
+# /resume/ (the same facts as a printable HTML page). The sitemap lists every page.
+
 User-agent: *
 Allow: /
 

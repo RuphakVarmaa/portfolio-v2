@@ -99,6 +99,14 @@ export interface Scheduler {
   submit<K extends JobKind>(kind: K, payload: JobPayload[K], opts?: SubmitOptions): JobHandle<K>
   /** Terminate a real worker. In-flight jobs are requeued; the node is respawned. Defaults to the busiest node, else the last one. */
   pullThePlug(service: ServiceId, index?: number): { node: NodeId; inFlight: string[] }
+  /**
+   * End a worker and start a fresh one under the same NodeId, without the "unplugged" narrative: the same
+   * `Worker.terminate()` and respawn as `pullThePlug`, but `lastEvent` is not set (nothing is announced or
+   * printed on a tape) and it is not a chaos event. For a panel that needs a clean worker (ONNX Runtime keeps a
+   * failed session start for the life of its worker). Any job that was running is still requeued and retried,
+   * and that retry is narrated like any other. Does nothing if the node was never spawned.
+   */
+  restart(service: ServiceId, index?: number): { node: NodeId; inFlight: string[] }
   getState(): ClusterState
   /** For `useSyncExternalStore`. Notifications are coalesced to one per microtask. */
   subscribe(listener: () => void): () => void
@@ -694,6 +702,15 @@ export function createScheduler(overrides: Partial<SchedulerDeps> = {}): Schedul
       lastEvent = `${node} unplugged · ${labels.length === 0 ? 'idle' : `${labels.join(', ')} in flight`}`
       takeDown(rec, { outcome: () => 'terminated', respawn: true, permanent: false, message: 'terminated' })
       notify()
+      return { node, inFlight }
+    },
+
+    restart(service, index = 0) {
+      const node = nodeIdFor(service, index)
+      const rec = nodes.get(node)
+      if (!rec || rec.host === null) return { node, inFlight: [] }
+      const inFlight = [...rec.inFlight.values()].map((job) => job.id)
+      takeDown(rec, { outcome: () => 'terminated', respawn: true, permanent: false, message: 'restarted' })
       return { node, inFlight }
     },
 

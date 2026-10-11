@@ -49,9 +49,27 @@ src/components/{shell,ui}/ header, strip, preferences; Button, Stamp, Tape, Mete
 src/sections/              Control Room, Services (4 panels), Chaos Lab, Deploy History, Manifest, Contact, Colophon
 src/data/                  portfolio.ts (facts), copy.ts (all prose), schematics.ts, node-copy.ts
 src/prerender/             server entry, agent files (profile.json, llms.txt, sitemap.xml), build info
-scripts/                   prerender, check-budgets, csp-hash, copy-ort, csp-spike harness
+scripts/                   prerender, check-budgets, csp-hash, copy-ort, class-names (short CSS class names), csp-spike harness
 docs/                      spec, research, interfaces, CSP spike
 ```
+
+## Before you ship (owner checklist)
+
+Everything the build can verify, `pnpm check` verifies. These are the things only you can do or decide:
+
+- [ ] **Model files, the clip and a recorded run** (optional; the site is honest without them). Retrieval is BM25 until
+  you add `public/models/minilm/model_quantized.onnx`; the vision panel says its detector is not published until you
+  add `public/models/yolov8n/yolov8n-320.onnx`. Recorded traces come from a real run with `?record=1` on your own
+  device. Steps: `public/models/README.md` and `public/models/yolov8n/README.md`. Nothing here was downloaded or faked.
+- [ ] **Two user read-throughs.** `docs/USER_TESTS.md` is a template and says so; nobody has been tested yet.
+- [ ] **Firefox and Safari.** The build was only exercised in Chrome. Check the quorum (BroadcastChannel and Web Locks),
+  the camera dialog, the iOS motion permission and the print stylesheet before you announce it.
+- [ ] **`copy.colophon.sourceUrl`** (`src/data/copy.ts`) points at `https://github.com/RuphakVarmaa`; use the exact repository.
+- [ ] **Copy you own.** The work-trace paragraphs marked `[OWNER REVIEW]`, the Neural Inverse dates (Sep 2022 - Sep 2024
+  precede the 2024 degree start; kept verbatim), and whether the phone number stays visible (`profile.publishPhone`
+  in `src/data/portfolio.ts`; it is never in `profile.json`, `llms.txt` or the JSON-LD).
+- [ ] **Budgets.** `dist/index.html` is within about 1 KB of its 60 KB limit. If you lengthen the copy and the build
+  fails, trim the prose or raise the limit on purpose in `scripts/check-budgets.mjs`; do not edit the check around it.
 
 ## Making-of (skeleton)
 

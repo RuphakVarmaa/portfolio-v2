@@ -146,7 +146,7 @@ export function Meter({ label, value, min, max, unit, warn, decimals = 0, instan
       aria-valuenow={value}
       aria-valuetext={`${shown}${unit ? ` ${unit}` : ''}${warn !== undefined && value >= warn ? ', over the limit' : ''}`}
     >
-      <svg className={styles.meterDial} viewBox="0 0 200 134" aria-hidden="true" focusable="false">
+      <svg className={styles.meterDial} viewBox="0 0 200 134" aria-hidden="true">
         <path className={styles.meterFrame} d={frame} />
         <path className={styles.meterScale} d={arc(0, 1, RADIUS)} />
         {warnFrom !== null ? <path className={styles.meterWarnArc} d={arc(warnFrom, 1, RADIUS - 2)} /> : null}

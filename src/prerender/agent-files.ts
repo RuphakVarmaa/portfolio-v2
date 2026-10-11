@@ -1,18 +1,43 @@
-// PLACEHOLDER from F (foundation), complete enough to ship. Owned by S6 after F merges: refine freely.
-// The phone number is NEVER written here (owner decision): it is rendered on the page only.
+/**
+ * The files an agent (a crawler, an LLM tool, a recruiter's script) reads instead of guessing from the page
+ * (spec 6.10, owned by S6): `/profile.json`, `/llms.txt` and `/sitemap.xml`.
+ *
+ * Every fact comes from `src/data/portfolio.ts` (and the formatting helpers in `copy.ts`, which also read
+ * the data), so a metric, a date or a title cannot drift from the résumé.
+ *
+ * Owner decision: the phone number is shown on the page (Contact) but NEVER written here. Two guards:
+ *   1. `profile.json` is built from an explicit allow-list of profile fields, so a field added to `profile`
+ *      later cannot leak by accident.
+ *   2. Every file is scanned for the phone number in every common spelling before it is returned; a hit
+ *      throws and the build fails (scripts/prerender.mjs checks again, independently).
+ *
+ * Pure and deterministic: the same `BuildInfo` gives byte-identical output (the only build-dependent value
+ * is the sitemap's `lastmod`, taken from `buildInfo.builtAt`). Runs under Node type stripping (tests, the
+ * prerender script), so: erasable TypeScript only, explicit `.ts` imports, no DOM.
+ */
+import { certificationLines, copy, educationLine } from '../data/copy.ts'
 import { experience, highlights, profile, projects, skillGroups } from '../data/portfolio.ts'
-import { ROUTES, canonicalUrl } from '../routes.ts'
+import { ROUTES, SITE_URL } from '../routes.ts'
 import type { BuildInfo } from './build-info.ts'
 
 export interface AgentFiles {
+  /** `/profile.json`: the facts as JSON (2-space indent, trailing newline). */
   profileJson: string
+  /** `/llms.txt`: the same facts as a short Markdown summary for language models (llmstxt.org layout). */
   llmsTxt: string
+  /** `/sitemap.xml`: every prerendered route plus the PDF résumé. */
   sitemapXml: string
 }
 
-export function buildAgentFiles(buildInfo: BuildInfo): AgentFiles {
-  // An explicit allow-list, so a field added to `profile` later (like the phone number) can never leak into the agent files.
-  const publicProfile = {
+/** The résumé PDF is a static file in `public/`, not a prerendered route. */
+export const RESUME_PDF_PATH = '/Ruphak-Varmaa-Resume.pdf'
+
+/** Absolute URL for a site path. Unlike `canonicalUrl`, the home page keeps its trailing slash (`https://www.ruphak.me/`). */
+export const absoluteUrl = (path: string): string => `${SITE_URL}${path}`
+
+/** The profile fields an agent may read. An allow-list on purpose: `phone` and `publishPhone` are not in it. */
+export function publicProfile() {
+  return {
     name: profile.name,
     shortName: profile.shortName,
     email: profile.email,
@@ -24,40 +49,126 @@ export function buildAgentFiles(buildInfo: BuildInfo): AgentFiles {
     educationPeriod: profile.educationPeriod,
     cgpa: profile.cgpa,
   }
-  const profileJson =
-    JSON.stringify({ ...publicProfile, projects, experience, skillGroups, highlights, routes: ROUTES.map((r) => canonicalUrl(r.path)) }, null, 2) + '\n'
+}
 
-  const llmsTxt =
-    [
-      `# ${profile.name}`,
-      `> Backend and AI systems. ${profile.degree}, ${profile.institution}, ${profile.educationPeriod}, CGPA ${profile.cgpa}.`,
-      '',
-      `Email: ${profile.email}`,
-      `LinkedIn: ${profile.linkedin}`,
-      `GitHub: ${profile.github}`,
-      `Website: ${canonicalUrl('/')}`,
-      '',
-      '## Projects',
-      ...projects.map((p) => `- ${p.title} (${canonicalUrl(p.route)}): ${p.metrics.map((m) => `${m.value} ${m.label}`).join(', ')}. Stack: ${p.stack.join(', ')}.`),
-      '',
-      '## Experience',
-      ...experience.map((e) => `- ${e.role}, ${e.organization}, ${e.period}${e.proof ? ` (${e.proof})` : ''}`),
-      '',
-      '## Skills',
-      ...skillGroups.map((g) => `- ${g.label}: ${g.items.join(', ')}`),
-      '',
-      '## Certifications and practice',
-      ...highlights.map((h) => `- ${h.value}: ${h.label}`),
-      '',
-    ].join('\n')
+/** Every spelling of the phone number a leak could take: as written, without spaces, digits only, with and without `+`. */
+export function phoneForms(phone: string = profile.phone): string[] {
+  const digits = phone.replace(/\D/g, '')
+  return [...new Set([phone, phone.replaceAll(' ', ''), digits, `+${digits}`])].filter((form) => form.length > 0)
+}
 
-  const day = buildInfo.builtAt.slice(0, 10)
-  const sitemapXml =
+/** Throws if any generated file contains the phone number. Exported for the tests. */
+export function assertNoPhone(files: Record<string, string>): void {
+  const forms = phoneForms()
+  for (const [name, text] of Object.entries(files)) {
+    const hit = forms.find((form) => text.includes(form))
+    if (hit !== undefined) throw new Error(`agent-files: the phone number leaked into ${name}`)
+  }
+}
+
+const escapeXml = (value: string): string =>
+  value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')
+
+const metricLine = (metrics: ReadonlyArray<{ value: string; label: string }>): string =>
+  metrics.map((metric) => `${metric.value} ${metric.label}`).join(', ')
+
+// ---- profile.json ----------------------------------------------------------------------------------
+
+function buildProfileJson(): string {
+  const body = {
+    ...publicProfile(),
+    projects,
+    experience,
+    skillGroups,
+    highlights,
+    routes: ROUTES.map((route) => absoluteUrl(route.path)),
+  }
+  return JSON.stringify(body, null, 2) + '\n'
+}
+
+// ---- llms.txt --------------------------------------------------------------------------------------
+
+/**
+ * Markdown in the llmstxt.org shape: an H1, a blockquote summary, a paragraph of context, then H2 sections of
+ * lists. Facts are written once each; every project metric and every experience period appears verbatim.
+ */
+function buildLlmsTxt(): string {
+  const headings = copy.resume.headings
+  const lines: string[] = []
+  const add = (...next: string[]) => lines.push(...next)
+
+  add(`# ${profile.name}`, '')
+  add(`> ${profile.name} builds backend and AI systems. ${copy.controlRoom.identity}`, '')
+  // SPEC-GAP: this paragraph is agent-facing prose; move it into `copy.ts` if the owner wants to edit it there.
+  add(
+    'This website is itself a small cluster running in the visitor’s browser: Web Workers are the nodes and open tabs form a quorum. The four project services on it are in-browser ports of the projects listed below; the metrics listed here are the figures from the résumé for the original systems; the in-browser ports do not re-measure them.',
+    `Every fact in this file is identical to the machine-readable profile at ${absoluteUrl('/profile.json')}.`,
+    '',
+  )
+
+  add('## Contact', '')
+  add(`- Email: ${profile.email}`, `- LinkedIn: ${profile.linkedin}`, `- GitHub: ${profile.github}`, `- Website: ${absoluteUrl('/')}`, '')
+
+  add(`## ${headings.projects}`, '')
+  for (const project of projects) {
+    add(`- [${project.title}](${absoluteUrl(project.route)}): ${metricLine(project.metrics)}. Stack: ${project.stack.join(', ')}. ${project.summary}`)
+  }
+  add('')
+
+  add(`## ${headings.experience}`, '')
+  for (const entry of experience) {
+    add(`- ${entry.role}, ${entry.organization}, ${entry.period}${entry.proof ? ` (${entry.proof})` : ''}. ${entry.description}`)
+  }
+  add('')
+
+  add(`## ${headings.education}`, '', `- ${educationLine()}`, '')
+
+  add(`## ${headings.skills}`, '')
+  for (const group of skillGroups) add(`- ${group.label}: ${group.items.join(', ')}`)
+  add('')
+
+  add(`## ${headings.certifications}`, '')
+  for (const line of certificationLines()) add(`- ${line}`)
+  add('')
+
+  add('## Optional', '')
+  add(
+    `- [Résumé (HTML)](${absoluteUrl('/resume/')}): the same facts as a printable page`,
+    `- [Résumé (PDF)](${absoluteUrl(RESUME_PDF_PATH)})`,
+    `- [Machine-readable profile](${absoluteUrl('/profile.json')}): JSON`,
+    `- [Experiments](${absoluteUrl('/experiments/')}): small live pieces of the cluster that runs this site`,
+    `- [Sitemap](${absoluteUrl('/sitemap.xml')})`,
+    '',
+  )
+
+  return lines.join('\n')
+}
+
+// ---- sitemap.xml -----------------------------------------------------------------------------------
+
+function buildSitemapXml(buildInfo: BuildInfo): string {
+  // `builtAt` is an ISO timestamp; the sitemap wants the date. A malformed value is left out rather than guessed.
+  const day = /^\d{4}-\d{2}-\d{2}/.exec(buildInfo.builtAt)?.[0]
+  const lastmod = day ? `    <lastmod>${day}</lastmod>\n` : ''
+  const entry = (loc: string, priority: number, withDate: boolean) =>
+    `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${withDate ? lastmod : ''}    <priority>${priority.toFixed(1)}</priority>\n  </url>\n`
+  return (
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    ROUTES.map(
-      (r) => `  <url>\n    <loc>${canonicalUrl(r.path)}${r.path === '/' ? '/' : ''}</loc>\n    <lastmod>${day}</lastmod>\n    <priority>${r.priority.toFixed(1)}</priority>\n  </url>\n`,
-    ).join('') +
+    ROUTES.map((route) => entry(absoluteUrl(route.path), route.priority, true)).join('') +
+    // A static file: its modification date is unknown to the build, so it carries no `lastmod`.
+    entry(absoluteUrl(RESUME_PDF_PATH), 0.6, false) +
     '</urlset>\n'
+  )
+}
 
-  return { profileJson, llmsTxt, sitemapXml }
+// ---- entry -----------------------------------------------------------------------------------------
+
+export function buildAgentFiles(buildInfo: BuildInfo): AgentFiles {
+  const files: AgentFiles = {
+    profileJson: buildProfileJson(),
+    llmsTxt: buildLlmsTxt(),
+    sitemapXml: buildSitemapXml(buildInfo),
+  }
+  assertNoPhone({ 'profile.json': files.profileJson, 'llms.txt': files.llmsTxt, 'sitemap.xml': files.sitemapXml })
+  return files
 }

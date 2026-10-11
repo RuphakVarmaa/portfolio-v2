@@ -1,0 +1,223 @@
+/*
+ * Contact (S6). Email gets the big type; the other lines sit in a riveted patch panel, one hex jack per line.
+ * Copying the email lights the lamp beside the button (vermilion: it just happened), with the same quantized
+ * glow as the board. Shapes are CSS masks of hand-drawn paths painted with the theme tokens.
+ */
+
+.layout {
+  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 26'%3E%3Cpath d='M27.95 12.96L21.44 24.5L8.18 24.1L1.93 12.69L8.4 1.92L21.77 1.98Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --rivet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='4.6' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='6' cy='6' r='1.3' fill='%23000'/%3E%3C/svg%3E");
+  display: grid;
+  gap: var(--s-7) var(--s-8);
+  /* The address sits at the top, level with the panel and close under "Email is best."; centred, it floated 190 px below it. */
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
+  }
+}
+
+/* ---- the address ---- */
+
+.mail {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-5);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.address {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 12.2cqi, 5.5rem); /* 17 characters of Big Shoulders 800 are about 7.7 em wide */
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  min-height: 44px; /* at the smallest type size the line box alone is 41 px: keep the touch target at 44 */
+  overflow-wrap: anywhere;
+  text-decoration-thickness: 4px;
+  text-underline-offset: 0.14em;
+}
+
+.address:hover {
+  text-decoration-thickness: 6px;
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  min-height: 44px; /* the button arrives after hydration; its room is held */
+}
+
+/* The email's own jack: its lens lights for two seconds after a copy (vermilion: it just happened). */
+.jack {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 33px;
+}
+
+.jack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  -webkit-mask: var(--hex) 0 0 / 100% 100% no-repeat;
+  mask: var(--hex) 0 0 / 100% 100% no-repeat;
+}
+
+.jack::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+  transition:
+    background-color var(--dur-1) linear,
+    box-shadow var(--dur-1) linear;
+}
+
+.jack[data-lit]::after {
+  background: var(--live);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--live) 60%, transparent),
+    0 0 0 6px color-mix(in oklab, var(--live) 30%, transparent),
+    0 0 0 9px color-mix(in oklab, var(--live) 12%, transparent);
+}
+
+/* ---- the patch panel ---- */
+
+.rack {
+  position: relative;
+  padding: 24px;
+  border: var(--rule-strong);
+  background: var(--paper-2);
+  box-shadow: var(--key-shadow);
+}
+
+/* Four rivets, one per corner of the bezel: four mask layers, one element, no markup. */
+.rack::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  background: var(--ink);
+  -webkit-mask:
+    var(--rivet) top left / 12px 12px no-repeat,
+    var(--rivet) top right / 12px 12px no-repeat,
+    var(--rivet) bottom left / 12px 12px no-repeat,
+    var(--rivet) bottom right / 12px 12px no-repeat;
+  mask:
+    var(--rivet) top left / 12px 12px no-repeat,
+    var(--rivet) top right / 12px 12px no-repeat,
+    var(--rivet) bottom left / 12px 12px no-repeat,
+    var(--rivet) bottom right / 12px 12px no-repeat;
+  pointer-events: none;
+}
+
+.lines {
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  list-style: none;
+}
+
+.lines li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--s-4);
+  min-height: 76px;
+  padding: var(--s-2) var(--s-4) var(--s-2) var(--s-3);
+}
+
+.lines li + li {
+  border-top: var(--rule);
+}
+
+.lines li > * {
+  grid-column: 2;
+}
+
+/* The jack: a hex bezel, and a dark socket in the middle. */
+.lines li::before {
+  content: '';
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+  width: 30px;
+  height: 26px;
+  background: var(--ink);
+  -webkit-mask: var(--hex) 0 0 / 100% 100% no-repeat;
+  mask: var(--hex) 0 0 / 100% 100% no-repeat;
+}
+
+.lines li::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(var(--s-3) + 10px);
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+}
+
+/* The legend printed above each socket. */
+.lines span:first-of-type {
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.lines a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-5);
+}
+
+@media (max-width: 639px) {
+  .rack {
+    padding: 20px 16px;
+  }
+  .lines li {
+    padding-right: var(--s-3);
+  }
+  .lines a {
+    font-size: 1rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .rack::before,
+  .lines li::before,
+  .lines li::after,
+  .jack::before {
+    display: none;
+  }
+  .jack[data-lit]::after {
+    outline: 3px solid Highlight;
+  }
+}

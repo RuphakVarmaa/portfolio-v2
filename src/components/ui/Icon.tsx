@@ -1,4 +1,6 @@
 import type { ReactElement, SVGProps } from 'react'
+import { cx } from './cx.ts'
+import styles from './ui.module.css'
 
 /**
  * The site's icons: inline SVG drawn in the same stroke language as the drawings (round caps and
@@ -133,19 +135,16 @@ export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'children' | 'n
   title?: string
 }
 
-export function Icon({ name, size = 20, title, ...rest }: IconProps) {
+export function Icon({ name, size = 20, title, className, ...rest }: IconProps) {
+  // The stroke language (no fill, currentColor, round caps and joins, --stroke-draw) lives in `.icon`, not in
+  // seven attributes on every icon: the prerendered page carries a dozen of them. Inline SVG in HTML needs no
+  // xmlns, and `focusable` is a legacy-IE attribute.
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
+      className={cx(styles.icon, className)}
       viewBox="0 0 24 24"
       width={size}
       height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      focusable="false"
       role={title ? 'img' : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}

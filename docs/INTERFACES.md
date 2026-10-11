@@ -92,7 +92,7 @@ hydrated. So:
 
 - CSS Modules (`Foo.module.css`), plain CSS: **no nesting, no `:has()`, no `light-dark()`** (browser floor:
   Safari 16.4, Firefox 120). Container queries, `color-mix()`, `aspect-ratio`, `inset`, `clamp()`, `dvh`
-  are fine. Production class names are shortened to `q` + 6 characters (a size budget, see section 4).
+  are fine. Production class names are shortened to two characters (a size budget, see section 4 and the deviations).
 - Colours and sizes come from the tokens in `src/styles/tokens.css`. Muted text (`--ink-muted`) is for
   `--paper` and `--paper-2` only (7.98:1 and 7.23:1); never put it on `--paper-3` (6.39:1, a hover/pressed
   fill). `--live` (vermilion) means *happening
@@ -225,6 +225,7 @@ import { scheduler } from '../cluster/scheduler.ts'
 scheduler.ensureService(service): Promise<void>
 scheduler.submit<K extends JobKind>(kind: K, payload: JobPayload[K], opts?: SubmitOptions): JobHandle<K>
 scheduler.pullThePlug(service, index?): { node: NodeId; inFlight: string[] }
+scheduler.restart(service, index?): { node: NodeId; inFlight: string[] }   // the same terminate() and respawn, but quiet: no "unplugged" sentence
 scheduler.getState(): ClusterState
 scheduler.subscribe(listener): () => void
 scheduler.onMessage((dir: 'in' | 'out', service, msg: ToWorker | FromWorker, node: NodeId) => void): () => void
@@ -252,6 +253,10 @@ Semantics you can rely on (all covered by `scheduler.test.ts`):
   node, else the last one. It returns the node and the in-flight job ids (empty when idle or not spawned,
   never throws). The node's status is `dead` until the respawned worker (same NodeId, after 0 ms) posts
   `ready`. The retried job may run on the **sibling or on the respawned node itself**, whichever is free first.
+- **`restart(service, index?)`** ends one node and starts a fresh worker under the same NodeId (the same
+  `Worker.terminate()` and respawn), but says nothing: no `lastEvent`, no announcement, and it is not a chaos event.
+  A job that was running on it is still requeued and retried like any other loss of a worker. Use it for a worker whose
+  state is spoiled (ONNX Runtime keeps a failed session start for the life of its worker), never to demonstrate failover.
 - **Cancel.** `handle.cancel()` rejects the promise with an error whose `name` is `'AbortError'`, removes a
   queued job, or tells a running worker `cancel` and frees its slot at once. The promise already has a silent
   `.catch`, so fire-and-forget callers cause no unhandled-rejection noise (awaiting callers still see it).
@@ -556,7 +561,7 @@ All in `src/components/ui/` (import with explicit `.tsx`). Styles are in `ui.mod
 | `ConsentDialog` | `open`, `title`, `children`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, `returnFocus?: RefObject` | Native modal `<dialog>`. "Not now" is first in the DOM, so it gets focus. Esc, backdrop click and the cancel button all call `onCancel` and return focus. It never starts anything: act in `onConfirm`. |
 | `Section` | `id`, `label` (the number), `title`, `lead?`, `children` | `<section id aria-labelledby>` + hex bezel + h2 + lead, content wrapped in `.wrap`. Every section's copy object has `id`, `label`, `title`, `lead`: `<Section id={t.id} label={t.label} title={t.title} lead={t.lead}>`. |
 | `Schematic` | `SchematicProps` (see 7.3) + `depth?` | Real `<button>` parts, native node dialog, focus returns on close. ServicePanel renders it for you. |
-| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `onShowPipeline?`, `pipelineBusy?`, `demoFooter?` | The shared anatomy. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
+| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `formatStageMs?`, `onShowPipeline?`, `pipelineBusy?`, `demoFooter?` | The shared anatomy. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
 | `DemoSlot<P>` | `load: () => Promise<{ default: ComponentType<P> }>`, `props?: P`, `fallback?`, `disabled?`, `rootMargin? = '50% 0px'` | Renders the fallback (the panel's, by default) on the server and until the panel is within 50% of the viewport, then imports the demo chunk. It never loads models or the runtime: the demo decides. A render error or a failed import falls back with a one-line note. |
 | `usePanelContext()` / `PanelContext` | `{ headingLevel: 1\|2\|3, standalone }` | Provided by `Services` (h3) and by `/projects/*` (h1). You normally never touch it. |
 
@@ -690,8 +695,29 @@ Manifest: fetch `/profile.json` from the same origin for "View as agent".
 13. **`--ink-muted` is `#4B4741`, not the spec's `#4E4A44`.** The spec's value measures 6.89:1 on `--paper-2`
     (the panel fill), under the spec's own 7:1 rule for all text; `#4B4741` is 7.23:1 there and 7.98:1 on
     `--paper`. Every other token is exactly the spec's. The dark theme already passes.
-14. **Class names are shortened in production** (`q` + 6 characters). Do not select by class name from tests
-    or from the Experiments page; use roles, ids and `data-*` attributes.
+14. **Class names are shortened in production** to a counter: `aa`, `ab`, ... (two characters for the first 936 local
+    classes and keyframes, three after that), assigned by `scripts/class-names.ts` (used by `vite.config.ts`, tested in
+    `scripts/class-names.test.mjs`) from the sorted `*.module.css` files, so the client build and the SSR build agree. A random hash was the least compressible thing in the stylesheet and
+    the most repeated thing in the prerendered HTML. Do not select by class name from tests or from the Experiments
+    page; use roles, ids and `data-*` attributes. In dev the readable names are used.
+15. **The fontsource stylesheets are reduced to their latin `@font-face` rules** by a small Vite plugin
+    (`latinFontsOnly` in `vite.config.ts`). The other subsets (latin-ext, vietnamese, cyrillic) are never requested by
+    an English page, cost about 5 KB of the CSS budget, and Vite had inlined one of them as a 4 KB base64 URI. The five
+    `import`s in `main.tsx` are unchanged. `build.cssTarget` is the spec's browser floor (Chrome and Edge 120, Firefox
+    120, Safari 16.4), so no obsolete prefixes ship.
+16. **`--cobalt` is `#1C38BB` (paper theme), not the spec's `#1F3FD1`.** The spec's value measures 6.75:1 on `--paper` and
+    only 6.12:1 on `--paper-2` (the panel fill, where cards and the Contact list put links), under its own 7:1 rule for
+    all text. Same hue, slightly deeper: 7.79:1 on paper and 7.06:1 on paper-2. The dark theme's `#9FB0FF` (8.96:1) is
+    unchanged. `docs/og.html` and the committed `og.png` were drawn with the old shade; re-render them if you want
+    the wires to match exactly.
+17. **ServicePanel is two columns of different jobs, not "demo and a short trace".** From 1024 px the left column is the live
+    half (the explanation, the plain caption, the demo, the honest caption) and the right column is the engineering
+    notebook: the Work trace on top, then the schematic and the "Show me the pipeline" list (`.serviceSide`). The spec
+    puts the schematic under the demo; with that layout a tall demo (1,100 to 1,400 px) sat beside a 420 px trace and
+    about a third of the page was empty paper. Beside the demo, the lit parts and their measured times are also in view
+    while the visitor uses it. Below 1024 px the order is unchanged except that the trace now comes before the drawing:
+    explanation, caption, demo, honest caption, trace, schematic, pipeline. Panel notes say "the pipeline drawing", never
+    "below".
 
 ## 11. Commands
 

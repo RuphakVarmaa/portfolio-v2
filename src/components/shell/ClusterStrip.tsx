@@ -61,7 +61,7 @@ export function ClusterStrip() {
         <span className={styles.stripReadouts}>
           <Readout label={t.nodes} value={started ? state.nodes : 1} width={2} size="sm" />
           <Readout label={t.term} value={started ? state.term : '—'} width={2} size="sm" />
-          <Readout label={t.up} value={uptime === null ? '—' : formatUptime(uptime * 1000)} width={5} size="sm" flash={false} />
+          <Readout label={t.up} value={uptime === null ? '—' : formatUptime(uptime * 1000)} width={5} size="sm" flash={false} className={styles.stripUp} />
         </span>
         {started && state.isLeader ? <span className={styles.stripTag}>{t.leader}</span> : null}
         <span className={styles.stripEvent} title={lastEvent}>

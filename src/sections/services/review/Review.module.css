@@ -1,0 +1,670 @@
+/*
+ * The review panel (S4). The reviewed code is a galley proof: ruled lines, a number and a + in the margin
+ * (it is shown as one added hunk of a diff), the reviewer's notes under the lines they are about, each with a
+ * tier stamp (shape and label, never colour alone). Same switchboard rules as everywhere: square corners,
+ * ink borders, hard offset shadows, stencil labels; vermilion for the serious tiers and for stages that
+ * measured something, dashed for what did not run. Container queries keep it right in a narrow column.
+ */
+
+.review {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: var(--rule);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.meta {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---- seeds and paste ---- */
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+
+.seeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.seed {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+.sourceLabel {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 12rem;
+  padding: var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 75;
+  line-height: 1.5;
+  tab-size: 2;
+  resize: vertical;
+}
+
+.pasteFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+}
+
+/* ---- the rule catalogue ---- */
+
+.ruleTier {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.ruleTierHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding-bottom: var(--s-1);
+  border-bottom: var(--rule);
+}
+
+.ruleList {
+  display: grid;
+  margin: 0;
+}
+
+.ruleRow {
+  display: grid;
+  gap: 2px var(--s-4);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--ink-rule) 45%, var(--paper));
+}
+
+@container (min-width: 560px) {
+  .ruleRow {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+}
+
+.ruleRow dt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.ruleRow dd {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--fs-small);
+}
+
+.ruleId {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.ruleHow {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+/* ---- results ---- */
+
+.results {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.problem {
+  padding-left: var(--s-3);
+  border-left: 3px solid var(--live);
+  font-weight: 600;
+}
+
+.summary {
+  font-family: var(--font-stencil);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each tier is a button: it scrolls the galley to that tier's first finding. */
+.tallyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-2);
+  border: 0;
+  border-bottom: 2px dotted var(--ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tallyItem:hover {
+  background: var(--paper-3);
+}
+
+.count {
+  min-width: 1.25ch;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tallyItem[data-zero] {
+  border-bottom-color: transparent;
+  color: var(--ink-muted);
+  font-weight: 400;
+  cursor: default;
+}
+
+.tallyItem[data-zero]:hover {
+  background: transparent;
+}
+
+/* ---- the pipeline timeline ---- */
+
+.pipeline {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border: var(--rule-strong);
+  background: var(--paper-2);
+}
+
+/* Five modules in a row, wired together; on a narrow panel a column of rows (below). */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  min-width: 0;
+  padding: var(--s-2) var(--s-2) var(--s-2);
+  border: 1.5px solid var(--ink);
+  border-top: 4px solid var(--live);
+  background: var(--paper);
+}
+
+/* The wire to the next module: a cobalt line across the gap, ending in an arrowhead. */
+.stage:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1.1rem;
+  left: 100%;
+  width: calc(var(--s-3) + 1.5px);
+  height: 0;
+  border-top: 2px solid var(--cobalt);
+}
+
+.stage:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: calc(1.1rem - 3px);
+  left: calc(100% + var(--s-3) - 5px);
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid var(--cobalt);
+  border-right: 2px solid var(--cobalt);
+  transform: rotate(45deg);
+}
+
+.stage .stencil {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.stage[data-waiting] {
+  border-style: dashed;
+  border-top-width: 4px;
+  border-top-color: var(--ink-rule);
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.stage[data-skipped] {
+  border-top-style: dashed;
+  border-top-color: var(--ink-muted);
+}
+
+/* A stage that did not run has no time, so no bar. */
+.stage[data-skipped] .bar {
+  display: none;
+}
+
+@container (max-width: 559.98px) {
+  .stages {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .stage {
+    grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem;
+    align-items: center;
+    gap: var(--s-3);
+    min-height: 34px;
+    padding: 0 var(--s-3);
+    border: 0;
+    border-left: 4px solid var(--live);
+  }
+  .stage[data-waiting] {
+    border-left: 4px dashed var(--ink-rule);
+  }
+  .stage[data-skipped] {
+    border-left: 4px dashed var(--ink-muted);
+  }
+  .stage:not(:last-child)::before,
+  .stage:not(:last-child)::after {
+    display: none;
+  }
+  .stageMs {
+    order: 3;
+  }
+  .bar {
+    order: 2;
+  }
+}
+
+.stageMs {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@container (max-width: 559.98px) {
+  .stageMs {
+    text-align: right;
+  }
+}
+
+.skipped {
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+@container (max-width: 559.98px) {
+  .skipped {
+    grid-column: 2 / -1;
+    order: 2;
+  }
+}
+
+.bar {
+  display: block;
+  height: 6px;
+  background: var(--paper-3);
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.timing {
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+/* ---- the galley ---- */
+
+.galley {
+  position: relative;
+  max-height: 36rem;
+  overflow: auto;
+  border: var(--rule-strong);
+  background: var(--paper);
+}
+
+.hunk {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0 var(--s-3);
+  border-bottom: var(--rule);
+  background: var(--paper-2);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 24px;
+}
+
+.lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 3.25rem 1.5rem minmax(0, 1fr);
+  border-bottom: 1px solid color-mix(in oklab, var(--ink-rule) 45%, var(--paper));
+}
+
+.line[data-tier='1'],
+.line[data-tier='2'] {
+  background: var(--live-soft);
+}
+
+.line[data-tier='3'],
+.line[data-tier='4'],
+.line[data-tier='5'] {
+  background: var(--paper-2);
+}
+
+.no {
+  padding-right: var(--s-2);
+  border-right: 1px solid var(--ink-rule);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+  line-height: 24px;
+  text-align: right;
+  user-select: none;
+}
+
+/* A finding that spans lines (a long function) draws a heavy rule down the margin for its whole span. */
+.line[data-span] .no {
+  border-right: 3px solid var(--ink);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.line[data-tier='1'] .mark,
+.line[data-tier='2'] .mark {
+  color: var(--live);
+}
+
+.line[data-tier='3'] .mark,
+.line[data-tier='4'] .mark,
+.line[data-tier='5'] .mark {
+  color: var(--ink);
+}
+
+/* Martian Mono is wide; a condensed width keeps most of a source line on one row in a narrow column. */
+.code {
+  grid-column: 3;
+  display: block;
+  padding: 0 var(--s-3) 0 var(--s-2);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 75;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.notes {
+  grid-column: 3;
+  display: grid;
+  gap: var(--s-2);
+  margin: 0 var(--s-3) var(--s-3) var(--s-4);
+  padding: 0;
+  list-style: none;
+}
+
+.note {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-3);
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+}
+
+.noteHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+  padding: 3px;
+}
+
+.rule {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.span {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.noteMessage,
+.noteFix {
+  max-width: var(--measure);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+.noteFix .stencil {
+  margin-right: 0.35em;
+}
+
+/* Forced colors drop backgrounds: the marks, the borders and the margin rule carry every state. */
+@media (forced-colors: active) {
+  .line[data-tier] {
+    border-left: 4px solid Highlight;
+  }
+  .stage {
+    border-top-color: Highlight;
+  }
+  .stage:not(:last-child)::after,
+  .stage:not(:last-child)::before {
+    border-color: CanvasText;
+  }
+  /* A bar is a background, which forced colors would clear: give it a frame and a system-colour fill. */
+  .bar {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+  .bar > span {
+    background: CanvasText;
+  }
+}
+
+@container (max-width: 559.98px) {
+  @media (forced-colors: active) {
+    .stage {
+      border-top-color: CanvasText;
+      border-left-color: Highlight;
+    }
+  }
+}
+
+/* ---- holding the demo's place (spec 8.1: CLS 0) ---- */
+
+/* Visitors with JavaScript and workers get the reviewer a moment after the page is up. Until then the static
+   fallback keeps about the reviewer's height (`--room`), and until its first review arrives the results area keeps
+   about the height of a result (`--first`), so nothing below jumps when the reviewer appears and answers. The
+   heights are measured, for the widths the reviewer's own layout steps at; the fallback and the reviewer sit in
+   containers of the same width, so one query sets both. */
+.hold {
+  container-type: inline-size;
+}
+
+html[data-js] .hold[data-reserve] .fallback {
+  min-height: var(--room, 75.7rem);
+}
+
+.results[data-first] {
+  min-height: var(--first, 59.9rem);
+}
+
+
+@container (max-width: 699.98px) {
+  .results[data-first] {
+    --first: 63.1rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 80.4rem;
+  }
+}
+
+@container (max-width: 639.98px) {
+  .results[data-first] {
+    --first: 64.1rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 81.4rem;
+  }
+}
+
+@container (max-width: 599.98px) {
+  .results[data-first] {
+    --first: 64.1rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 84.6rem;
+  }
+}
+
+@container (max-width: 559.98px) {
+  .results[data-first] {
+    --first: 70.5rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 91rem;
+  }
+}
+
+@container (max-width: 449.98px) {
+  .results[data-first] {
+    --first: 75.7rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 96.2rem;
+  }
+}
+
+@container (max-width: 379.98px) {
+  .results[data-first] {
+    --first: 77.1rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 101.4rem;
+  }
+}
+
+@container (max-width: 299.98px) {
+  .results[data-first] {
+    --first: 81rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 105.3rem;
+  }
+}
+
+@container (max-width: 269.98px) {
+  .results[data-first] {
+    --first: 85.6rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 111.7rem;
+  }
+}
+
+@container (max-width: 239.98px) {
+  .results[data-first] {
+    --first: 91.6rem;
+  }
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 118.2rem;
+  }
+}
+
+/* ---- the static fallback (prerendered, Basic tier, failed load) ---- */
+
+.fallback {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-stencil);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

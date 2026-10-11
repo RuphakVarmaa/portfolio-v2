@@ -9,6 +9,7 @@
 //   - writes dist/build-info.json (chunk sizes, fonts, models, the CSP verbatim) for the Colophon
 //   - verifies the CSP: the meta is byte-identical in every page and every inline script is hashed
 //   - verifies the phone number appears in none of the agent files nor in the JSON-LD
+//   - verifies the LeetCode and certification facts (`highlights`) appear exactly once in dist/index.html
 //   - removes dist/.vite/
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
@@ -70,10 +71,8 @@ function headBlock(head) {
     `<meta property="og:image" content="${escapeAttr(head.ogImage)}" />`,
     `<meta property="og:image:width" content="${head.ogImageWidth}" />`,
     `<meta property="og:image:height" content="${head.ogImageHeight}" />`,
+    // X reads og:title, og:description and og:image when the twitter:* ones are absent, so only the card type is needed.
     `<meta name="twitter:card" content="${head.twitterCard}" />`,
-    `<meta name="twitter:title" content="${escapeAttr(head.ogTitle)}" />`,
-    `<meta name="twitter:description" content="${escapeAttr(head.ogDescription)}" />`,
-    `<meta name="twitter:image" content="${escapeAttr(head.ogImage)}" />`,
   ]
     .map((line) => `    ${line}`)
     .join('\n')
@@ -153,6 +152,8 @@ const optional = [
   ['ort/ort-wasm-simd-threaded.mjs', 'ONNX Runtime loader'],
   ['models/minilm/model_quantized.onnx', 'all-MiniLM-L6-v2 encoder (int8)'],
   ['models/yolov8n/yolov8n-320.onnx', 'YOLOv8n detector (320 px)'],
+  ['traces/vision.json', 'Recorded vision run'],
+  ['media/desk.mp4', 'Recorded clip (4 s)'],
   ['retrieval/corpus.json', 'Retrieval corpus'],
   ['retrieval/embeddings.json', 'Chunk embeddings'],
 ]
@@ -199,6 +200,15 @@ const phoneForms = [phone, phone.replaceAll(' ', ''), digits, `+${digits}`]
 const jsonLd = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(template)?.[1] ?? ''
 for (const [name, text] of [['profile.json', profileJson], ['llms.txt', llmsTxt], ['sitemap.xml', sitemapXml], ['JSON-LD', jsonLd]]) {
   if (phoneForms.some((form) => text.includes(form))) throw new Error(`prerender: the phone number leaked into ${name}`)
+}
+
+// Facts the site states once must be on the page once (spec 3.5 and the Definition of Done): the LeetCode count and
+// rating and the two certifications live in the Deploy History ledger and nowhere else on `/`. Counting them here
+// keeps that from regressing. (`highlights` holds exactly those four facts.)
+const home = pages.get('index.html')
+for (const { value } of data.highlights) {
+  const count = [...home.matchAll(new RegExp(`(?<![\\w.-])${value.replace(/[+]/g, '\\+')}(?![\\w-])`, 'g'))].length
+  if (count !== 1) throw new Error(`prerender: "${value}" appears ${count} times in dist/index.html (the spec says exactly once)`)
 }
 
 rmSync(join(DIST, '.vite'), { recursive: true, force: true })

@@ -30,7 +30,7 @@ export function Section({ id, label, title, lead, children, className }: Section
       <div className="wrap">
         <header className={styles.sectionHead}>
           <span className={styles.sectionBezel} aria-hidden="true">
-            <svg viewBox="0 0 48 48" width="48" height="48" focusable="false">
+            <svg viewBox="0 0 48 48" width="48" height="48">
               <path d={BEZEL} />
             </svg>
             <span className={styles.sectionNumber}>{label}</span>

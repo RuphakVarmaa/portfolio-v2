@@ -1,0 +1,363 @@
+/*
+ * The résumé page (S6). On screen: a sheet of paper on the page, stencil section headings, the site's type.
+ * Printed: plain ink on white, A4, 12 pt, no chrome, no entry split across pages (the `@media print` block
+ * at the end; page setup, the white tokens and the printed link addresses live in src/styles/print.css).
+ */
+
+.page {
+  padding-block: var(--s-5) var(--s-8);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  max-width: 54rem;
+  margin: 0 auto var(--s-5);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.sheet {
+  max-width: 54rem;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 0.25rem + 4.5vw, 3.5rem);
+  border: var(--rule-strong);
+  background: var(--paper);
+  box-shadow: 10px 10px 0 var(--paper-3);
+}
+
+/* ---- header ---- */
+
+.head {
+  display: grid;
+  gap: var(--s-5) var(--s-6);
+  padding-bottom: var(--s-5);
+  border-bottom: var(--rule-strong);
+}
+
+@media (min-width: 720px) {
+  .head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+
+.name {
+  margin-top: var(--s-1);
+  font-size: clamp(2.75rem, 1.3rem + 5.4vw, 4.75rem);
+}
+
+.identity {
+  max-width: 38ch;
+  margin-top: var(--s-3);
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+.contact {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+}
+
+.contact li {
+  display: grid;
+  grid-template-columns: 5.5rem auto;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.contact span {
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contact a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  overflow-wrap: anywhere;
+}
+
+/* The compact list is for a mouse; a finger gets the full 44 px target. */
+@media (pointer: coarse) {
+  .contact a {
+    min-height: 44px;
+  }
+}
+
+/* ---- sections ---- */
+
+.sheet h2 {
+  margin: var(--s-6) 0 var(--s-2);
+  padding-bottom: var(--s-1);
+  border-bottom: 1.5px solid var(--ink);
+  font-family: var(--font-stencil);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+}
+
+.entry {
+  padding: var(--s-3) 0 var(--s-2);
+}
+
+.entry + .entry {
+  border-top: var(--rule);
+}
+
+.entry h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--s-4);
+}
+
+.when {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+  white-space: nowrap;
+}
+
+.org {
+  margin: 0;
+  font-family: var(--font-stencil);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stack {
+  margin: var(--s-1) 0 0;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variation-settings: 'wdth' 90;
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-5);
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metrics b {
+  margin-right: 0.25em;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* The "<" of "<2s", "<30ms" and "<3m": the text face's chevron, a little smaller than the numerals. */
+.lt {
+  margin-right: 0.04em;
+  font-family: var(--font-text);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.details {
+  margin: var(--s-2) 0 0;
+  padding-left: 1.15em;
+}
+
+.details li {
+  max-width: 72ch;
+  margin-top: var(--s-1);
+}
+
+.entry p {
+  max-width: 72ch;
+}
+
+.proof {
+  margin-top: var(--s-1);
+}
+
+.proof span {
+  margin-right: 0.35em;
+}
+
+.plainList {
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plainList li {
+  max-width: 72ch;
+  margin-top: var(--s-1);
+}
+
+.plainList b {
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (max-width: 639px) {
+  .sheet {
+    box-shadow: 6px 6px 0 var(--paper-3);
+  }
+  .contact li {
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+  }
+}
+
+/* ---- print: ink on white, A4, 12 pt, nothing split across a page ---- */
+
+@media print {
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .sheet {
+    max-width: none;
+    padding: 0;
+    border: 0;
+    background: #fff;
+    box-shadow: none;
+    color: #000;
+    font-size: 12pt;
+    line-height: 1.27;
+  }
+
+  .head {
+    display: block;
+    padding-bottom: 6pt;
+    border-bottom: 1.5pt solid #000;
+  }
+
+  .name {
+    margin-top: 0;
+    font-size: 30pt;
+  }
+
+  .identity {
+    max-width: none;
+    margin-top: 4pt;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  /* One line, as on the PDF: the legends are dropped and the items run on, separated by a dot. */
+  .contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 14pt;
+    margin-top: 6pt;
+    font-size: 11pt;
+  }
+
+  .contact li {
+    display: block;
+  }
+
+  .contact span {
+    display: none;
+  }
+
+  .contact a {
+    display: inline;
+    min-height: 0;
+  }
+
+  .sheet h2 {
+    margin: 9pt 0 3pt;
+    padding-bottom: 2pt;
+    border-bottom: 1pt solid #000;
+    font-size: 11pt;
+    break-after: avoid;
+  }
+
+  .entry {
+    padding: 3pt 0 2pt;
+    break-inside: avoid;
+  }
+
+  .entry + .entry {
+    border-top: 0;
+  }
+
+  .entry h3 {
+    font-size: 14pt;
+  }
+
+  .stack,
+  .when {
+    color: #000;
+    font-size: 10pt;
+  }
+
+  .org {
+    font-size: 10.5pt;
+  }
+
+  .metrics {
+    margin-top: 2pt;
+  }
+
+  .metrics b {
+    font-size: 13pt;
+  }
+
+  .details {
+    margin-top: 1pt;
+  }
+
+  .details li {
+    margin-top: 0.5pt;
+    max-width: none;
+  }
+
+  .entry p,
+  .plainList li {
+    max-width: none;
+  }
+
+  .plainList {
+    margin-top: 3pt;
+  }
+
+  .plainList li {
+    break-inside: avoid;
+    margin-top: 1pt;
+  }
+
+  .plainList b {
+    font-size: 10.5pt;
+  }
+}

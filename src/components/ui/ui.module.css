@@ -4,6 +4,16 @@
  * Every motion here runs on the --dur-* / --ease-* tokens, which are 0 under lite motion.
  */
 
+/* ===== Icon: the shared stroke language of every inline icon ===== */
+
+.icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--stroke-draw);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ===== Button ===== */
 
 .button {
@@ -509,6 +519,14 @@
   outline-offset: 2px;
 }
 
+/* A 320 px phone: three faces at 5.25rem plus padding are wider than the panel's inner width and push the whole panel past the gutter. */
+@media (max-width: 23.5rem) {
+  .depthFace {
+    min-width: 0;
+    padding-inline: var(--s-2);
+  }
+}
+
 /* ===== Section ===== */
 
 .section {
@@ -667,7 +685,7 @@
 
 /*
  * A part: a real button laid over the drawing. Its fill is the button's background; its hand-drawn
- * outline is a mask of a wobbled path (three variants, so neighbours differ) painted in ink.
+ * outline is a mask of a wobbled path painted in ink (mirrored on every second and third part).
  */
 .node {
   --x: var(--nx);
@@ -699,12 +717,13 @@
   --box: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 66' preserveAspectRatio='none'%3E%3Cpath d='M1.42 9.75C1.68 5.23 2.32 6.71 3.03 5.56C3.73 4.41 4.5 3.61 5.67 2.84C6.83 2.07 5.34 1.26 10.03 0.95C14.72 0.65 25.9 0.9 33.79 1.03C41.68 1.17 49.42 1.76 57.37 1.78C65.33 1.8 73.28 1.12 81.51 1.16C89.75 1.2 98.64 1.87 106.78 2C114.92 2.12 125.8 1.9 130.34 1.91C134.89 1.93 132.77 1.6 134.04 2.09C135.3 2.59 137.18 3.61 137.93 4.89C138.69 6.17 138.39 5.19 138.58 9.79C138.77 14.39 139.16 24.66 139.09 32.49C139.01 40.33 138.45 52.23 138.13 56.82C137.8 61.4 137.69 58.84 137.15 60.03C136.62 61.21 135.98 63.26 134.93 63.93C133.88 64.59 135.56 63.9 130.84 64.02C126.12 64.14 114.77 64.59 106.6 64.66C98.44 64.73 89.95 64.41 81.85 64.43C73.74 64.45 65.98 64.74 57.97 64.76C49.95 64.77 41.83 64.59 33.75 64.55C25.66 64.51 14.08 64.77 9.45 64.52C4.82 64.27 7.07 63.8 5.97 63.06C4.87 62.31 3.57 61.15 2.85 60.03C2.12 58.91 1.86 60.88 1.63 56.32C1.4 51.76 1.5 40.42 1.46 32.66C1.43 24.9 1.16 14.27 1.42 9.75Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.node:nth-of-type(3n + 2) {
-  --box: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 66' preserveAspectRatio='none'%3E%3Cpath d='M1.72 9.38C1.76 4.87 1.56 7.25 2.14 6.02C2.72 4.78 4.02 2.82 5.19 1.97C6.36 1.12 4.49 0.95 9.17 0.94C13.84 0.93 25.08 1.76 33.21 1.9C41.35 2.05 49.83 1.87 57.98 1.82C66.13 1.78 74.06 1.75 82.12 1.62C90.19 1.5 98.19 1.13 106.36 1.1C114.53 1.06 126.37 1.13 131.14 1.4C135.91 1.67 133.91 2.12 134.97 2.71C136.02 3.3 136.82 3.73 137.46 4.94C138.09 6.15 138.66 5.21 138.8 9.97C138.95 14.74 138.37 25.79 138.34 33.55C138.31 41.31 138.68 51.99 138.65 56.54C138.61 61.09 138.8 59.63 138.13 60.83C137.47 62.04 135.88 63.15 134.66 63.77C133.43 64.4 135.43 64.42 130.76 64.6C126.1 64.77 114.87 64.79 106.66 64.82C98.46 64.85 89.62 64.76 81.52 64.78C73.43 64.8 66.05 64.96 58.1 64.94C50.16 64.92 41.87 64.73 33.85 64.65C25.83 64.58 14.78 64.67 9.96 64.5C5.13 64.34 6.12 64.28 4.91 63.64C3.7 63.01 3.23 61.76 2.69 60.67C2.16 59.58 1.81 61.71 1.68 57.1C1.54 52.5 1.89 41 1.89 33.05C1.9 25.1 1.68 13.88 1.72 9.38Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
+/* Neighbours differ by mirroring the one outline (a plain mirror keeps the file small and still reads as drawn). */
+.node:nth-of-type(3n + 2)::after {
+  transform: scaleX(-1);
 }
 
-.node:nth-of-type(3n) {
-  --box: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 66' preserveAspectRatio='none'%3E%3Cpath d='M0.78 9.32C0.99 4.65 1.73 6.27 2.5 5.03C3.26 3.8 4.27 2.45 5.37 1.93C6.47 1.4 4.37 1.99 9.1 1.89C13.82 1.79 25.5 1.36 33.71 1.31C41.93 1.25 50.4 1.5 58.37 1.56C66.34 1.62 73.46 1.63 81.54 1.67C89.63 1.71 98.62 1.92 106.88 1.79C115.14 1.65 126.58 0.73 131.1 0.87C135.62 1.01 132.99 1.83 134 2.61C135 3.39 136.47 4.4 137.14 5.57C137.8 6.74 137.79 5.01 137.97 9.64C138.15 14.28 138.08 25.6 138.2 33.39C138.33 41.19 138.89 51.97 138.74 56.42C138.58 60.86 137.97 58.89 137.25 60.09C136.54 61.29 135.51 62.78 134.47 63.61C133.42 64.44 135.8 64.98 131.01 65.07C126.22 65.16 113.79 64.28 105.74 64.15C97.69 64.02 90.79 64.17 82.71 64.3C74.64 64.43 65.45 64.97 57.3 64.94C49.14 64.91 41.72 64.2 33.79 64.11C25.85 64.01 14.47 64.51 9.71 64.36C4.94 64.22 6.35 63.85 5.2 63.23C4.05 62.62 3.38 61.66 2.81 60.66C2.24 59.65 2.05 61.81 1.78 57.2C1.51 52.59 1.38 40.99 1.21 33.01C1.04 25.03 0.56 13.98 0.78 9.32Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
+.node:nth-of-type(3n)::after {
+  transform: scale(-1, -1);
 }
 
 .node::after {
@@ -894,14 +913,33 @@
   padding: var(--s-5);
 }
 
+/*
+ * Two columns from 1024 px: the live half (the explanation, the demo, its honest caption) on the left, the engineering
+ * notebook (the work trace, then the drawing and its stage list) on the right. The notebook is stacked in the right
+ * column so the panel is not a tall demo beside a short trace and a third of the page empty. The second row is the
+ * flexible one, so the extra height of a tall left column lands under the notebook, not between its two parts.
+ */
 @media (min-width: 1024px) {
   .serviceBody {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-rows: auto 1fr;
     align-items: start;
+  }
+  .serviceMain {
+    grid-row: 1 / span 2;
+  }
+  .trace {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .serviceSide {
+    grid-column: 2;
+    grid-row: 2;
   }
 }
 
-.serviceMain {
+.serviceMain,
+.serviceSide {
   display: grid;
   gap: var(--s-5);
   min-width: 0;
@@ -1053,6 +1091,20 @@
   }
   .metrics {
     gap: var(--s-3);
+  }
+}
+
+/* A 320 px phone: the panel's padding (2 x 1 rem here) and the demo card's (2 x 1 rem) leave a demo 220 px wide, and the
+   demos need about 245 (a rack of four slots, three speed buttons, the stage timings). Tighter padding gives it 252.
+   After the 639 px block above on purpose: same specificity, so the later rule wins. */
+@media (max-width: 23.5rem) {
+  .serviceHead,
+  .serviceBody,
+  .serviceBar {
+    padding-inline: var(--s-3);
+  }
+  .demo {
+    padding: var(--s-3);
   }
 }
 
