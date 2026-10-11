@@ -69,8 +69,24 @@ export interface RibbonRow {
   title: string
   /** The section's length in tokens. */
   tokens: number
+  /** How many lines its windows use: 1 for a section with one window, otherwise 2. */
+  lines: 1 | 2
   items: RibbonItem[]
 }
+
+/**
+ * Each window on the ribbon is a button, so each is a touch target: 44 px square at least (spec 8.2). The
+ * drawn window inside it stays small; the box is what a finger hits. The two lines of overlapping windows
+ * therefore sit one target plus a gap apart, so no two targets touch.
+ */
+export const RIBBON_TARGET = 44
+export const RIBBON_GAP = 8
+
+/** Distance from the top of a row's track to the top of the targets on `line` (0 or 1). */
+export const ribbonTop = (line: number): number => line * (RIBBON_TARGET + RIBBON_GAP)
+
+/** Height of a row's track: its lines of targets and the gaps between them. */
+export const ribbonHeight = (lines: number): number => ribbonTop(Math.max(lines, 1) - 1) + RIBBON_TARGET
 
 /**
  * One row per section in reading order, each window placed by its token offsets on ONE shared scale (the
@@ -84,12 +100,8 @@ export function ribbonRows(corpus: Corpus): RibbonRow[] {
   const present = known.filter((section) => bySection.has(section.id))
   const lengthOf = (section: (typeof present)[number]) => Math.max(section.tokens, ...(bySection.get(section.id) ?? []).map((chunk) => chunk.end), 1)
   const scale = Math.max(1, ...present.map(lengthOf))
-  return present.map((section) => ({
-    sectionId: section.id,
-    anchor: section.anchor,
-    title: section.title,
-    tokens: lengthOf(section),
-    items: (bySection.get(section.id) ?? []).map(
+  return present.map((section) => {
+    const items = (bySection.get(section.id) ?? []).map(
       (chunk, index): RibbonItem => ({
         chunkId: chunk.id,
         left: (chunk.start / scale) * 100,
@@ -97,8 +109,16 @@ export function ribbonRows(corpus: Corpus): RibbonRow[] {
         line: (index % 2) as 0 | 1,
         tokens: chunk.tokens,
       }),
-    ),
-  }))
+    )
+    return {
+      sectionId: section.id,
+      anchor: section.anchor,
+      title: section.title,
+      tokens: lengthOf(section),
+      lines: items.length > 1 ? 2 : 1,
+      items,
+    }
+  })
 }
 
 export interface Segment {

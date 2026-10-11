@@ -8,6 +8,8 @@ import { formatDuration } from '../../../lib/review/timing.ts'
  */
 
 const plural = (n: number, word: string) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`
+/** `@@ -0,0 +1,22 @@`: the whole file is one added hunk. */
+const hunkRange = (lines: number) => `@@ -0,0 +1,${lines} @@`
 
 export const REVIEW_STRINGS = {
   workersLabel: 'Review worker',
@@ -45,7 +47,8 @@ export const REVIEW_STRINGS = {
     return parsed ? found : `${found} The rules that need a syntax tree did not run on this text, so the list is shorter than it would be for plain JavaScript.`
   },
 
-  hunk: (lines: number, filename: string) => `@@ -0,0 +1,${lines} @@ ${filename}`,
+  hunkRange,
+  hunk: (lines: number, filename: string) => `${hunkRange(lines)} ${filename}`,
   galleyLabel: (filename: string) => `${filename} with the review comments beside the lines they are about`,
   flagged: (line: number, count: number) => `Line ${line}, ${plural(count, 'finding')}.`,
   fix: 'Fix',

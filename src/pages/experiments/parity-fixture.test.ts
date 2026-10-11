@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { decodeFloat32, encodeFloat32, normalize } from '../../lib/retrieval/cosine.ts'
 import { EMBED_DIM, EMBEDDINGS_MODEL, parityCosines } from '../../lib/retrieval/embed.ts'
-import { PARITY_SENTENCES, fixtureFromParity, looksLikeModel, previewFixture, serializeFixture } from './parity-fixture.ts'
+import { MODEL_ASSET_PATH, PARITY_SENTENCES, fixtureFromParity, looksLikeModel, modelListed, previewFixture, serializeFixture } from './parity-fixture.ts'
 
 /** A deterministic unit vector (a small LCG), standing in for what the encoder would report. */
 function unit(seed: number, dim = EMBED_DIM): Float32Array {
@@ -90,4 +90,16 @@ test('a dev-server HTML fallback or a tiny file is not a model; a large binary i
   assert.equal(looksLikeModel(response(true, 'application/octet-stream', '120')), false)
   assert.equal(looksLikeModel(response(true, 'application/octet-stream', '23000000')), true)
   assert.equal(looksLikeModel(response(true, 'application/octet-stream')), true, 'no length header: trust the content type')
+})
+
+test('the build inventory says whether the encoder is published, so the page never probes a file that is not there', () => {
+  assert.equal(modelListed({ assets: [{ path: MODEL_ASSET_PATH, bytes: 0, present: false }] }), false)
+  assert.equal(modelListed({ assets: [{ path: MODEL_ASSET_PATH, bytes: 23_000_000, present: true }] }), true)
+  assert.equal(modelListed({ assets: [{ path: 'models/yolov8n/yolov8n-320.onnx', present: true }] }), false, 'an inventory that does not list it: not published')
+  assert.equal(modelListed({ assets: [] }), false)
+  // Not a build-info file (the dev server answers with its HTML page): ask for the file itself.
+  assert.equal(modelListed(null), null)
+  assert.equal(modelListed('<!doctype html>'), null)
+  assert.equal(modelListed({}), null)
+  assert.equal(modelListed({ assets: 'nope' }), null)
 })

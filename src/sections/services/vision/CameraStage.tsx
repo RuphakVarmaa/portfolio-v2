@@ -11,8 +11,9 @@ import { parseColor } from './Dither.ts'
 import { Footer } from './Footer.tsx'
 import { Gauges } from './Gauges.tsx'
 import { motionMaybeAvailable } from './MotionProducer.ts'
+import { noDetector } from './noDetector.ts'
 import { registerPipelineRunner } from './panel-store.ts'
-import { createPipeline } from './Pipeline.ts'
+import { createPipeline, detectorUsable } from './Pipeline.ts'
 import { Queue } from './Queue.tsx'
 import { Stage } from './Stage.tsx'
 import { strings } from './strings.ts'
@@ -54,11 +55,17 @@ export default function CameraStage() {
   // to measure: the instruments are put away and the note below says why, instead of dials stuck at zero.
   const dormant = capability !== 'ok' && capability !== 'checking' && !hasTrace
 
+  // Whether a detector can be used here at all: one ships with this build, it has not failed, and this browser can run it.
+  // With none, "Or drop an image" is hidden (spec 10, item 5) and the camera dialog says that nothing will be recognised,
+  // instead of "This runs YOLOv8n inside your browser".
+  const canDetect = detectorUsable(detector.status, tier.simd)
   // Allowing the camera also loads the detector only when the device may (full tier, no data saver, no slow
   // network) and the dialog says so; otherwise the tap is the only way to download it.
   const willLoadDetector = detector.status === 'available' && tier.simd && canAutoLoadDetector(tier)
   const tapLabel = tapLabelFor(t.tapLabel, detector.modelBytes, detector.runtimeBytes)
   const sizes = tapLabel.split(' — ')[1] ?? tapLabel
+  // What Allow will really do about the detector, said in the dialog: load it now, wait for the tap, or (no body note) neither.
+  const consentNote = willLoadDetector ? strings.detector.alsoLoads(sizes) : canDetect && detector.status === 'available' ? strings.detector.loadsOnTap : null
 
   useEffect(() => {
     const surface = canvas.current
@@ -147,8 +154,8 @@ export default function CameraStage() {
   return (
     <div ref={root} className={styles.vz} data-vision-demo="">
       <div ref={bench} className={styles.bench} hidden={dormant}>
-        <Stage engine={engine} canvasRef={canvas} videoRef={video} canDrop={canRun} onFile={(file) => void engine.showImage(file)} />
-        <Controls engine={engine} cameraButton={cameraButton} onAskCamera={() => setAsking(true)} />
+        <Stage engine={engine} canvasRef={canvas} videoRef={video} canDrop={canRun && canDetect} onFile={(file) => void engine.showImage(file)} />
+        <Controls engine={engine} cameraButton={cameraButton} onAskCamera={() => setAsking(true)} canDrop={canDetect} />
         <Queue engine={engine} motionCapable={motionCapable} />
         <Gauges engine={engine} />
       </div>
@@ -165,8 +172,8 @@ export default function CameraStage() {
           void engine.startCamera({ loadDetector: willLoadDetector })
         }}
       >
-        <p>{t.demo.consent.body}</p>
-        {willLoadDetector ? <p>{strings.detector.alsoLoads(sizes)}</p> : null}
+        <p>{canDetect ? t.demo.consent.body : noDetector.consent}</p>
+        {consentNote ? <p>{consentNote}</p> : null}
       </ConsentDialog>
     </div>
   )

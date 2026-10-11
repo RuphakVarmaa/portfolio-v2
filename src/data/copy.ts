@@ -95,20 +95,20 @@ const retrieval = {
   label: 'SERVICE 01',
   depth: {
     '30s':
-      'I built a retrieval system that answers questions over documents of up to 100K tokens and shows where every answer came from. It reached 87% retrieval precision and answered in under two seconds at p95, for more than 50 people at once.',
+      'I built a retrieval system that answers questions over documents of up to 100K tokens and shows where every answer came from. It reached 87% retrieval precision and answered in under two seconds at p95, for more than 50 concurrent sessions.',
     engineer:
       'A multi-agent RAG pipeline on LangChain and GPT-4 over 100K-token corpora. Chunks are 512-token sliding windows; pgvector with HNSW indexing does the nearest-neighbour pass, cosine-similarity reranking tightens it, and structured citation metadata keeps every answer grounded. The FastAPI service runs horizontally scaled on AWS EC2 behind an ALB for more than 50 concurrent sessions. The result: 87% retrieval precision, sub-2 s p95, and a 70% reduction in manual document analysis time.',
     peer:
-      'Agents split a question into retrieval sub-goals; each sub-goal queries pgvector (HNSW) and reranks by cosine before synthesis, with citation metadata carried through so the answer can be audited back to the chunk. Adaptive 512-token sliding windows were the lever that moved precision: fixed chunks cut tables and clauses in half. Horizontal FastAPI replicas behind an ALB kept p95 under 2 s at 50+ concurrent sessions.',
+      'Agents split a question into retrieval sub-goals; each sub-goal queries the pgvector HNSW index and reranks by cosine before synthesis, with citation metadata carried through so the answer can be audited back to the chunk. The chunking is adaptive 512-token sliding windows, the chunking behind the 70% cut in manual document analysis time. Because the windows overlap, a clause or a table row is less likely to be split across two chunks. Horizontal FastAPI replicas behind an ALB kept p95 under 2 s at 50+ concurrent sessions.',
   },
   trace: {
     decisions:
-      'Sliding windows over fixed blocks; HNSW over exact search once the corpus passed what a brute-force scan could return inside the p95 budget; citations carried as structured metadata rather than parsed back out of the answer.',
+      'Sliding windows over fixed blocks; HNSW over exact search so the nearest-neighbour pass can stay inside the p95 budget as the corpus grows; citations carried as structured metadata rather than parsed back out of the answer.',
     tradeoffs:
-      'Overlapping windows mean more vectors to store and embed. I paid that cost to stop losing facts at chunk boundaries, which is where the precision was leaking.',
+      'Overlapping windows mean more vectors to store and embed. I accept that cost so a fact is less likely to be cut in half at a chunk boundary.',
     broke:
-      'Answers without citations looked right and were wrong. Making the citation metadata mandatory in the pipeline, not optional, is what made the 87% measurable at all.',
-    change: 'Measure precision per document type, not just overall; the number hides variance between prose and tables.',
+      'The failure I design against in a retrieval system: an answer with no citation can look right and still be wrong. That is why every answer carries structured citation metadata, so it can be checked against the chunk it came from.',
+    change: 'Measure precision per document type, not just overall, so a weak spot in tables or in prose cannot hide inside one average.',
   },
   plain:
     "This is a search box that reads this website's own text. Ask it something and it shows you the exact passage it found, so you can check the answer yourself.",
@@ -164,15 +164,15 @@ const vision = {
     engineer:
       'YOLOv8 fine-tuned on a 5K-image custom dataset, with bounding-box telemetry streamed over WebSockets and per-class analytics rendered in React.js at a sustained 30 FPS. An asyncio producer–consumer queue between capture and inference reduced latency variance by 40%. Inference p95, detection rate and queue depth are instrumented in Prometheus with SLO alerts.',
     peer:
-      'The queue is the design: capture produces, inference consumes, and a bounded buffer with drop-oldest backpressure keeps the consumer fed without letting latency pile up — that is where the 40% variance reduction came from. Telemetry leaves the process as WebSocket frames, and the three SLOs (inference p95, detection rate, queue depth) alert in Prometheus so a regression shows up as a page, not a feeling.',
+      'The queue is the design: capture produces, inference consumes, and a bounded buffer between them keeps the consumer fed without letting latency pile up. The asyncio producer–consumer queue is what cut latency variance by 40%; the port in your browser uses a drop-oldest ring buffer to show the same idea. Telemetry leaves the process as WebSocket frames, and the three SLOs (inference p95, detection rate, queue depth) alert in Prometheus so a regression shows up as a page, not a feeling.',
   },
   trace: {
     decisions:
-      'A bounded producer–consumer queue instead of back-to-back capture and inference; SLO alerts on the three numbers that actually describe health.',
+      'A producer–consumer queue between capture and inference instead of running them back to back; SLO alerts on the three numbers that describe health: inference p95, detection rate and queue depth.',
     tradeoffs:
-      'Dropping frames under load keeps latency flat but lowers the detection rate; the alerts watch both so neither is silently traded away.',
+      'A queue that sheds load keeps latency flat but can lower the detection rate; the alerts watch inference p95, detection rate and queue depth, so none of them is traded away silently.',
     broke:
-      'Latency variance, not mean latency, was the problem users felt: the mean was fine while the tail stuttered. The queue fixed the tail.',
+      'In a live pipeline the thing to guard is latency variance, not just the mean: a fine average can hide a stuttering tail. The producer–consumer queue is what cut that variance by 40%.',
     change: 'Export the per-class analytics as a Prometheus histogram too, so the dashboard and the alerts read from the same source.',
   },
   plain:
@@ -192,6 +192,22 @@ const vision = {
       body: 'This runs YOLOv8n inside your browser. Frames never leave your device; nothing is uploaded or stored. The camera stops when you scroll away or press Stop.',
       allow: 'Allow camera',
       deny: 'Not now',
+    },
+    /**
+     * What the panel says while no detector is published with this build (review finding R1): a caption that says
+     * "YOLOv8n runs here" above a panel that detects nothing is not honest. The prerendered HTML and the first moment of
+     * a visit take this wording too (see src/sections/services/vision/noDetector.ts). The production claim is unchanged.
+     */
+    noDetector: {
+      /** Replaces `plain` ("draws a box around each object it recognises"). */
+      plain:
+        'This points a camera at the world and counts how many pictures per second it can keep up with. The part that recognises objects and draws a box around each one is not published yet, so no boxes appear. The line of waiting pictures and the counters are real.',
+      /** Replaces `caption`. Keeps the production claim and the "your numbers" sentence. */
+      caption:
+        "A port. The detector (YOLOv8n) is not published on this site yet, so nothing is detected; the camera, the bounded queue and the gauges are real and run on your device. The production system ran a fine-tuned YOLOv8 at <30 ms. Your numbers are your device's numbers.",
+      /** Replaces `consent.body`: says what Allow really does when there is nothing to detect with. */
+      consent:
+        'Frames go through the queue in your browser; no detector is loaded, so nothing is recognised. Frames never leave your device; nothing is uploaded or stored. The camera stops when you scroll away or press Stop.',
     },
     gauges: { inference: 'inference p95 (ms)', queue: 'queue depth', dropped: 'dropped frames' },
     /** Shown beside the unchanged production `30 sustained FPS` metric when the device is slower. */
@@ -304,19 +320,19 @@ const review = {
   label: 'SERVICE 04',
   depth: {
     '30s':
-      'I built a pipeline that reviews every pull request automatically and posts comments inline. It took over 80% of routine review work for a 12-engineer team, cut the median PR cycle by 45%, and runs in under three minutes.',
+      'I built a pipeline that reviews every pull request automatically and posts comments inline. It automated 80% of routine review work across a 12-engineer repository, cut the median PR cycle by 45%, and runs in under three minutes.',
     engineer:
       'A GitHub Actions workflow evaluates every PR diff and posts inline feedback. Findings are classified across OWASP Top-10, logic bugs, performance, style and maintainability into five severity tiers. Structured LLM review is combined with ESLint and Semgrep inside a Dockerized stage. Result: 80% of routine review overhead automated across a 12-engineer repository, median PR cycle down 45%, pipeline under 3 minutes.',
     peer:
-      'The LLM stage emits structured findings, not prose, so they merge with ESLint and Semgrep output into one tiered list and one set of inline comments. Five tiers decide what blocks a merge and what is advisory; keeping the Docker stage under three minutes is what made engineers leave it on.',
+      'The LLM stage emits structured findings, not prose, so they merge with ESLint and Semgrep output into one tiered list and one set of inline comments. Five severity tiers separate what is urgent from what is advisory, and the whole Docker stage runs in under three minutes.',
   },
   trace: {
     decisions:
       'Structured output from the LLM so it can be merged with deterministic tools; five tiers so severity is a decision, not a vibe; Docker so the stage is reproducible.',
     tradeoffs:
-      'A tighter time budget means fewer rules per run; under three minutes was the budget that kept the pipeline on in every PR.',
+      'A tighter time budget means fewer rules per run. I accept that to keep the whole pipeline under three minutes.',
     broke:
-      'Unstructured review text could not be deduplicated against ESLint and Semgrep, so the same issue was reported three ways. Structured findings fixed it.',
+      'The failure I design against: free-form review text cannot be deduplicated against ESLint and Semgrep output, so one issue could be reported three ways. Structured findings are what let the three sources merge into one list.',
     change: 'Track precision per tier over time so false positives in the lower tiers can be pruned with evidence.',
   },
   plain:
@@ -405,7 +421,7 @@ export const copy = {
         label: 'Skip the machine',
         short: 'Skip machine',
         title: 'Collapse the board, the status strip and the chaos lab to plain lists',
-        forced: 'Skip the machine (on for this device)',
+        forced: 'Skip the machine is on because this device runs the Basic tier',
       },
       // Labels are constant and the buttons carry aria-pressed: "Ink" pressed = the Ink theme is on.
       theme: { paper: 'Paper', ink: 'Ink', title: 'Switch between the Paper and Ink themes' },
@@ -506,7 +522,8 @@ export const copy = {
     },
     /** Under "Skip the machine" the board becomes this list. */
     machineOff: {
-      heading: 'Services',
+      // Not "Services": the next section on the page has that title, and two headings with one name read as a mistake.
+      heading: 'Service status',
       note: 'The board is switched off. These are the same four services, as a list.',
     },
   },
@@ -656,6 +673,8 @@ export const copy = {
     authorship: 'The cluster is new work, built for this site. The four services are ports of my projects.',
     /** Owner-confirmation item 6: replace with the exact repository URL. */
     sourceUrl: 'https://github.com/RuphakVarmaa',
+    /** The credits link's words while `sourceUrl` is only the owner's GitHub account page (see src/sections/colophon/source-link.ts). */
+    profileLabel: 'GitHub profile',
     credits: (sourceUrl: string) =>
       `Designed and drawn by hand (SVG), set in Big Shoulders, Atkinson Hyperlegible Next, Martian Mono and Doto. No generated imagery. The cluster — scheduler, quorum, chaos lab — was built for this site; source: ${sourceUrl}.`,
     links: {

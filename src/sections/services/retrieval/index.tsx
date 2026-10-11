@@ -33,24 +33,27 @@ const EXAMPLES = 'Questions it answers:'
 
 /**
  * What the prerendered HTML, the Basic tier without Web Workers and a failed load show in the demo area: no
- * invented numbers, only what the demo does and the questions it is built around. It is as tall as the
- * demo's first view, so the panel does not jump when the demo arrives.
+ * invented numbers, only what the demo does and the questions it is built around. While the demo is on its way
+ * it also holds the demo's place (`data-reserve`, see the stylesheet), so the panel does not jump when the demo arrives.
  */
 function Fallback() {
   const demo = copy.services.retrieval.demo
   return (
-    <div className={styles.fallback}>
-      <p className="stencil">{demo.label}</p>
-      <p className={styles.note}>{NEEDS_JS}</p>
-      <p className={styles.note}>{EXAMPLES}</p>
-      <ul className={styles.samples}>
-        {demo.chips.map((question) => (
-          <li key={question}>{question}</li>
-        ))}
-      </ul>
+    <div className={styles.hold} data-reserve="">
+      <div className={styles.fallback}>
+        <p className="stencil">{demo.label}</p>
+        <p className={styles.note}>{NEEDS_JS}</p>
+        <p className={styles.note}>{EXAMPLES}</p>
+        <ul className={styles.samples}>
+          {demo.chips.map((question) => (
+            <li key={question}>{question}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }
+
 
 /** Apply a citation another page left behind (once, after hydration). */
 function useFinishPendingCitation() {

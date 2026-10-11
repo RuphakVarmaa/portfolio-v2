@@ -46,7 +46,8 @@ if (existsSync(vocabFile)) {
 
 const corpus = buildCorpus({
   sections: SECTIONS,
-  records: pageRecords(),
+  // The Vision captions say what the page says: that nothing is detected, until a detector is published.
+  records: pageRecords({ detector: asset('models/yolov8n/yolov8n-320.onnx') !== null }),
   vocab,
   assets: {
     vocab: vocabAsset,

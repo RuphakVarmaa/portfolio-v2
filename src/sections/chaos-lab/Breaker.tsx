@@ -25,6 +25,10 @@ import styles from './ChaosLab.module.css'
  * in the exact words of `copy.chaos.experiments.*` with live values. The lever on each is a status light
  * made of metal: it shows the true state of the thing the experiment is about, so it moves because the
  * cluster changed, not because a button was pressed.
+ *
+ * The two buttons carry `data-chaos-key`. The stand-ins for them in index.tsx (shown until this bench has
+ * loaded) carry the same key, which is how focus, or a press that came too early, is handed to the button
+ * here (handoff.ts, resumed by ChaosLabLive).
  */
 
 export type PlateState = 'ready' | 'starting' | 'running' | 'proved' | 'earlier' | 'waiting' | 'armed' | 'failed'
@@ -100,6 +104,7 @@ export function PlugBreaker() {
         icon={<Lever closed={policyB === 'ready' || policyB === 'busy'} spark={policyB === 'dead'} seed="chaos:plug" />}
         busy={running}
         disabled={!supported}
+        data-chaos-key="plug"
         onClick={() => {
           if (!running) void startFuzz('plug')
         }}
@@ -163,6 +168,7 @@ export function TabBreaker() {
         className={styles.leverButton}
         icon={<Lever closed={q.nodes >= 2} seed="chaos:tab" />}
         disabled={!q.supported}
+        data-chaos-key="tab"
         onClick={open}
       >
         {t.button}

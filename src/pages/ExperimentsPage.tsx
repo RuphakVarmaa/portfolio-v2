@@ -5,6 +5,7 @@ import { Stamp } from '../components/ui/Stamp.tsx'
 import { copy } from '../data/copy.ts'
 import { OPERATOR_EVENT, OPERATOR_KEY, OPERATOR_VALUE } from '../sections/chaos-lab/operator-keys.ts'
 import { useLabObservers } from '../sections/chaos-lab/use-observers.ts'
+import { START_NOW, useWake } from '../sections/chaos-lab/use-wake.ts'
 import { page } from './experiments/page-copy.ts'
 import styles from './Experiments.module.css'
 
@@ -16,6 +17,10 @@ import styles from './Experiments.module.css'
  * with its title, description, plain caption and a static fallback. The pieces themselves are lazy chunks
  * (DemoSlot loads each when it is within half a screen of the viewport), so a visitor who only reads the
  * index downloads none of them. The first four are for visitors; the last two are owner tools.
+ *
+ * The viewport is the wrong trigger for the keyboard: Tab goes to the next focusable element, and a piece
+ * that has not loaded has none, so focus would walk past it. The first Tab key press anywhere on the page
+ * starts every piece loading (use-wake.ts), long before focus can reach one.
  */
 
 const items = copy.experiments.items
@@ -55,6 +60,7 @@ function readStamp(): boolean {
 
 export function ExperimentsPage() {
   const earned = useSyncExternalStore(subscribeStamp, readStamp, () => false)
+  const [woken] = useWake()
   useLabObservers(true) // credit an experiment finished in this tab even though the Chaos Lab section is not on this page
   return (
     <main id="content" tabIndex={-1} className={`wrap ${styles.page}`}>
@@ -98,7 +104,7 @@ export function ExperimentsPage() {
             <p className="measure">{piece.text}</p>
             <PlainCaption>{piece.plain}</PlainCaption>
             <div className={styles.live}>
-              <DemoSlot load={piece.load} fallback={<p className={styles.note}>{page.fallback}</p>} />
+              <DemoSlot load={piece.load} rootMargin={woken ? START_NOW : undefined} fallback={<p className={styles.note}>{page.fallback}</p>} />
             </div>
           </div>
         </section>

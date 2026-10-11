@@ -1,14 +1,55 @@
 /*
  * The static fallback of the retrieval demo (prerendered HTML, the Basic tier without Web Workers, a failed
- * load). Its own module so the panel's entry chunk carries five class names, not the demo's ninety.
- * The min-height is the demo's first view, so the panel does not jump when the demo arrives.
+ * load). Its own module so the panel's entry chunk carries a few class names, not the demo's ninety.
+ * Visitors with JavaScript and workers get the demo a moment after the page is up. Until then the fallback holds
+ * the demo's height (`--room`, measured for the widths the demo's own layout steps at; the fallback and the demo sit
+ * in containers of the same width, so one query sets it), so nothing below jumps when the demo arrives. Without
+ * JavaScript, and when workers are missing, it keeps the short height of what it says.
  */
+
+.hold {
+  container-type: inline-size;
+}
 
 .fallback {
   display: grid;
   align-content: start;
   gap: var(--s-3);
   min-height: 22rem;
+}
+
+html[data-js] .hold[data-reserve] .fallback {
+  min-height: var(--room, 35.5rem);
+}
+
+@container (max-width: 539.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 40.5rem;
+  }
+}
+
+@container (max-width: 429.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 44.5rem;
+  }
+}
+
+@container (max-width: 359.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 48rem;
+  }
+}
+
+@container (max-width: 329.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 51rem;
+  }
+}
+
+@container (max-width: 264.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 55rem;
+  }
 }
 
 .note {

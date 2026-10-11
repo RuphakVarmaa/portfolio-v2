@@ -52,6 +52,23 @@ export function previewFixture(fixture: ParityFixture, keep = 28): string {
   return serializeFixture(shown)
 }
 
+/** Where the encoder is published, as `build-info.json` lists it (the same list the Colophon and the Vision panel read). */
+export const MODEL_ASSET_PATH = 'models/minilm/model_quantized.onnx'
+
+/**
+ * Is the encoder published, according to the build's own inventory (`/build-info.json`, `assets`)? `null` when the
+ * JSON is not a build-info file (the dev server has none), and then the caller may ask for the file itself. The
+ * production site reads this instead of asking for a file that may not be there: the browser prints a red 404 in
+ * the console for every probe of a missing file.
+ */
+export function modelListed(info: unknown): boolean | null {
+  if (typeof info !== 'object' || info === null) return null
+  const assets = (info as { assets?: unknown }).assets
+  if (!Array.isArray(assets)) return null
+  const entry = assets.find((asset) => typeof asset === 'object' && asset !== null && (asset as { path?: unknown }).path === MODEL_ASSET_PATH)
+  return entry !== undefined && (entry as { present?: unknown }).present === true
+}
+
 /** Does the response for the model look like a real model file, not the dev server's HTML fallback for a missing path? */
 export function looksLikeModel(response: { ok: boolean; headers: { get(name: string): string | null } }): boolean {
   if (!response.ok) return false

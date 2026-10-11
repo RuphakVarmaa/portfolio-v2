@@ -7,9 +7,12 @@ import { createStore } from '../../../lib/vision/store.ts'
  * bytes: the demo writes measured stage timings and which schematic parts are running; the panel draws them
  * in the "Show me the pipeline" list and on the schematic.
  *
- * It is written only on events (a pipeline run, a source starting or stopping), never per frame, so the
- * panel is not re-rendered at the camera's rate.
+ * It is written only on events (a pipeline run, a source starting or stopping, the build's inventory being read),
+ * never per frame, so the panel is not re-rendered at the camera's rate.
  */
+
+/** Does this build ship a detector? `unknown` until the demo has read the build's inventory (and in the prerendered HTML). */
+export type DetectorKnown = 'unknown' | 'absent' | 'published'
 
 export interface PanelState {
   /** Measured timings from the last "Show me the pipeline" run. */
@@ -20,9 +23,11 @@ export interface PanelState {
   active: readonly string[]
   /** Measured text under a schematic part, keyed by part id (`{ camera: '1.2 ms' }`). */
   annotations: Readonly<Record<string, string>>
+  /** Whether a detector is published with this build. The always-visible captions say so, and never claim detection without one. */
+  detector: DetectorKnown
 }
 
-export const EMPTY_PANEL: PanelState = Object.freeze({ stages: [], busy: false, active: [], annotations: {} })
+export const EMPTY_PANEL: PanelState = Object.freeze({ stages: [], busy: false, active: [], annotations: {}, detector: 'unknown' })
 
 export const panelStore = createStore<PanelState>(EMPTY_PANEL)
 

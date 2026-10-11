@@ -119,7 +119,8 @@
   font-size: 1.125rem;
 }
 
-@media (pointer: coarse) {
+/* 44 px under a finger, and on any phone-width screen (a desktop browser at that width, or a touch device that reports a fine pointer). */
+@media (pointer: coarse), (max-width: 639px) {
   .size-sm {
     min-height: 44px;
   }
@@ -239,6 +240,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.readoutStart {
+  text-align: start;
+}
+
+/* Martian Mono in place of Doto (see Readout's `face`): the same slot, a figure that reads at a glance. */
+.readoutMono {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-variation-settings: normal;
+  letter-spacing: 0;
+}
+
 .readoutFlash {
   animation: readout-flash var(--dur-1) linear 1;
 }
@@ -278,8 +291,12 @@
 /* ===== Tape ===== */
 
 .tape {
+  min-width: 0;
   border: var(--rule-strong);
   background: var(--paper-2);
+  /* The entries' layout follows the tape's own width, not the window's (a tape in a narrow column is a phone's tape). */
+  container-type: inline-size;
+  container-name: tape;
 }
 
 .tapeHeader {
@@ -298,25 +315,14 @@
   background-color: var(--paper-2);
   background-image: var(--ruled);
   background-size: 24px 24px;
+  /* The ruled lines scroll with the entries: painted on the scroller they stayed put, and once the tape had followed the
+     newest entry to the bottom they sat 8 px off the rows. */
+  background-attachment: local;
 }
 
 .tapeInner {
   position: relative;
   min-height: 100%;
-}
-
-.tapeHoles {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 20px;
-  height: 100%;
-  pointer-events: none;
-}
-
-.tapeHole {
-  fill: var(--paper);
-  stroke: var(--ink-rule);
-  stroke-width: 1;
 }
 
 .tapeLines {
@@ -325,15 +331,59 @@
   list-style: none;
 }
 
+/*
+ * An entry, not a row: one sprocket hole at its first row, and the rows after the first hang under the hole (the
+ * negative indent), so a long audit line does not read as several. It breaks between its fields (TapeText), inside
+ * one only when that field alone is wider than the tape.
+ */
 .tapeLine {
+  position: relative;
   min-height: 24px;
-  padding: 0 var(--s-3) 0 calc(20px + var(--s-3));
+  padding: 0 var(--s-3) 0 calc(20px + var(--s-3) + 2ch);
+  text-indent: -2ch;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
   font-variation-settings: 'wdth' 90;
   line-height: 24px;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
+}
+
+.tapeLine::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--ink-rule);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.tapeField {
+  display: inline-block;
+  max-width: 100%;
+  text-indent: 0;
+  vertical-align: top;
+}
+
+.tapeNb {
+  white-space: nowrap;
+}
+
+/* A narrow tape holds about 230 px of text and an audit entry is about 110 characters: wrapped, one entry takes six or
+   seven rows and the log stops being a log. One row per entry then, and the tape (already a keyboard-focusable
+   scroller) pans sideways. */
+@container tape (max-width: 559.98px) {
+  .tapeLine {
+    padding-left: calc(20px + var(--s-3));
+    text-indent: 0;
+    white-space: nowrap;
+  }
+  .tapeField {
+    max-width: none;
+  }
 }
 
 .tape-muted {
@@ -423,15 +473,33 @@
   fill: var(--ink);
 }
 
-.meterFoot {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
-  gap: 0 var(--s-3);
+.meterFace {
+  position: relative;
 }
 
-.meterLabel {
-  grid-column: 1 / -1;
+/* The ends of the scale sit under the ends of the arc (which stops at 13.6% and 86.4% across, 54% down). */
+.meterEnd {
+  position: absolute;
+  top: 61%;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-variation-settings: 'wdth' 90;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.meterEnd[data-end='min'] {
+  left: 13.6%;
+}
+
+.meterEnd[data-end='max'] {
+  left: 86.4%;
+}
+
+.meterFoot {
+  display: grid;
+  gap: var(--s-1);
 }
 
 .meterReading {
@@ -444,14 +512,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-}
-
-.meterRange {
-  display: flex;
-  gap: var(--s-3);
-  color: var(--ink-muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
 }
 
 /* ===== Depth switch ===== */
@@ -524,6 +584,57 @@
   .depthFace {
     min-width: 0;
     padding-inline: var(--s-2);
+  }
+}
+
+/* ===== Select ===== */
+
+.selectWrap {
+  position: relative;
+  display: block;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2.25rem 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  box-shadow: var(--key-shadow);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 700;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select:hover {
+  background: var(--paper-3);
+}
+
+/* A 320 px phone: two selectors per row leave each about 110 px, which cut "Member" to "Membe". Less padding is enough
+   (the longest option, "Audit log", is 69 px of the 71 left); the type stays at 16 px, because iOS Safari zooms the
+   page when a field under 16 px gets focus. */
+@media (max-width: 23.5rem) {
+  .select {
+    padding: 0 1.75rem 0 var(--s-2);
+  }
+  .selectWrap::after {
+    right: 10px;
   }
 }
 
@@ -747,6 +858,15 @@
   background: var(--cobalt-soft);
 }
 
+/* Without JavaScript a part is a label and nothing will happen when it is pressed: it does not look pressable. */
+html:not([data-js]) .node {
+  cursor: default;
+}
+
+html:not([data-js]) .node:hover {
+  background: var(--paper);
+}
+
 .nodeActive,
 .nodeActive:hover {
   background: var(--live-soft);
@@ -767,7 +887,7 @@
 
 .nodeSub {
   font-family: var(--font-text);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 500;
   letter-spacing: 0;
   line-height: 1.15;
@@ -776,7 +896,7 @@
 
 .nodeNote {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
@@ -861,13 +981,21 @@
   outline-offset: 6px;
 }
 
+/*
+ * Three equal columns. A value is never broken ("<30ms" had its "s" on a second line at every common phone width), so it is
+ * the numeral that gives way: it is sized from the row's own width so that the widest value on the site ("<30ms", 2.76 em
+ * of Big Shoulders 800) fits one column (a third of the row, less the gaps). On a wide screen that is more than the
+ * numeral token, which then wins and nothing changes.
+ */
 .metrics {
+  --gap: var(--s-4);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--s-4);
+  gap: var(--gap);
   margin: 0;
   padding: 0;
   list-style: none;
+  container-type: inline-size;
 }
 
 .metric {
@@ -879,11 +1007,11 @@
 
 .metricValue {
   font-family: var(--font-display);
-  font-size: var(--fs-numeral);
+  font-size: min(var(--fs-numeral), calc((100cqi - 2 * var(--gap)) / 8.5));
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .metricLabel {
@@ -914,15 +1042,16 @@
 }
 
 /*
- * Two columns from 1024 px: the live half (the explanation, the demo, its honest caption) on the left, the engineering
- * notebook (the work trace, then the drawing and its stage list) on the right. The notebook is stacked in the right
- * column so the panel is not a tall demo beside a short trace and a third of the page empty. The second row is the
- * flexible one, so the extra height of a tall left column lands under the notebook, not between its two parts.
+ * Two columns from 1024 px: the live half on the left (the explanation, the demo, its honest caption, then the stage list the
+ * demo's "Show me the pipeline" fills in) and the engineering notebook on the right (the work trace, then the drawing). A phone
+ * stacks them in source order: explanation, caption, demo, caption, trace, drawing, stage list. The second row is the flexible
+ * one, so the extra height of a tall left column lands under the trace, not between its parts, and the drawing's cell
+ * (rows 2 and 3) is as tall as the demo is: that is the room it rides in.
  */
 @media (min-width: 1024px) {
   .serviceBody {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     align-items: start;
   }
   .serviceMain {
@@ -932,16 +1061,36 @@
     grid-column: 2;
     grid-row: 1;
   }
-  .serviceSide {
+  .drawing {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 2 / span 2;
+  }
+  .pipeline {
+    grid-column: 1;
+    grid-row: 3;
   }
 }
 
-.serviceMain,
-.serviceSide {
+/*
+ * The drawing rides beside the demo: once the work trace has scrolled past it stays under the header while the visitor works
+ * the controls, so the parts that light stage by stage, and the time each took, are in view when they light, and the right
+ * column is not empty paper under a tall demo. Only where the drawing (up to about 600 px) fits in the window between the
+ * header and the status strip: a shorter window keeps it in the flow, never half under the strip.
+ */
+@media (min-width: 1024px) and (min-height: 760px) {
+  .drawing {
+    position: sticky;
+    top: calc(var(--scroll-offset) + var(--s-4));
+  }
+}
+
+.serviceMain {
   display: grid;
   gap: var(--s-5);
+  min-width: 0;
+}
+
+.drawing {
   min-width: 0;
 }
 
@@ -1090,7 +1239,7 @@
     padding-inline: var(--s-4);
   }
   .metrics {
-    gap: var(--s-3);
+    --gap: var(--s-3);
   }
 }
 

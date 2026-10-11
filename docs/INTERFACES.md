@@ -93,7 +93,9 @@ hydrated. So:
 - CSS Modules (`Foo.module.css`), plain CSS: **no nesting, no `:has()`, no `light-dark()`** (browser floor:
   Safari 16.4, Firefox 120). Container queries, `color-mix()`, `aspect-ratio`, `inset`, `clamp()`, `dvh`
   are fine. Production class names are shortened to two characters (a size budget, see section 4 and the deviations).
-- Colours and sizes come from the tokens in `src/styles/tokens.css`. Muted text (`--ink-muted`) is for
+- Colours and sizes come from the tokens in `src/styles/tokens.css`. The smallest type is `--fs-micro` (12 px) and only in Martian Mono
+  or Atkinson; a stencil face never goes under `--fs-label` (13 px), its bridges close up. Paragraphs, list items, captions and
+  definitions get `text-wrap: pretty` from `base.css` (no line ends on a lone word). Muted text (`--ink-muted`) is for
   `--paper` and `--paper-2` only (7.98:1 and 7.23:1); never put it on `--paper-3` (6.39:1, a hover/pressed
   fill). `--live` (vermilion) means *happening
   now* (heartbeat, pulled plug, deny, needle, lit lamp) and carries text **only at 18 px or larger**
@@ -147,6 +149,11 @@ TBT 50 ms, CLS 0.002). axe-core 4.10: 0 violations on every route in both themes
 | Transferred before interaction, no taps | 450 KB | 263 KB | The script sums HTML + CSS + initial JS + latin fonts + all worker scripts + corpus + build-info + favicon. |
 | CLS | 0 | 0 (measured) | Fixed widths in `ch` for live numbers; reserve space for anything that appears after hydration. |
 | Long tasks from site code during boot | none over 50 ms | none (measured) | Inference and parsing happen in workers. |
+
+Measured after review round 1 (`pnpm build`): `dist/index.html` 58.0 KB, all CSS 23.3 KB gzip, site entry 60.2 KB gzip, React vendor
+59.0 KB, initial JS total 119.1 KB, transferred before interaction 329 KB. On a DevTools "Fast 3G" profile (562 ms round trip, 1.44 Mbps,
+4x CPU, gzip on) first paint is 1.8 s; the spec's 1.2 s needs the first screen's CSS inlined in the HTML, which the HTML budget cannot hold
+(deviation 20 below).
 
 ## 5. Global hooks: `html` attributes, DOM ids, CSS
 
@@ -482,8 +489,16 @@ loadGsap(): Promise<{ gsap, Flip }>     // GSAP core + Flip, loaded on demand (n
 getGsap(): { gsap, Flip } | null        // synchronous; null until loaded
 isLite(): boolean                       // html[data-motion='lite']
 selfDraw(elements: ArrayLike<SVGGeometryElement>, { duration = 0.9, stagger = 0.09, onComplete? }): () => void   // returns cancel
-goToId(id): boolean                     // smooth scroll (instant when lite) + focus the heading ([data-panel-heading] or first h1-h3)
+goToId(id): boolean                     // scroll to the section and focus its heading ([data-panel-heading] or first h1-h3), see below
+holdOnTarget(target, deadline): () => void   // keep an element where scroll-padding-top puts it while the layout settles; returns the release
 ```
+`goToId` lands ON the target even though the page grows under the scroll (each service's demo loads as its panel nears). A target within
+three viewport heights is scrolled to smoothly and corrected after the scroll rests, until it is in place. A farther target, and any target
+under lite motion, is jumped to at once and held in place (`holdOnTarget`: a resize observer puts it back whenever the document's size
+changes) for six seconds, or until the visitor scrolls, taps, presses a key or the address changes. One landing at a time: a new call, or a
+`hashchange` (Back, Forward, an edited fragment), ends the one in progress. `useHashNavigation` (control room) takes over clicks on
+same-page `#fragment` links and deep links with the same two functions; do not add another delegated click or hash handler (if you
+must, bail on `event.defaultPrevented`, or the page scrolls twice and the history gets two entries).
 GSAP is used for exactly three things: `selfDraw` (core `gsap.to` on `stroke-dashoffset`; DrawSVG is a Club
 plugin and is not used), `Flip` in ServicePanel, and the Meter needle. Everything else is CSS transitions.
 
@@ -553,16 +568,17 @@ All in `src/components/ui/` (import with explicit `.tsx`). Styles are in `ui.mod
 | `ButtonLink` | same visual props + every `<a>` attribute | `target="_blank"` adds `rel="noreferrer noopener"`. |
 | `Icon` | `name`, `size? = 20`, `title?` | Names: `copy check external pdf sun moon gauge play stop plug menu close volume volume-off help arrow-right camera image text machine upload`. Decorative (`aria-hidden`) unless `title`. |
 | `Stamp` | `children`, `tone?: 'ink'\|'cobalt'\|'live'`, `size?: 'sm'\|'md'\|'lg'`, `rotate? = -6`, `shape?`, `animate?`, `as?: 'span'\|'div'` | `sm` is always ink text (tone colours the border); `md`/`lg` may carry the tone as text (>= 18 px). Use `shape` for the severity glyph. |
-| `Readout` | `label?`, `value`, `width? = 2` (ch), `size?: 'sm'\|'md'\|'lg'`, `flash? = true` | Doto, round dots, fixed width (CLS 0), 120 ms `--live` flash when `value` changes (primitives only). Doto is for digits and NODES / TERM / UP / MS only. |
+| `Readout` | `label?`, `value`, `width? = 2` (ch), `size?: 'sm'\|'md'\|'lg'`, `align?: 'start'\|'end'`, `face?: 'dot'\|'mono'`, `flash? = true` | Doto, round dots, fixed width (CLS 0), 120 ms `--live` flash when `value` changes (primitives only). Doto is for digits and NODES / TERM / UP / MS only. Its decimal point is a plus-shaped cluster of five dots, so a figure with a decimal, and the figure beside a dial, use `face="mono"` (Martian Mono). |
 | `PlainCaption` | `children`, `label? = 'In plain words'` | Visible while `data-plain='on'`. Mandatory on every panel. |
-| `Tape` | `lines: (string \| { id?, text, tone?: 'ink'\|'muted'\|'live'\|'cobalt', plain? })[]` (oldest first), `label` (required), `header?`, `max? = 200`, `announce?`, `empty?`, `height? = '14rem'` | `role="log"`, focusable, sticks to the newest line unless the reader scrolled up. `announce` forwards new lines to the throttled live region (the tape itself is never `aria-live`). Line height is 24 px, aligned to the ruled paper. |
-| `Meter` | `label`, `value`, `min`, `max`, `unit?`, `warn?`, `decimals? = 0`, `instant?` | `role="meter"`. SVG analog dial; the needle tweens with GSAP (overshoot), instant under lite. The Readout under it is the real value. `warn` draws a hatched zone to `max`. |
+| `Tape` | `lines: (string \| { id?, text, tone?: 'ink'\|'muted'\|'live'\|'cobalt', plain? })[]` (oldest first), `label` (required), `header?`, `max? = 200`, `announce?`, `empty?`, `height? = '14rem'` | `role="log"`, focusable, sticks to the newest line unless the reader scrolled up. `announce` forwards new lines to the throttled live region (the tape itself is never `aria-live`). Line height is 24 px, aligned to the ruled paper (which scrolls with the entries). An entry has one sprocket hole; a string line breaks between its fields only (`TapeText` / `tape-fields.ts`: a `key=value` pair or a `·` part, never `policy-b` in the middle) and its later rows hang under the hole; on a tape under 560 px wide an entry is one row and the tape pans sideways. `TapeText` and `SoftText` are exported for the sentences next to a tape. |
+| `Meter` | `label`, `value`, `min`, `max`, `unit?`, `warn?`, `decimals? = 0`, `instant?` | `role="meter"`. SVG analog dial; the needle tweens with GSAP (overshoot), instant under lite motion. The ends of the scale sit under the ends of the arc. The Readout under the dial (Martian Mono, bold) is the real value, left-aligned after the label. `warn` draws a hatched zone to `max`. |
+| `Select` | every `<select>` attribute; `className` goes to the wrapper | The one way to draw a `<select>`: keycap-edged, a hand-set chevron, 44 px tall, 16 px type (iOS zooms under 16). Use it for every choice list. |
 | `DepthSwitch` | `value`, `onChange`, `legend?`, `labels?`, `onIntent?` | Native radio group. ServicePanel already includes one, wired to the preferences. |
 | `ConsentDialog` | `open`, `title`, `children`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, `returnFocus?: RefObject` | Native modal `<dialog>`. "Not now" is first in the DOM, so it gets focus. Esc, backdrop click and the cancel button all call `onCancel` and return focus. It never starts anything: act in `onConfirm`. |
 | `Section` | `id`, `label` (the number), `title`, `lead?`, `children` | `<section id aria-labelledby>` + hex bezel + h2 + lead, content wrapped in `.wrap`. Every section's copy object has `id`, `label`, `title`, `lead`: `<Section id={t.id} label={t.label} title={t.title} lead={t.lead}>`. |
 | `Schematic` | `SchematicProps` (see 7.3) + `depth?` | Real `<button>` parts, native node dialog, focus returns on close. ServicePanel renders it for you. |
-| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `formatStageMs?`, `onShowPipeline?`, `pipelineBusy?`, `demoFooter?` | The shared anatomy. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
-| `DemoSlot<P>` | `load: () => Promise<{ default: ComponentType<P> }>`, `props?: P`, `fallback?`, `disabled?`, `rootMargin? = '50% 0px'` | Renders the fallback (the panel's, by default) on the server and until the panel is within 50% of the viewport, then imports the demo chunk. It never loads models or the runtime: the demo decides. A render error or a failed import falls back with a one-line note. |
+| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `formatStageMs?`, `onShowPipeline?`, `pipelineBusy?`, `demoFooter?` | The shared anatomy. A metric value is never broken across lines: the numeral is sized from the row's width so the widest value ("<30ms") fits a column. From 1024 px the drawing is sticky under the header (when the window is at least 760 px tall) and the stage list sits under the demo's honest caption. Without JavaScript the depth switch is hidden and the schematic's parts are labels, not buttons. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
+| `DemoSlot<P>` | `load: () => Promise<{ default: ComponentType<P> }>`, `props?: P`, `fallback?`, `disabled?`, `rootMargin? = '50% 0px'` | Renders the fallback (the panel's, by default) on the server and until the panel is within 50% of the viewport, then imports the demo chunk. The **first Tab key press anywhere** starts every idle slot at once: a demo that has not loaded has no tab stops, so without this a forward Tab walk skipped every lazy demo and the Chaos Lab. It never loads models or the runtime: the demo decides. A render error or a failed import falls back with a one-line note. |
 | `usePanelContext()` / `PanelContext` | `{ headingLevel: 1\|2\|3, standalone }` | Provided by `Services` (h3) and by `/projects/*` (h1). You normally never touch it. |
 
 ### Preferences and shell (`src/components/shell/`)
@@ -657,7 +673,7 @@ Manifest: fetch `/profile.json` from the same origin for "View as agent".
 
 1. **Initial JS budget.** React 19.2.8 DOM alone is 59 KB gzipped, so the spec's single "95 KB for React +
    shell + cluster + board" cannot hold. React is a separate long-cached vendor chunk; `index-*.js` keeps the
-   spec's 95 KB, the vendor chunk is capped at 62 KB, and a new cap of 125 KB covers the sum (today 95.5 KB).
+   spec's 95 KB, the vendor chunk is capped at 62 KB, and a new cap of 125 KB covers the sum (95.5 KB at the foundation; 119.1 KB after the sections landed, see item 21).
 2. **Doto uses `full.css`** (not `wght.css`): the `wght` file has no `ROND` axis, which the round-dot
    readouts need (+0.7 KB; latin fonts total 137.4 KB). **Big Shoulders `wght.css` has no `opsz` axis**
    (spec chose that file for size), so `font-optical-sizing` has no effect on it.
@@ -718,6 +734,38 @@ Manifest: fetch `/profile.json` from the same origin for "View as agent".
     while the visitor uses it. Below 1024 px the order is unchanged except that the trace now comes before the drawing:
     explanation, caption, demo, honest caption, trace, schematic, pipeline. Panel notes say "the pipeline drawing", never
     "below".
+
+18. **Retrieval acceptance: hit 1 for "pgvector".** Spec section 7 (S2 acceptance) says query "pgvector" returns "the chunk containing
+    'pgvector HNSW'" as hit 1. The literal string used to be only the label on the retrieval drawing (inside `service-retrieval.2`, a
+    window of other labels and the work trace, which ranked third); the prose said `pgvector with HNSW indexing` (Engineer) and
+    `pgvector (HNSW)` (Peer). Hit 1 was the window with the Peer paragraph, which answers "what did Ruphak do with pgvector?"
+    (spec 1.4, signature moment 5: "the page's own paragraph"). The Peer paragraph now says "the pgvector HNSW index" in so many words,
+    so the acceptance holds to the letter, and because of the paragraph, not a ranking trick: labels are not boosted (a boost would put a
+    list of component names first, and the engine never cites a title or a tag as the answer, `pickEvidence`). `engine.test.ts` pins that
+    hit 1 contains the literal string and cites a sentence about it; rewording the paragraph away from it fails that test on purpose.
+19. **The drawing rides beside the demo; the stage list moves under it** (revises item 17). From 1024 px, and in a window at least 760 px tall,
+    the drawing is sticky under the header, so the schematic that lights stage by stage is on screen when it lights, and the right column is
+    not empty paper under a tall demo. "Show me the pipeline" and its stage list sit in the demo's column, under the honest caption (they fill
+    in where the visitor pressed the button). The panel is a four-item grid (`serviceMain`, `trace`, `drawing`, `pipeline`) placed by CSS from
+    1024 px; a phone and the DOM keep the source order: explanation, caption, demo, honest caption, trace, drawing, stage list. A shorter
+    window keeps the drawing in the flow: the tallest drawing (the review panel's, about 600 px) must fit between the header and the status
+    strip.
+20. **Fast 3G first paint is 1.8 s, not 1.2 s.** Measured on a DevTools "Fast 3G" profile (562.5 ms round trip, 1.44 Mbps, 4x CPU, gzip on,
+    cache off, 390x844 at DPR 3): 1.8 s, down from 2.2 s when five font preloads (139 KB) were queued ahead of the render-blocking stylesheet.
+    `scripts/prerender.mjs` now puts the stylesheet link first in the head block and preloads only Big Shoulders and Atkinson, the two faces
+    the first screen paints with. What is left is two round trips (the page, then its stylesheet) at 562 ms each; the only way under 1.2 s is
+    inlining the first screen's CSS into the HTML, and the HTML has 2 KB of room under its 60 KB budget. CLS on that profile is 0.003.
+21. **Initial JavaScript is 119 KB, not 95 KB.** Spec 8.1 asks for 95 KB gzipped for "React + shell + cluster + board". React is 59 KB of
+    that on its own. The site entry grew from 36.5 KB (foundation) to 60 KB as the sections landed; the cap on the sum is 125 KB. This is an
+    owner decision (spec section 10, item 7), not a builder's. Tried and reverted: moving the résumé and Experiments pages into lazy
+    chunks. The bundler hoisted every shared module into its own chunk (35 files), and both the initial sum and the HTML (modulepreload
+    links) went up. The right cuts are inside the sections (for example hydrating Deploy History, Manifest and the Colophon's telemetry on
+    visibility), which is a refactor of owned files and needs the owner's say.
+22. **Review round 1 moved shared pieces.** `Tape` (entries, fields, one hole each; `TapeText` and `tape-fields.ts` moved here from the
+    policy panel), `Select` (new), `Readout` (`align`, `face`), `Meter` (scale ends on the dial, mono figure), `DemoSlot` (first Tab starts every
+    idle slot), `Schematic` (parts are labels until hydrated), `goToId` (one landing at a time, far targets jump and hold), `--fs-micro`,
+    `text-wrap: pretty`, `.size-sm` buttons 44 px under 640 px, and the head order described in item 20. Every consumer gets them; no section
+    keeps its own copy.
 
 ## 11. Commands
 

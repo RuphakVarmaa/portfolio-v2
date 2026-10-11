@@ -7,6 +7,7 @@ import { BootLine } from './BootLine.tsx'
 import { OffList } from './OffList.tsx'
 import { QuorumPrompt } from './QuorumPrompt.tsx'
 import { ServiceIndex } from './ServiceIndex.tsx'
+import { useHashNavigation } from './useHashNavigation.ts'
 import styles from './ControlRoom.module.css'
 
 /**
@@ -23,10 +24,15 @@ import styles from './ControlRoom.module.css'
  * above the board.
  *
  * Under "Skip the machine" (or the Basic tier) the board is replaced by a plain list of the services.
+ *
+ * The control room is also where the home page's hash navigation is mounted (useHashNavigation): links to
+ * the page's own sections, and a visit to `/#contact`, land on their target even though the page grows
+ * after it was prerendered.
  */
 export function ControlRoom() {
   const t = copy.controlRoom
   const { machineOff } = usePreferences()
+  useHashNavigation()
   return (
     <section id={t.id} aria-labelledby="hero-title" className={styles.hero}>
       <Sprite />

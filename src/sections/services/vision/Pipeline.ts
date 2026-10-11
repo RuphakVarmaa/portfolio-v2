@@ -1,9 +1,9 @@
 import { formatMs } from '../../../cluster/format.ts'
-import { announce } from '../../../cluster/live-region.ts'
+import { announce as announceOnSite } from '../../../cluster/live-region.ts'
 import type { Box } from '../../../cluster/protocol.ts'
-import { scheduler } from '../../../cluster/scheduler.ts'
+import { scheduler as siteScheduler, type Scheduler } from '../../../cluster/scheduler.ts'
 import { telemetry } from '../../../cluster/telemetry.ts'
-import { getTier } from '../../../cluster/tier.ts'
+import { getTier, getTierInfo } from '../../../cluster/tier.ts'
 import { createConsumer } from '../../../lib/queue/consumer.ts'
 import { createRing } from '../../../lib/queue/ring.ts'
 import { ASSET_PATHS, type Availability } from '../../../lib/vision/availability.ts'
@@ -45,6 +45,11 @@ import { createTracePlayer, type TraceFile } from './TracePlayer.ts'
  * inferences, the ring's depth and drop count, completed frames per second over 3 seconds. The one control
  * that is not a measurement is "slow the consumer": it adds a visible, labelled delay on purpose so a
  * healthy pipeline can be pushed into backpressure and watched.
+ *
+ * The camera's contract (spec 4.4, tested in Pipeline.test.ts): every stream the browser hands over is tracked,
+ * and stopping (Stop, Esc, scrolling away, a hidden tab, unmounting, or replacing the source) ends every track,
+ * whatever order the permission prompts were answered in. Each start is a session (`run`); an answer that
+ * arrives for a session that has ended is stopped on arrival, never kept.
  */
 
 // ---- constants -----------------------------------------------------------------------------------------
@@ -84,6 +89,29 @@ export type MotionState = 'off' | 'asking' | 'waiting' | 'live' | 'denied' | 'no
 export type Capability = 'checking' | 'ok' | 'basic' | 'unsupported'
 export type DetectorStatus = 'unknown' | 'absent' | 'available' | 'loading' | 'ready' | 'failed'
 export type SourceKind = 'none' | 'camera' | 'clip' | 'image' | 'replay'
+
+/**
+ * Can a visitor use the detector here: one ships with this build, it has not failed to load, and this browser can
+ * run it (the ONNX runtime needs WebAssembly SIMD)? Only then does a picture of their own have anything to be run
+ * through, so only then is "Or drop an image" offered, and only then does the camera dialog say a detector runs
+ * (spec section 10, item 5: with no model the drop-image control is hidden). `unknown` is the first moment,
+ * before the build's inventory has been read, and counts as no: nothing is promised that is not known.
+ */
+export const detectorUsable = (status: DetectorStatus, simd: boolean): boolean =>
+  simd && (status === 'available' || status === 'loading' || status === 'ready')
+
+/**
+ * What the engine reaches outside itself for. The site uses the defaults; `Pipeline.test.ts` hands in fakes, so
+ * the camera's lifecycle (the part that must never leave the camera light on) is tested without a browser, a
+ * worker or a real permission prompt.
+ */
+export interface PipelineDeps {
+  scheduler: Pick<Scheduler, 'isSupported' | 'ensureService' | 'submit' | 'getState'>
+  /** Says a sentence in the page's one live region. */
+  announce: (text: string) => void
+  /** `navigator.mediaDevices`, looked up whenever the camera is used (undefined on an insecure page or an old browser). */
+  mediaDevices: () => MediaDevices | undefined
+}
 
 /** The status line's content as data; `messageText` (strings.ts) turns it into a sentence. */
 export type Message =
@@ -278,7 +306,11 @@ function cameraFailure(error: unknown): Message {
 
 const EMPTY_DETECTOR: DetectorSnapshot = { status: 'unknown', quant: null, modelBytes: null, runtimeBytes: null, loaded: 0, total: 0, stage: null, error: null }
 
-export function createPipeline(): Pipeline {
+export function createPipeline(overrides: Partial<PipelineDeps> = {}): Pipeline {
+  const scheduler = overrides.scheduler ?? siteScheduler
+  const announce = overrides.announce ?? announceOnSite
+  const mediaDevices = overrides.mediaDevices ?? (() => (typeof navigator === 'undefined' ? undefined : navigator.mediaDevices))
+
   const store = createStore<EngineSnapshot>({
     capability: 'checking',
     capabilityReason: '',
@@ -314,7 +346,10 @@ export function createPipeline(): Pipeline {
   let canvas: HTMLCanvasElement | null = null
   let context: CanvasRenderingContext2D | null = null
   let video: HTMLVideoElement | null = null
-  let stream: MediaStream | null = null
+  // The camera: EVERY stream the browser has handed over that has not been stopped yet, not only the one on the
+  // viewfinder. The set is the safety net behind the session check in `startCamera`: whatever else goes wrong,
+  // stopping the source stops every track the page has ever been given (spec 4.4: `readyState === 'ended'`).
+  const streams = new Set<MediaStream>()
   let capture: { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } | null = null
   let paintData: ImageData | null = null
   // The darker and the lighter of the theme's two inks: dark pixels always map to the darker one, so a picture never turns into its negative.
@@ -734,6 +769,18 @@ export function createPipeline(): Pipeline {
     media?.getTracks().forEach((track) => track.stop())
   }
 
+  /** Stop one stream the browser handed over, and forget it. */
+  function stopStream(media: MediaStream) {
+    stopTracks(media)
+    streams.delete(media)
+  }
+
+  /** The camera light goes out: every stream this engine has been given is stopped, whichever session asked for it. */
+  function stopCamera() {
+    for (const media of streams) stopTracks(media)
+    streams.clear()
+  }
+
   function releaseVideo() {
     if (!video) return
     video.pause()
@@ -749,14 +796,16 @@ export function createPipeline(): Pipeline {
    */
   function stopSource(reason: StopReason, silent: boolean) {
     const hadSource = phase !== 'idle'
+    // Bumping `run` ends every session started so far. A camera prompt that is still open belongs to one of them, and
+    // its stream is stopped the moment the browser delivers it (see `startCamera`); every stream already delivered
+    // is stopped here, first, so nothing below can leave the light on.
     run += 1
     loopToken += 1
+    stopCamera()
     capturing = false
     pendingTrace?.reject(new Error('stopped'))
     pendingTrace = null
     cancelAnimationFrame(replayFrame)
-    stopTracks(stream)
-    stream = null
     releaseVideo()
     for (const item of ring.drain()) {
       if (item.kind !== 'frame') continue
@@ -781,15 +830,19 @@ export function createPipeline(): Pipeline {
 
   const canRun = () => capabilityNow() === 'ok'
 
+  /** "Or drop an image" is offered only where a detector can be used, so a status line only points at it then. */
+  const canDrop = () => detectorUsable(detectorStatus, getTierInfo().simd)
+
   function fail(message: Message) {
     phase = 'idle'
     releaseVideo()
     store.patch({ phase: 'idle', source: 'none', message })
     panelStore.patch({ active: baselineActive() })
-    announce(messageText(message))
+    announce(messageText(message, canDrop()))
   }
 
   async function waitForFrames(element: HTMLVideoElement, myRun: number): Promise<boolean> {
+    if (myRun !== run) return false // the session ended while the video was starting; whoever ended it has cleaned up
     if (element.readyState >= 2 && element.videoWidth > 0) return true
     await new Promise<void>((resolve) => {
       const done = () => {
@@ -803,8 +856,16 @@ export function createPipeline(): Pipeline {
     return myRun === run && element.videoWidth > 0
   }
 
-  /** Open a video source (the camera or the clip), wait for real frames, start the capture loop. False if it did not start. */
-  async function startVideoSource(kind: 'camera' | 'clip', open: (element: HTMLVideoElement) => Promise<void>, liveMessage: (width: number, height: number) => Message): Promise<boolean> {
+  /**
+   * Open a video source (the camera or the clip), wait for real frames, start the capture loop. False if it did not
+   * start. `open` is told which session it belongs to: it must not touch the viewfinder, or keep anything it was
+   * handed, unless that session is still the current one when its answer arrives.
+   */
+  async function startVideoSource(
+    kind: 'camera' | 'clip',
+    open: (element: HTMLVideoElement, myRun: number) => Promise<void>,
+    liveMessage: (width: number, height: number) => Message,
+  ): Promise<boolean> {
     const element = video
     if (!element) return false
     const myRun = ++run
@@ -812,11 +873,10 @@ export function createPipeline(): Pipeline {
     resetMeasurements()
     setPhase('starting', kind, { kind: 'starting' })
     try {
-      await open(element)
+      await open(element, myRun)
     } catch (error) {
-      if (myRun !== run) return false
-      stopTracks(stream)
-      stream = null
+      if (myRun !== run) return false // stopped or replaced while it was opening: whoever did that owns the state now
+      stopCamera()
       fail(kind === 'camera' ? cameraFailure(error) : { kind: 'camera-error' })
       return false
     }
@@ -826,12 +886,11 @@ export function createPipeline(): Pipeline {
     } catch {
       /* autoplay refused: the user's gesture normally allows it; readyState below decides */
     }
-    if (!(await waitForFrames(element, myRun))) {
-      if (myRun === run) {
-        stopTracks(stream)
-        stream = null
-        fail({ kind: 'camera-error' })
-      }
+    const gotFrames = await waitForFrames(element, myRun)
+    if (myRun !== run) return false // stopped or replaced in the instant between "frames arrived" and here
+    if (!gotFrames) {
+      stopCamera()
+      fail({ kind: 'camera-error' })
       return false
     }
     const fitted = fitWithin(element.videoWidth, element.videoHeight, CAPTURE_MAX)
@@ -842,31 +901,36 @@ export function createPipeline(): Pipeline {
   }
 
   async function startCamera(options: { facing?: Facing; loadDetector?: boolean } = {}) {
-    if (!canRun() || !navigator.mediaDevices?.getUserMedia) return
+    const devices = mediaDevices()
+    if (!canRun() || !devices?.getUserMedia) return
     stopSource('user', true)
     const facing = options.facing ?? store.get().facing
     store.patch({ facing })
     prepare()
     const ok = await startVideoSource(
       'camera',
-      async (element) => {
-        const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 640 } }, audio: false })
-        if (phase !== 'starting') {
-          // Stopped while the permission prompt was open: the camera must not stay on.
-          stopTracks(media)
+      async (element, myRun) => {
+        const media = await devices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 640 } }, audio: false })
+        streams.add(media)
+        // The browser answers when the person does, which can be after Stop, after Esc, or after a newer start: the
+        // first prompt is never guaranteed to be the last one answered. A stream that arrives for a session that has
+        // ended is stopped on the spot, so the camera light never outlives the click that asked for it. This must be
+        // checked against the session (`run`), not only the phase: a newer start has already put the phase back to
+        // "starting", which is exactly what let the first stream slip through and then be overwritten and lost.
+        if (myRun !== run || phase !== 'starting') {
+          stopStream(media)
           throw new DOMException('cancelled', 'AbortError')
         }
-        stream = media
         element.srcObject = media
       },
       (width, height) => ({ kind: 'live', width, height, hz: captureHz() }),
     )
     if (!ok) return
     announce(strings.announce.cameraLive)
-    void navigator.mediaDevices
+    void devices
       .enumerateDevices()
-      .then((devices) => {
-        if (phase === 'live') store.patch({ canFlip: devices.filter((device) => device.kind === 'videoinput').length > 1 })
+      .then((found) => {
+        if (phase === 'live') store.patch({ canFlip: found.filter((device) => device.kind === 'videoinput').length > 1 })
       })
       .catch(() => undefined)
     if (options.loadDetector) void loadDetector()
@@ -1000,6 +1064,8 @@ export function createPipeline(): Pipeline {
     detectorStatus = status
     setDetector({ status, quant: next.detector?.quant ?? null, modelBytes: next.detector?.bytes ?? null, runtimeBytes: next.runtimeBytes })
     store.patch({ hasClip: next.clip, hasTrace: next.trace })
+    // The panel's always-visible captions say whether a detector runs here, so they follow what this build ships.
+    panelStore.patch({ detector: next.detector ? 'published' : 'absent' })
   }
 
   async function loadDetector() {

@@ -18,13 +18,13 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     },
     "chunk": {
       "30s": "Long documents are cut into overlapping pieces so a fact is never lost at the edge of a piece.",
-      "engineer": "Adaptive 512-token sliding-window chunking: the windows slide across the text. It is what moved retrieval precision, and it cut manual document analysis time by 70%.",
-      "peer": "Sliding windows were the lever on precision: fixed chunks cut tables and clauses in half. This port uses 256-wordpiece windows with 64 overlap because its encoder only sees 256."
+      "engineer": "Adaptive 512-token sliding-window chunking: the windows slide across the text. It cut manual document analysis time by 70%.",
+      "peer": "Sliding windows overlap, so a table row or a clause is less likely to be split across two chunks; this is the chunking behind the 70% cut in manual analysis time. This port uses 256-wordpiece windows with 64 overlap because its encoder only sees 256."
     },
     "pgvector": {
       "30s": "A database index that finds the pieces of text closest in meaning to a question, quickly.",
       "engineer": "PostgreSQL with pgvector, using HNSW indexing for the nearest-neighbour pass.",
-      "peer": "HNSW over exact search once the corpus passed what a brute-force scan could return inside the p95 budget."
+      "peer": "HNSW over exact search so the nearest-neighbour pass can stay inside the p95 budget as the corpus grows."
     },
     "agents": {
       "30s": "Several small AI helpers split a question into parts and look each part up.",
@@ -39,7 +39,7 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     "citations": {
       "30s": "Every answer points back to the exact passage it came from, so you can check it.",
       "engineer": "Structured citation metadata keeps every answer grounded in its source chunk.",
-      "peer": "Citation metadata travels through the pipeline as structure, not parsed back out of the answer; making it mandatory is what made the 87% measurable."
+      "peer": "Citation metadata travels through the pipeline as structure, not parsed back out of the answer, so every answer can be checked against its chunk."
     }
   },
   "vision": {
@@ -51,12 +51,12 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     "queue": {
       "30s": "A short waiting line for frames. If the detector falls behind, the oldest frames are dropped so the picture stays current.",
       "engineer": "An asyncio producer–consumer queue between capture and inference reduced latency variance by 40%.",
-      "peer": "A bounded buffer with drop-oldest backpressure keeps the consumer fed without letting latency pile up; that is where the 40% variance reduction came from. In this port its capacity is 4."
+      "peer": "A bounded buffer keeps the consumer fed without letting latency pile up; the asyncio queue is what cut latency variance by 40%. This port uses a drop-oldest ring buffer with a capacity of 4 to show the same idea."
     },
     "yolo": {
       "30s": "The AI model that finds objects in each frame and draws a box around them.",
       "engineer": "YOLOv8 fine-tuned on a 5K-image custom dataset: under 30 ms per frame at 94% mAP@0.5.",
-      "peer": "In production a fine-tuned YOLOv8 ran at <30 ms; this port runs YOLOv8n int8 at 320 px in WebAssembly, so your numbers are your device's numbers."
+      "peer": "In production a fine-tuned YOLOv8 ran at <30 ms. The port's detector is YOLOv8n int8 at 320 px in WebAssembly, which loads only when its model file is published on this site; the queue and the gauges are real either way, and your numbers are your device's numbers."
     },
     "websocket": {
       "30s": "A live connection that streams the results to the screen as they are produced.",
@@ -120,12 +120,12 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     "docker": {
       "30s": "A sealed box the checks run in, so every review runs the same way.",
       "engineer": "ESLint, Semgrep and the structured LLM review run inside a Dockerized stage.",
-      "peer": "Docker makes the stage reproducible, and keeping it under three minutes is what made engineers leave it on."
+      "peer": "Docker makes the stage reproducible, and the whole stage runs in under three minutes."
     },
     "eslint": {
       "30s": "A tool that spots style problems and common mistakes in JavaScript.",
       "engineer": "ESLint output is one of the three inputs merged into the tiered findings.",
-      "peer": "ESLint is deterministic: its findings are deduplicated against the others instead of being reported twice."
+      "peer": "ESLint is deterministic: its findings can be merged with the structured findings from the other tools instead of being reported twice."
     },
     "semgrep": {
       "30s": "A tool that searches code for known risky patterns, such as security mistakes.",
@@ -140,12 +140,12 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     "tier": {
       "30s": "Findings are sorted into five levels of seriousness, from critical down to informational.",
       "engineer": "Findings are classified across OWASP Top-10, logic bugs, performance, style and maintainability into five severity tiers.",
-      "peer": "Five tiers decide what blocks a merge and what is advisory."
+      "peer": "Five severity tiers separate what is urgent from what is advisory."
     },
     "comments": {
       "30s": "The findings appear as comments right next to the lines they are about.",
       "engineer": "The pipeline posts inline feedback on the pull request.",
-      "peer": "One set of inline comments for all three sources; this is where 80% of routine review overhead moved off the engineers."
+      "peer": "One set of inline comments for all three sources; 80% of routine review overhead across a 12-engineer repository was automated."
     }
   }
 }

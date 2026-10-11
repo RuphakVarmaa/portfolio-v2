@@ -3,7 +3,19 @@ import { test } from 'node:test'
 import { analyze, analyzeQuery } from '../../lib/retrieval/analyze.ts'
 import { explainBm25, termTable } from '../../lib/retrieval/bm25.ts'
 import { RetrievalEngine } from '../../lib/retrieval/engine.ts'
-import { citedSentence, filterTerms, highlightSegments, indexStats, parseCorpus, ribbonRows, snippet } from './index-explorer.ts'
+import {
+  RIBBON_GAP,
+  RIBBON_TARGET,
+  citedSentence,
+  filterTerms,
+  highlightSegments,
+  indexStats,
+  parseCorpus,
+  ribbonHeight,
+  ribbonRows,
+  ribbonTop,
+  snippet,
+} from './index-explorer.ts'
 
 const chunk = (id: string, sectionId: string, text: string, start: number, end: number) => ({
   id,
@@ -59,6 +71,23 @@ test('the ribbon places each window by its token offsets on one shared scale and
   assert.ok(Math.abs(b.left + b.width - 100) < 1e-9, 'the longest section fills the track')
   const [short] = rows[1].items
   assert.ok(Math.abs(short.width - (40 / 448) * 100) < 1e-9, 'a short section is visibly short')
+})
+
+test('a row uses one line for one window and two for overlapping ones, so a lone window does not reserve a second line', () => {
+  const rows = ribbonRows(parseCorpus(corpus)!)
+  assert.deepEqual(rows.map((row) => row.lines), [2, 1])
+  for (const row of rows) assert.ok(row.items.every((item) => item.line < row.lines), 'every window sits on a line its row has')
+})
+
+test('every ribbon window is a 44 px target, and the lines are one target plus a gap apart so no two targets touch', () => {
+  assert.equal(RIBBON_TARGET, 44, 'spec 8.2: touch targets are at least 44 x 44')
+  assert.ok(RIBBON_GAP >= 8)
+  assert.equal(ribbonTop(0), 0)
+  assert.equal(ribbonTop(1), RIBBON_TARGET + RIBBON_GAP)
+  assert.ok(ribbonTop(1) - ribbonTop(0) >= RIBBON_TARGET + RIBBON_GAP, 'the second line starts after the first target and the gap')
+  assert.equal(ribbonHeight(1), RIBBON_TARGET, 'one line is exactly one target tall')
+  assert.equal(ribbonHeight(2), 2 * RIBBON_TARGET + RIBBON_GAP, 'two lines: two targets and the gap between')
+  assert.equal(ribbonHeight(0), RIBBON_TARGET, 'a row always has room for one target')
 })
 
 test('highlighting marks words by stem, so a question about `embedding` lights `Embeddings` too', () => {

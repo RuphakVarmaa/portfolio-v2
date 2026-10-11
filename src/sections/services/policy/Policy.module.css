@@ -124,54 +124,6 @@
   min-width: 0;
 }
 
-.selectWrap {
-  position: relative;
-  display: block;
-}
-
-.selectWrap::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 14px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
-  transform: translateY(-70%) rotate(45deg);
-  pointer-events: none;
-}
-
-.select {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 2.25rem 0 var(--s-3);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-1);
-  background: var(--paper);
-  box-shadow: var(--key-shadow);
-  font-family: var(--font-text);
-  font-size: 1rem;
-  font-weight: 700;
-  appearance: none;
-  cursor: pointer;
-}
-
-.select:hover {
-  background: var(--paper-3);
-}
-
-/* A 320 px phone: two selectors per row leave each about 106 px, which cut "Member" to "Membe". */
-@media (max-width: 23.5rem) {
-  .select {
-    padding: 0 1.75rem 0 var(--s-2);
-    font-size: 0.9375rem;
-  }
-  .selectWrap::after {
-    right: 10px;
-  }
-}
-
 /* ---- the verdict ---- */
 
 .verdict {
@@ -199,9 +151,12 @@
   display: grid;
   justify-items: center;
   gap: var(--s-4);
+  min-width: 0;
   padding: var(--s-3);
 }
 
+/* Lines break at spaces, and in the middle of a word only when the word is wider than the line (`break-word`, not
+   `anywhere`, which would also let a word in a shrinking box be cut at its minimum width). */
 .policyLine,
 .engine,
 .recovery,
@@ -209,7 +164,11 @@
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
   font-variation-settings: 'wdth' 90;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+.policyLine {
+  text-align: center;
 }
 
 .engine {
@@ -367,7 +326,7 @@
 .rungState {
   color: var(--ink-muted);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
 }
 
@@ -381,7 +340,6 @@
 /* A 320 px phone: the four ladder words ("passed", "allowed") are wider than their 55 px columns and overprint each other. */
 @media (max-width: 23.5rem) {
   .rungState {
-    font-size: 0.6875rem;
     font-variation-settings: 'wdth' 75;
   }
 }
@@ -580,7 +538,7 @@
 
 .cellText {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
   line-height: 1.3;
   white-space: nowrap;
@@ -615,6 +573,7 @@
   padding-left: var(--s-3);
   border-left: 3px solid var(--cobalt);
   font-weight: 600;
+  text-wrap: balance;
 }
 
 /* The headline of a fuzz: a status while it runs (so the block below does not move when it ends), the result line after. */

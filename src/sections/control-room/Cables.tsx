@@ -7,8 +7,8 @@ import styles from './ControlRoom.module.css'
 /**
  * The patch cables (spec 2.5, 4.1): cobalt, with a plug at each end. Client only, and loaded lazily (see
  * Board.tsx): the cables are not facts, and they draw themselves the first time the board is on screen, so
- * drawing them earlier would waste the one animation the board has. Both layouts are drawn; a container
- * query shows one.
+ * drawing them earlier would waste the one animation the board has. Both layouts are drawn; a media query
+ * (900 px) shows one.
  *
  * Each cable is three strokes on the same path (`pathLength="1"`, so dash maths needs no measuring):
  *   - the cable (cobalt; vermilion while a job of that service runs on a worker)

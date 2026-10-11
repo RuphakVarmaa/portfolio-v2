@@ -11,18 +11,17 @@ import styles from './ControlRoom.module.css'
  * a small lamp that lights the moment that service's workers are ready, and its headline metric.
  *
  * The title is the link (cobalt, underlined); a stretched pseudo-element makes the whole row the target.
- * Following a link also moves focus to the panel's heading, so keyboard and screen-reader users land there
- * (the browser scrolls natively, smoothly unless motion is lite, below the sticky header).
+ * It is a plain `#service-...` anchor, which works before any script has run; once the page is hydrated,
+ * useHashNavigation takes the click over: the page scrolls to the panel (smoothly unless motion is lite,
+ * below the sticky header) and keeps going until it is there, even though the demos below load as they come
+ * near, and focus moves to the panel's heading, so keyboard and screen-reader users land there.
  */
 function Row({ project }: { project: Project }) {
   const phase = useServicePhase(project.serviceId)
-  const anchor = serviceAnchor(project.serviceId)
   return (
     <li>
       <Hex className={styles.hx} label={String(serviceNumber(project.serviceId)).padStart(2, '0')} />
-      <a href={`#${anchor}`} onClick={() => document.getElementById(`${anchor}-title`)?.focus({ preventScroll: true })}>
-        {project.title}
-      </a>
+      <a href={`#${serviceAnchor(project.serviceId)}`}>{project.title}</a>
       <i data-s={isLit(phase) ? 'on' : phase === 'starting' ? 'wait' : 'off'} />
       <b>{project.headlineMetric}</b>
     </li>

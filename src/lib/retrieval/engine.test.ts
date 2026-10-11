@@ -31,6 +31,27 @@ test('acceptance: "pgvector" finds the retrieval panel, cites a sentence about p
   assert.ok(result.hits.slice(0, 3).every((h) => h.anchor === 'service-retrieval'))
 })
 
+/**
+ * The S2 acceptance in spec section 7 reads: query "pgvector" returns the chunk containing "pgvector HNSW" as hit 1,
+ * with a citation. The literal string is in the Peer paragraph ("queries the pgvector HNSW index"), so the window
+ * that answers "what did Ruphak do with pgvector?" is hit 1 and holds the literal string; the diagram label of the
+ * same name is in the windows around it. Labels are not boosted (a list of component names is not an answer), so
+ * this holds because of the paragraph, not because of a ranking trick: reword the paragraph away from the literal
+ * string and this test fails, on purpose.
+ */
+test('acceptance to the letter: hit 1 for "pgvector" contains "pgvector HNSW" and cites a sentence about it', async () => {
+  const result = await engine.search('pgvector', { mode: 'bm25', topK: 5 })
+  const [first] = result.hits
+  assert.ok(first.text.includes('pgvector HNSW'), 'hit 1 holds the literal "pgvector HNSW"')
+  assert.ok(first.evidence, 'and it cites a sentence, which the panel scrolls to and underlines')
+  assert.match(evidenceText(first), /pgvector/)
+  assert.match(
+    evidenceText(first),
+    /pgvector HNSW|pgvector with HNSW|pgvector \(HNSW\)/,
+    'the cited sentence is the one about pgvector, not a title or a tag',
+  )
+})
+
 test('the placeholder question reaches the same passage as the bare word: the author\'s name does not drag in the contact section', async () => {
   const asked = await engine.search('What did Ruphak do with pgvector?', { mode: 'bm25', topK: 5 })
   const bare = await engine.search('pgvector', { mode: 'bm25', topK: 5 })

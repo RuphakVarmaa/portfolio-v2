@@ -23,6 +23,7 @@
 import { copy, certificationLines, educationLine, projectFor, releases, serviceNumber, skillLines, SERVICE_ORDER } from '../../data/copy.ts'
 import type { Depth } from '../../data/copy.ts'
 import { profile, projects } from '../../data/portfolio.ts'
+import { colophonSource } from '../../sections/colophon/source-link.ts'
 import type { PageRecord, PartKind, SectionDefinition } from './corpus.ts'
 
 const DEPTH_LABEL: Record<Depth, string> = { '30s': '30-second explanation', engineer: 'Engineer explanation', peer: 'Peer explanation' }
@@ -77,8 +78,19 @@ function servicesIntro(): PageRecord[] {
   return inSection('services', [text('Services', copy.services.title, 'label'), text('Services', copy.services.lead)])
 }
 
-function servicePanel(id: (typeof SERVICE_ORDER)[number]): PageRecord[] {
+/**
+ * What the Vision panel's two captions say. While no detector is published with the build (and in the prerendered HTML, always) the
+ * panel says that nothing is detected (`copy.services.vision.demo.noDetector`); the search index must quote what the page says, not
+ * the sentence the page would say if a detector were there.
+ */
+function visionCaptions(detector: boolean): { plain: string; caption: string } {
+  const v = copy.services.vision
+  return detector ? { plain: v.plain, caption: v.caption } : { plain: v.demo.noDetector.plain, caption: v.demo.noDetector.caption }
+}
+
+function servicePanel(id: (typeof SERVICE_ORDER)[number], detector: boolean): PageRecord[] {
   const t = copy.services[id]
+  const { plain, caption } = id === 'vision' ? visionCaptions(detector) : { plain: t.plain, caption: t.caption }
   const project = projectFor(id)
   const number = `Service ${String(serviceNumber(id)).padStart(2, '0')}`
   const labels = copy.services.panel.traceLabels
@@ -87,8 +99,8 @@ function servicePanel(id: (typeof SERVICE_ORDER)[number]): PageRecord[] {
     ...project.metrics.map((metric) => text(`${number} · Measured on the production system`, `${metric.value} ${metric.label}`)),
     text(`${number} · Stack`, `Stack ${project.stack.join(' · ')}`),
     ...(['30s', 'engineer', 'peer'] as const).map((depth): Draft => ({ label: `${number} · ${DEPTH_LABEL[depth]}`, text: t.depth[depth], depth })),
-    text(`${number} · In plain words`, t.plain, 'plain'),
-    text(`${number} · About this port`, t.caption),
+    text(`${number} · In plain words`, plain, 'plain'),
+    text(`${number} · About this port`, caption),
     ...t.schematic.nodes.map((node) => text(`${number} · Pipeline diagram`, node.label)),
   ]
   for (const key of ['decisions', 'tradeoffs', 'broke', 'change'] as const) {
@@ -168,17 +180,23 @@ function colophon(): PageRecord[] {
     text('Colophon', t.title, 'label'),
     text('Colophon', t.version),
     text('Colophon', t.authorship),
-    text('Colophon', t.credits(t.sourceUrl)),
+    // The sentence the page prints: while the source address is only a GitHub account page its link says "GitHub profile".
+    text('Colophon', colophonSource().sentence),
     ...t.changelog.map((entry) => text('Colophon · Changelog', t.changelogLine(entry))),
   ])
 }
 
+export interface PageRecordOptions {
+  /** The build publishes a YOLOv8n detector (`public/models/yolov8n/yolov8n-320.onnx`): the Vision captions then say it runs. Default false. */
+  detector?: boolean
+}
+
 /** Every record of the home page, section by section, in reading order. */
-export function pageRecords(): PageRecord[] {
+export function pageRecords({ detector = false }: PageRecordOptions = {}): PageRecord[] {
   return [
     ...controlRoom(),
     ...servicesIntro(),
-    ...SERVICE_ORDER.flatMap((id) => servicePanel(id)),
+    ...SERVICE_ORDER.flatMap((id) => servicePanel(id, detector)),
     ...chaosLab(),
     ...deployHistory(),
     ...manifest(),

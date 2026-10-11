@@ -9,8 +9,10 @@
  *
  * The prerendered HTML counts against a byte budget, so most elements carry no class: they are addressed by
  * structure (`.index li`, `.plate > span`). The board has two layouts of the same switchboard, landscape from
- * 700 px and portrait below (one media query, used everywhere a layout differs); the board is a size
- * container, so lamp art and nameplates scale in `cqw`.
+ * 900 px and portrait below (one media query, used everywhere a layout differs); the board is a size
+ * container, so lamp art and nameplates scale in `cqw`. The landscape board needs about 830 px of its own
+ * width (a 900 px viewport) before its nameplates, which are set in rem and do not scale with it, fit above
+ * and below the lamps: at 700 to 800 px they overprinted the board's frame and crowded each other.
  */
 
 /* ===== shared ==================================================================================== */
@@ -299,6 +301,9 @@
 
 .index a {
   grid-area: a;
+  /* The row is the target (the ::after below); the link's own box is made 44 px tall too, with the padding taken back by the margin. */
+  padding-block: 0.75rem;
+  margin-block: -0.75rem;
   font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.25;
@@ -482,7 +487,9 @@
   width: 100%;
   max-width: 28rem;
   margin-inline: auto;
-  aspect-ratio: 400 / 780;
+  aspect-ratio: 400 / 840;
+  /* A lit lamp's halo reaches past its own box: the SENSORS lamp's, at the foot of the landscape board, past the frame. The panel clips it, like a plate mounted in a case. */
+  overflow: clip;
   border: var(--rule-strong);
   background: var(--paper-2);
   /* An engraved line just inside the edge. */
@@ -641,7 +648,7 @@
 }
 
 .relayLabel {
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   letter-spacing: 0.14em;
   line-height: 1.2;
 }
@@ -653,7 +660,7 @@
   gap: 0 1.1ch;
 }
 
-/* The shared Readout at its medium size, because only that size flashes on change (spec 4.1); the relay's window is smaller than a masthead, so the size is set here (grown with the relay from 700 px, below). */
+/* The shared Readout at its medium size, because only that size flashes on change (spec 4.1); the relay's window is smaller than a masthead, so the size is set here (grown with the relay from 900 px, below). */
 .relayReadouts > span {
   font-size: 1rem;
 }
@@ -838,6 +845,8 @@
   --g1: 0;
   --g2: 0;
   --g3: 0;
+  /* How much the glow is scaled (lamp-positions.ts GLOW_SCALE): on the portrait board the lamps are twice as wide in proportion to it, and at full size the outer rings of neighbours overlap. */
+  --gs: 0.85;
   all: unset;
   display: block;
   width: 100%;
@@ -914,7 +923,14 @@
   fill: var(--paper);
 }
 
-/* Four steps, hard edged, never smooth (spec 2.5): the 12 %, 30 % and 60 % rings, then the lens itself. */
+/* Four steps, hard edged, never smooth (spec 2.5): the 12 %, 30 % and 60 % rings, then the lens itself. They are drawn about the lamp's centre, which is the origin of its art, so scaling them scales the glow and nothing else. */
+.g1,
+.g2,
+.g3,
+.gd {
+  transform: scale(var(--gs, 1));
+}
+
 .g1,
 .g2,
 .g3 {
@@ -1016,10 +1032,10 @@ html[data-theme='dark'] .lamp[data-lit] {
   top: calc(100% + 0.5rem);
 }
 
-/* The sensors plate hangs on its cable like a tag, under the lamp. */
+/* The sensors plate hangs under its lamp, between the relay and the two bottom nameplates (the cable arrives at the lamp's top, so nothing crosses the plate). It sits between the two bottom lamps, so it is narrow: wide enough for SENSORS, too narrow for the status to share its row (the status drops below the name, as on the other plates). */
 .lampItem[data-row='mid'] .plate {
   top: calc(100% + 0.5rem);
-  width: min(26cqw, 9rem);
+  width: clamp(5rem, 22cqw, 6.5rem);
 }
 
 /* A key: it lifts a pixel under the pointer and sinks into its shadow when pressed, like the buttons. */
@@ -1038,7 +1054,7 @@ html[data-theme='dark'] .lamp[data-lit] {
  * then the foot, which is always the last span: name, an optional pips span, status.
  */
 .plate > span:first-child:not(:last-child) {
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   letter-spacing: 0.06em;
   line-height: 1.15;
   text-wrap: balance;
@@ -1056,7 +1072,7 @@ html[data-theme='dark'] .lamp[data-lit] {
 }
 
 .plate > span:last-child > span:first-child {
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 800;
   letter-spacing: 0.14em;
   line-height: 1.2;
@@ -1074,9 +1090,45 @@ html[data-theme='dark'] .lamp[data-lit] {
 
 .plate > span:last-child > span:last-child {
   color: var(--ink-muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   line-height: 1.3;
   text-transform: uppercase;
+}
+
+/*
+ * The narrowest phones (320 px, the width accessibility reflow is judged at): the two plates of a row are 134 px wide each, so
+ * the longest title ("Agentic RAG Document Intelligence", 12 px, the smallest type on the site) wraps to three lines, 92 px
+ * tall, more than the board has above the top lamps and below the bottom ones (the plate overhung the frame by 6 px). Tighter
+ * padding and a plate set closer to its lamp keep every plate inside the frame, with the type at its full 12 px.
+ */
+@media (max-width: 359px) {
+  .plate {
+    gap: 0.1rem;
+    padding: 0.3rem 0.4rem 0.35rem;
+  }
+  .plate > span:last-child {
+    gap: 0 0.35rem;
+  }
+  .lampItem[data-row='top'] .plate {
+    bottom: calc(100% + 0.3rem);
+  }
+  .lampItem[data-row='bottom'] .plate {
+    top: calc(100% + 0.3rem);
+  }
+}
+
+/* At 339 px and below the longest title is three lines and the plate is 90 px tall: it sits a little closer still. The SENSORS plate
+   sits between the two bottom lamps; its word is 48 px, so it can be 72 px, which leaves 7 px each side. */
+@media (max-width: 339px) {
+  .lampItem[data-row='top'] .plate {
+    bottom: calc(100% + 0.2rem);
+  }
+  .lampItem[data-row='bottom'] .plate {
+    top: calc(100% + 0.2rem);
+  }
+  .lampItem[data-row='mid'] .plate {
+    width: 4.5rem;
+  }
 }
 
 /* ---- caption under the board ---- */
@@ -1108,9 +1160,9 @@ html[data-theme='dark'] .lamp[data-lit] {
   text-transform: uppercase;
 }
 
-/* ===== the landscape board (from 700 px) ======================================================== */
+/* ===== the landscape board (from 900 px) ======================================================== */
 
-@media (min-width: 700px) {
+@media (min-width: 900px) {
   .board {
     max-width: none;
     aspect-ratio: 1200 / 720;
@@ -1120,10 +1172,10 @@ html[data-theme='dark'] .lamp[data-lit] {
   }
   /* The readouts grow with the relay (they are 16 px on the small board). */
   .relayReadouts > span {
-    font-size: clamp(1.1rem, 1.7cqw, 1.75rem);
+    font-size: clamp(0.95rem, 1.7cqw, 1.75rem);
   }
   .relayLabel {
-    font-size: clamp(0.75rem, 1.05cqw, 0.9375rem);
+    font-size: clamp(var(--fs-micro), 1.05cqw, 0.9375rem);
   }
   .cablesWide {
     display: block;
@@ -1139,13 +1191,17 @@ html[data-theme='dark'] .lamp[data-lit] {
   .lampItem[data-row='mid'] {
     --w: 7.2cqw;
   }
+  /* The lamps are far apart here: the full glow. */
+  .lamp {
+    --gs: 1;
+  }
   .plate {
     width: clamp(9.5rem, 21cqw, 14.5rem);
   }
   .lampItem[data-row='mid'] .plate {
     top: 50%;
     left: calc(100% + 0.9rem);
-    width: clamp(7rem, 15cqw, 11rem);
+    width: clamp(6.5rem, 14cqw, 10.5rem);
     transform: translateY(-50%);
   }
   .plate > span:first-child:not(:last-child) {

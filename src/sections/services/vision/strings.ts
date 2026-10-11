@@ -106,6 +106,8 @@ export const strings = {
     progress: (loaded: string, total: string | null) => (total ? `${loaded} of ${total}` : `${loaded} so far`),
     /** Added to the consent dialog when starting the camera will also load the detector. `sizes` comes from the tap label. */
     alsoLoads: (sizes: string) => `Allowing the camera also loads the detector: ${sizes}.`,
+    /** Added to the consent dialog when a detector is published but Allow does not load it: it waits for the tap. */
+    loadsOnTap: 'The detector loads only when you tap its button under the picture; until then nothing is recognised.',
   },
 
   motion: {
@@ -156,8 +158,12 @@ export const strings = {
   },
 } as const
 
-/** The status line (and what is announced) for a pipeline message. */
-export function messageText(message: Message): string {
+/**
+ * The status line (and what is announced) for a pipeline message. `canDrop` says whether "Or drop an image" is on
+ * offer (it is only where a detector can be used); a line never points the visitor at a control that is not there.
+ */
+export function messageText(message: Message, canDrop = true): string {
+  const orDrop = canDrop ? ' You can still drop an image.' : ''
   switch (message.kind) {
     case 'idle':
       return 'Camera off. Nothing is captured, uploaded or stored.'
@@ -172,13 +178,13 @@ export function messageText(message: Message): string {
     case 'replay':
       return 'Replaying a recorded run. These frames are not live.'
     case 'denied':
-      return 'The camera is blocked here. You can still drop an image.'
+      return `The camera is blocked here.${orDrop}`
     case 'no-camera':
-      return 'No camera was found. You can still drop an image.'
+      return `No camera was found.${orDrop}`
     case 'busy':
       return 'The camera is in use by another app.'
     case 'camera-error':
-      return 'The camera could not start. You can still drop an image.'
+      return `The camera could not start.${orDrop}`
     case 'stopped':
       return {
         user: 'Camera stopped.',

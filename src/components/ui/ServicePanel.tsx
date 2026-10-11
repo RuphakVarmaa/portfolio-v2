@@ -126,7 +126,8 @@ export function ServicePanel({
         </p>
       </header>
 
-      <div className={styles.serviceBar}>
+      {/* The depth switch does nothing without JavaScript (the prerendered text is the 30 s depth, or Engineer on a project page). */}
+      <div className={styles.serviceBar} data-js-only="">
         <DepthSwitch value={depth} onChange={changeDepth} onIntent={() => void loadGsap()} />
       </div>
 
@@ -166,45 +167,39 @@ export function ServicePanel({
           </dl>
         </div>
 
-        {/* The drawing and its stage list. Beside the demo on a wide screen (the lit parts and their timings are in view while you
-            use it), under the trace; stacked after the trace on a phone. */}
-        <div className={styles.serviceSide}>
-          <div data-flip="">
-            <Schematic {...schematic} />
-          </div>
-
-          {onShowPipeline ? (
-            <div className={styles.pipeline} data-flip="" data-js-only="">
-              <Button
-                variant="secondary"
-                icon={<Icon name="play" />}
-                busy={pipelineBusy}
-                onClick={onShowPipeline}
-              >
-                {labels.showPipeline}
-              </Button>
-              <SubHeading className={styles.subHeading}>{labels.pipelineHeading}</SubHeading>
-              <ol className={styles.stages}>
-                {copy.pipeline.map((name) => {
-                  const ms = measured.get(name)
-                  return (
-                    <li key={name} className={styles.stage} data-measured={ms !== undefined || undefined}>
-                      <span>{name}</span>
-                      <span className={styles.stageMs}>{ms === undefined ? '—' : formatStageMs(ms)}</span>
-                    </li>
-                  )
-                })}
-                {extraStages.map((stage) => (
-                  <li key={stage.name} className={styles.stage} data-measured="">
-                    <span>{stage.name}</span>
-                    <span className={styles.stageMs}>{formatStageMs(stage.ms)}</span>
-                  </li>
-                ))}
-              </ol>
-              {measured.size === 0 ? <p className={styles.pipelineIdle}>{labels.pipelineIdle}</p> : null}
-            </div>
-          ) : null}
+        {/* The drawing. On a wide screen it rides beside the demo (sticky under the header), so the parts that light, with the time each
+            took, are in view while the visitor works the controls; stacked after the trace on a phone. */}
+        <div className={styles.drawing} data-flip="">
+          <Schematic {...schematic} />
         </div>
+
+        {/* The stage list: under the demo on a wide screen (it fills in where the visitor pressed the button), after the drawing on a phone. */}
+        {onShowPipeline ? (
+          <div className={styles.pipeline} data-flip="" data-js-only="">
+            <Button variant="secondary" icon={<Icon name="play" />} busy={pipelineBusy} onClick={onShowPipeline}>
+              {labels.showPipeline}
+            </Button>
+            <SubHeading className={styles.subHeading}>{labels.pipelineHeading}</SubHeading>
+            <ol className={styles.stages}>
+              {copy.pipeline.map((name) => {
+                const ms = measured.get(name)
+                return (
+                  <li key={name} className={styles.stage} data-measured={ms !== undefined || undefined}>
+                    <span>{name}</span>
+                    <span className={styles.stageMs}>{ms === undefined ? '—' : formatStageMs(ms)}</span>
+                  </li>
+                )
+              })}
+              {extraStages.map((stage) => (
+                <li key={stage.name} className={styles.stage} data-measured="">
+                  <span>{stage.name}</span>
+                  <span className={styles.stageMs}>{formatStageMs(stage.ms)}</span>
+                </li>
+              ))}
+            </ol>
+            {measured.size === 0 ? <p className={styles.pipelineIdle}>{labels.pipelineIdle}</p> : null}
+          </div>
+        ) : null}
       </div>
     </article>
   )

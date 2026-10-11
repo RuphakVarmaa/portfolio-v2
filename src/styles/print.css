@@ -1,26 +1,26 @@
 /*
  * Print rules for the résumé page (S6). Imported by src/pages/ResumePage.tsx, so it ships in the site's one CSS
- * file; every rule here is either inside `@media print` or scoped to `[data-resume]`, so nothing changes how any
- * page looks on screen. The page's own layout for paper is the `@media print` block in Resume.module.css.
+ * file; every rule here is inside `@media print`, so nothing changes how any page looks on screen. The page's
+ * own layout for paper is the `@media print` block in Resume.module.css.
  *
- *   - A4, with margins, for the résumé only (a named page: a browser without the `page` property prints on its
- *     default paper and the layout still fits).
+ *   - A4, with margins. This is the one unnamed (default) `@page` rule, and there is deliberately no named page
+ *     (`@page resume` + `page: resume` on <main>). A named page forces a page break wherever the page name
+ *     changes, and the two visually hidden live-region <div>s that come before <main> in the document sit on
+ *     the default page: switching to the named page after them printed a blank first page (3 sheets instead
+ *     of 2). Only the résumé is meant to be printed, so the global rule costs nothing, and it needs no `:has()`
+ *     (Firefox 120 does not have it). src/pages/ResumePage.print.test.ts guards this.
  *   - Ink on white, whichever theme is on screen: the tokens are redefined for print, so nothing needs to know.
  *   - Links are printed as their addresses: a link whose text is not already its address (no `data-url`)
  *     gets the address in brackets after it. mailto: and tel: links already show their address as text.
  *   - The site chrome (header, strip, key sheet, skip link) carries `data-no-print`, hidden in base.css.
  */
 
-@page resume {
-  size: A4;
-  margin: 12mm 14mm 14mm;
-}
-
-[data-resume] {
-  page: resume;
-}
-
 @media print {
+  @page {
+    size: A4;
+    margin: 12mm 14mm 14mm;
+  }
+
   :root,
   html[data-theme='dark'] {
     --paper: #fff;

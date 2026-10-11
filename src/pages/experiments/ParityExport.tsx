@@ -8,7 +8,7 @@ import { copy } from '../../data/copy.ts'
 import type { ParityFixture } from '../../lib/retrieval/embed.ts'
 import { MODEL_URL, loadModel, restartWorker, type LoadModelResult, type ModelProgress } from '../../sections/services/retrieval/client.ts'
 import styles from '../Experiments.module.css'
-import { PARITY_SENTENCES, fixtureFromParity, looksLikeModel, previewFixture, serializeFixture } from './parity-fixture.ts'
+import { PARITY_SENTENCES, fixtureFromParity, looksLikeModel, modelListed, previewFixture, serializeFixture } from './parity-fixture.ts'
 import { tools } from './tools-copy.ts'
 
 type Availability = 'checking' | 'absent' | 'present'
@@ -34,12 +34,19 @@ export default function ParityExport() {
 
   useEffect(() => {
     let cancelled = false
-    fetch(MODEL_URL, { method: 'HEAD' })
-      .then((response) => {
-        if (!cancelled) setAvailability(looksLikeModel(response) ? 'present' : 'absent')
+    // The build's own inventory first: a probe of a file that is not published prints a red 404 in the console.
+    // Only the dev server, which has no /build-info.json, asks for the file itself.
+    fetch('/build-info.json')
+      .then((response) => (response.ok ? (response.json() as Promise<unknown>) : null))
+      .catch(() => null)
+      .then((info) => {
+        const listed = modelListed(info)
+        if (listed !== null) return listed ? 'present' : 'absent'
+        return fetch(MODEL_URL, { method: 'HEAD' }).then((response): Availability => (looksLikeModel(response) ? 'present' : 'absent'))
       })
-      .catch(() => {
-        if (!cancelled) setAvailability('absent')
+      .catch((): Availability => 'absent')
+      .then((found) => {
+        if (!cancelled) setAvailability(found)
       })
     return () => {
       cancelled = true

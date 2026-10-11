@@ -13,6 +13,12 @@ export interface ControlsProps {
   cameraButton: RefObject<HTMLButtonElement | null>
   /** Open the consent dialog; the camera is only ever started from the dialog's Allow. */
   onAskCamera: () => void
+  /**
+   * A detector can be used here (one is published, has not failed, and this browser can run it). Only then is
+   * "Or drop an image" offered: with none there is nothing to run a picture through, so the control is hidden
+   * (spec section 10, item 5) and the status line stops pointing at it.
+   */
+  canDrop: boolean
 }
 
 /**
@@ -20,12 +26,13 @@ export interface ControlsProps {
  * one-line status under them. One button is both "Use my camera" and "Stop", so keyboard focus never falls
  * off when the camera starts. The motion sensors, the other producer, live with the queue they feed.
  */
-export function Controls({ engine, cameraButton, onAskCamera }: ControlsProps) {
+export function Controls({ engine, cameraButton, onAskCamera, canDrop }: ControlsProps) {
   const t = copy.services.vision.demo
   const file = useRef<HTMLInputElement>(null)
   const s = useEngine(engine, (x) => ({ capability: x.capability, phase: x.phase, canFlip: x.canFlip, hasClip: x.hasClip, message: x.message }))
   const running = s.phase === 'starting' || s.phase === 'live'
   const canRun = s.capability === 'ok'
+  const offerImage = canRun && canDrop
 
   const onPick = (event: ChangeEvent<HTMLInputElement>) => {
     const picked = event.target.files?.[0]
@@ -51,9 +58,11 @@ export function Controls({ engine, cameraButton, onAskCamera }: ControlsProps) {
               {strings.controls.flip}
             </Button>
           ) : null}
-          <Button variant="secondary" icon={<Icon name="image" />} onClick={() => file.current?.click()}>
-            {t.dropImage}
-          </Button>
+          {offerImage ? (
+            <Button variant="secondary" icon={<Icon name="image" />} onClick={() => file.current?.click()}>
+              {t.dropImage}
+            </Button>
+          ) : null}
           {s.hasClip ? (
             <Button variant="secondary" icon={<Icon name="play" />} onClick={() => void engine.startClip()}>
               {t.clip}
@@ -66,8 +75,8 @@ export function Controls({ engine, cameraButton, onAskCamera }: ControlsProps) {
           ) : null}
         </div>
       ) : null}
-      {canRun ? <input ref={file} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-label={strings.controls.pickImage} onChange={onPick} /> : null}
-      <p className={styles.status}>{messageText(s.message)}</p>
+      {offerImage ? <input ref={file} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-label={strings.controls.pickImage} onChange={onPick} /> : null}
+      <p className={styles.status}>{messageText(s.message, offerImage)}</p>
     </div>
   )
 }

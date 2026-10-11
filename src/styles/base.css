@@ -97,6 +97,14 @@ p {
   margin: 0;
 }
 
+/* Prose does not end on a lone word ("ready." on a line of its own): the browser chooses breaks so the last line has company. */
+p,
+li,
+figcaption,
+dd {
+  text-wrap: pretty;
+}
+
 small {
   font-size: var(--fs-small);
 }

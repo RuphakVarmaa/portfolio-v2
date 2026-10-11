@@ -43,11 +43,21 @@ test('every part is inside the board, in both layouts', () => {
   }
 })
 
-test('the portrait layout puts the top lamps above and the bottom lamps below the relay, and keeps SENSORS between the top two', () => {
+test('the portrait layout puts the top lamps above and the bottom lamps below the relay, and SENSORS below the relay between the bottom two', () => {
   const n = LAMP_POSITIONS_NARROW
   assert.ok(n.retrieval.y < n.controlPlane.y && n.policy.y > n.controlPlane.y)
-  assert.ok(n.sensors.x > n.retrieval.x && n.sensors.x < n.vision.x)
-  assert.equal(n.sensors.y, n.retrieval.y)
+  // Below the relay and above the bottom row (its nameplate hangs under it, in the clear space above the two bottom nameplates),
+  // as on the landscape board, where it is also below the relay.
+  assert.ok(n.sensors.y > n.controlPlane.y && n.sensors.y < n.policy.y)
+  assert.ok(n.sensors.x > n.policy.x && n.sensors.x < n.review.x)
+  assert.ok(LAMP_POSITIONS.sensors.y > LAMP_POSITIONS.controlPlane.y, 'the landscape board has it below the relay too')
+})
+
+test('the portrait board is 400 x 840 units: room for a nameplate above the top lamps and below the bottom ones, and for SENSORS between the relay and the bottom plates', () => {
+  assert.deepEqual(BOARD_SIZE.narrow, { width: 400, height: 840 })
+  // The same absolute place for the top and bottom lamps as the 400 x 780 board had them (168 units from each edge), so their nameplates fit as before.
+  assert.equal((LAMP_POSITIONS_NARROW.retrieval.y / 100) * BOARD_SIZE.narrow.height, 168)
+  assert.equal(((100 - LAMP_POSITIONS_NARROW.policy.y) / 100) * BOARD_SIZE.narrow.height, 168)
 })
 
 test('lamp order is reading order, SENSORS last; the services are the first four; the top row is retrieval and vision', () => {
@@ -67,7 +77,7 @@ test('toUnits converts percent to the drawing space of each layout', () => {
   const wide = toUnits('wide', LAMP_POSITIONS.retrieval)
   assert.equal(wide.x, 216)
   assert.ok(Math.abs(wide.y - 201.6) < 1e-9)
-  assert.deepEqual(toUnits('narrow', LAMP_POSITIONS_NARROW.controlPlane), { x: 200, y: 390 })
+  assert.deepEqual(toUnits('narrow', LAMP_POSITIONS_NARROW.controlPlane), { x: 200, y: 420 })
   assert.equal(positionsFor('wide'), LAMP_POSITIONS)
   assert.equal(positionsFor('narrow'), LAMP_POSITIONS_NARROW)
 })

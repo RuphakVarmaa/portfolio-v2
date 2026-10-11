@@ -16,6 +16,15 @@
  *   cite             pick the sentence that answers, say which page element it came from, and attach the
  *                    window's place in its section (everything a citation needs)
  *
+ * Windows are ranked as wholes, and a page element is not boosted for being short: a diagram label or a title
+ * is a name, not an answer (see `pickEvidence`). Spec section 7 (S2 acceptance) says the query "pgvector" returns
+ * "the chunk containing 'pgvector HNSW'" as hit 1. That holds to the letter because the Peer paragraph says
+ * "the pgvector HNSW index" in so many words (copy.ts), so the window that answers "what did Ruphak do with
+ * pgvector?" is also a window with the literal string; the diagram label of the same name sits in the windows
+ * around it. Labels are deliberately not boosted: a boost would put a list of component names first, and the
+ * spec wants the page's own paragraph (spec 1.4, signature moment 5). engine.test.ts pins that hit 1 has the
+ * literal string and a citation.
+ *
  * Runs in the retrieval worker, and on the main thread as the documented fallback when Web Workers are
  * unavailable (BM25 needs nothing else). Pure and DOM-free; the encoder is injected.
  */

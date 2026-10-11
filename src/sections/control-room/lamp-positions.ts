@@ -3,8 +3,8 @@
  * properties on each lamp, the cable endpoints in `board-cables.ts` and the tests all read it.
  *
  * Coordinates are percent of the board box, the centre of each part. The board has two layouts of the
- * same switchboard (same topology, different proportions): a landscape one for wide containers and a
- * portrait one for phones, chosen by a container query (see ControlRoom.module.css).
+ * same switchboard (same topology, different proportions): a landscape one from 900 px of viewport width
+ * and a portrait one below, chosen by one media query (see ControlRoom.module.css).
  *
  * Plain `.ts` on purpose: `node --test` imports this file directly.
  */
@@ -30,23 +30,37 @@ export const LAMP_POSITIONS: Readonly<Record<AnchorId, Anchor>> = {
 
 /**
  * The phone layout: a portrait box, the relay in the middle, a lamp in each corner with its nameplate on
- * the outer side (above the top lamps, below the bottom ones), and the SENSORS lamp between the two top
- * lamps, wired straight down into the relay between their cables, its tag hanging on the cable.
+ * the outer side (above the top lamps, below the bottom ones), and the SENSORS lamp below the relay, where
+ * the landscape board has it too, wired from the relay's bottom-centre socket between the two bottom cables.
+ * Its nameplate hangs under the lamp, in the clear space above the two bottom nameplates.
+ *
+ * The SENSORS lamp used to sit between the two top lamps, and there its nameplate crossed the cables that
+ * bend in to the relay and its glow overlapped both neighbours' (the three glows read as one blob). Below
+ * the relay there is room for the lamp, the plate and a visible cable (the board is 840 units tall for it),
+ * and `GLOW_SCALE` keeps the glows from touching.
  */
 export const LAMP_POSITIONS_NARROW: Readonly<Record<AnchorId, Anchor>> = {
   controlPlane: { x: 50, y: 50 },
-  retrieval: { x: 26, y: 21.5 },
-  vision: { x: 74, y: 21.5 },
-  policy: { x: 26, y: 78.5 },
-  review: { x: 74, y: 78.5 },
-  sensors: { x: 50, y: 21.5 },
+  retrieval: { x: 26, y: 20 },
+  vision: { x: 74, y: 20 },
+  policy: { x: 26, y: 80 },
+  review: { x: 74, y: 80 },
+  sensors: { x: 50, y: 72 },
 }
 
 /** The drawing's coordinate space for each layout (SVG viewBox units). The CSS aspect ratios must match these. */
 export const BOARD_SIZE: Readonly<Record<LayoutKind, { readonly width: number; readonly height: number }>> = {
   wide: { width: 1200, height: 720 },
-  narrow: { width: 400, height: 780 },
+  narrow: { width: 400, height: 840 },
 }
+
+/**
+ * How much a lit lamp's glow is scaled in each layout (the stylesheet's `--gs`). On the portrait board the
+ * lamps are twice as wide in proportion to it, and at full size the outer rings of neighbouring lamps would
+ * overlap, where their translucent steps add up to a darker band. board-glow.test.ts checks that no two
+ * glows touch in either layout.
+ */
+export const GLOW_SCALE: Readonly<Record<LayoutKind, number>> = { wide: 1, narrow: 0.85 }
 
 /** Lamps in reading order. SENSORS is last: it only exists on devices that report motion sensors. */
 export const LAMP_ORDER: readonly LampId[] = ['retrieval', 'vision', 'policy', 'review', 'sensors']

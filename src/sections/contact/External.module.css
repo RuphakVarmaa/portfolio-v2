@@ -19,3 +19,18 @@
   -webkit-mask: var(--arrow) center / contain no-repeat;
   mask: var(--arrow) center / contain no-repeat;
 }
+
+/*
+ * Inside a sentence: a plain inline link and no arrow. The arrow (and the flex gap before it) sat between the
+ * link's words and the full stop that ends the sentence; without it the full stop follows the words directly.
+ * Declared after `.ext`, with the same specificity, so it wins.
+ */
+.inline {
+  display: inline;
+  /* An inline box's vertical padding adds to its target and not to the line height: a link in a sentence is a 44 px target. */
+  padding-block: 0.8em;
+}
+
+.inline::after {
+  content: none;
+}

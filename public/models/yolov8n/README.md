@@ -1,16 +1,19 @@
 # The vision service: detector, clip, recorded run
 
 Nothing in the build downloads a model, a video or a trace. The Vision panel is complete and honest without any of
-them. It starts the camera (or takes a dropped image), pushes frames and, on a phone, motion samples through a real
-bounded queue, runs them through a real worker and measures it all on the visitor's device. What it **cannot** do
-without the detector is draw boxes, and it says so on the picture (`NO DETECTOR · QUEUE ONLY`) and in the page.
+them. It starts the camera, pushes frames and, on a phone, motion samples through a real bounded queue, runs them
+through a real worker and measures it all on the visitor's device. What it **cannot** do without the detector is draw
+boxes, and it says so everywhere a visitor could expect them: on the picture (`NO DETECTOR · QUEUE ONLY`), in the
+always-visible caption, in the plain-language caption and in the camera dialog ("no detector is loaded, so nothing is
+recognised"). With no detector there is also no "Or drop an image" button, because a picture would have nothing to be
+run through; and a status line never points at it.
 
 Three optional files switch three more things on. Each is checked at build time (`dist/build-info.json`), so a
 missing file never costs a visitor a 404 in the console.
 
 | File | Switches on | State today |
 |---|---|---|
-| `models/yolov8n/yolov8n-320.onnx` + `models/yolov8n/metadata.json` | the detector tap, the boxes, the inference gauge | **not published** |
+| `models/yolov8n/yolov8n-320.onnx` + `models/yolov8n/metadata.json` | the detector tap, the boxes, the inference gauge, the "Or drop an image" button, and the captions that say a YOLOv8n detector runs here (until then they say none is published) | **not published** |
 | `media/desk.mp4` | the "Or run the recorded clip" button | **not published** |
 | `traces/vision.json` | the "Play the recorded run" button (a replay of boxes and timings, clearly labelled) | **not published** |
 
@@ -125,6 +128,11 @@ On a full-tier device the camera dialog's Allow also loads the detector (the dia
 "Load the detector" tap does. Both show the real sizes of the files this build ships. The gauge named
 `inference p95 (ms)` then reads the last 60 `session.run` times; without a detector it is named
 `worker pass p95 (ms)` and measures the letterbox pass instead, never a made-up inference time.
+
+The prerendered HTML cannot know whether you will publish a model, and the first moment of every visit does not yet
+know either, so both show the no-detector captions. The page then reads `build-info.json` (which lists the model as
+present only when the file was in `public/models/yolov8n/` when you built) and, if the detector is published, swaps in
+the YOLOv8n captions and the "Or drop an image" button. Publish the file, rebuild, and that is all there is to switch.
 
 ### Licence: read this before you publish the file
 

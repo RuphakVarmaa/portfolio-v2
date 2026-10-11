@@ -95,7 +95,7 @@ export interface StageProps {
   videoRef: RefObject<HTMLVideoElement | null>
   /** A picture was dropped on the viewfinder. */
   onFile: (file: File) => void
-  /** False when this device cannot run the pipeline: a dropped file is then ignored. */
+  /** False when a picture would have nothing to be run through (this device cannot run the pipeline, or no detector can be used): a dropped file is then refused. */
   canDrop: boolean
 }
 
@@ -152,8 +152,13 @@ export function Stage({ engine, canvasRef, videoRef, onFile, canDrop }: StagePro
 
   const live = phase === 'live'
   const onDragOver = (event: DragEvent) => {
-    if (!canDrop) return
+    // The viewfinder always takes the event, so a picture dropped on it never makes the browser leave the page to open the
+    // file. Where no detector can be used (nothing to run the picture through) the drop is refused, not accepted.
     event.preventDefault()
+    if (!canDrop) {
+      event.dataTransfer.dropEffect = 'none'
+      return
+    }
     setDropping(true)
   }
   const onDrop = (event: DragEvent) => {

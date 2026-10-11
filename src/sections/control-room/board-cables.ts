@@ -134,7 +134,8 @@ const WIRING: Readonly<Record<LayoutKind, Readonly<Record<LampId, Wiring>>>> = {
     vision: { lampFace: 'bottom', relayJack: 'top-right' },
     policy: { lampFace: 'top', relayJack: 'bottom-left' },
     review: { lampFace: 'top', relayJack: 'bottom-right' },
-    sensors: { lampFace: 'bottom', relayJack: 'top-center' },
+    // Below the relay, as on the landscape board: out of the bottom-centre socket, down to the lamp's top.
+    sensors: { lampFace: 'top', relayJack: 'bottom-center' },
   },
 }
 

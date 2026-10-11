@@ -187,7 +187,7 @@
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
   font-weight: 600;
   line-height: 1.4;
@@ -525,7 +525,7 @@
   border-bottom: 1.5px solid var(--ink);
   background: var(--paper);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
   font-weight: 600;
   line-height: 1.35;
@@ -730,6 +730,14 @@
 
 /* ===== Fallback: what the prerender, the Basic tier and a failed load show ===== */
 
+/* Visitors with JavaScript and workers get the camera stage a moment after the page is up. Until then the fallback holds its
+   height (`--room`, measured for the widths the stage's own layout steps at; the fallback and the stage sit in containers
+   of the same width, so one query sets it), so the caption and the trace below do not jump when it arrives. Without
+   JavaScript, and when workers are missing, it keeps the short height of what it says. */
+.hold {
+  container-type: inline-size;
+}
+
 .fallback {
   display: grid;
   place-items: center;
@@ -738,4 +746,33 @@
   border: 1.5px dashed var(--ink-rule);
   color: var(--ink-muted);
   text-align: center;
+}
+
+html[data-js] .hold[data-reserve] .fallback {
+  min-height: var(--room, 81rem);
+}
+
+@container (max-width: 539.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 96rem;
+  }
+}
+
+@container (max-width: 439.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 103rem;
+  }
+}
+
+@container (max-width: 259.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 108rem;
+  }
+}
+
+/* Beside the notebook column (from 1024 px) the stage is narrower than its width suggests, and shorter. */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  html[data-js] .hold[data-reserve] .fallback {
+    --room: 89.5rem;
+  }
 }

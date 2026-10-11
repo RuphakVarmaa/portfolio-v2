@@ -7,6 +7,7 @@ import { usePreferences } from '../shell/preferences-context.ts'
 import { Button } from './Button.tsx'
 import { cx } from './cx.ts'
 import { useSvgId } from './ids.ts'
+import { useHydrated } from './use-hydrated.ts'
 import styles from './ui.module.css'
 
 export type { SchematicProps, SchematicNode } from '../../data/schematics.ts'
@@ -88,6 +89,9 @@ type Vars = CSSProperties & Record<`--${string}`, string | number>
 export function Schematic(props: SchematicProps) {
   const { service, title, desc, nodes, edges, active = [], annotations, onNode, depth: depthProp, className } = props
   const preferences = usePreferences()
+  // Without JavaScript (the prerendered HTML, and the moment before hydration) a part is a label, not a button: nothing
+  // would happen when it is pressed. It becomes a real <button> as soon as the page is interactive.
+  const interactive = useHydrated()
   const depth = depthProp ?? preferences.depth
   const prefix = useSvgId('sch')
   const dialog = useRef<HTMLDialogElement>(null)
@@ -172,25 +176,40 @@ export function Schematic(props: SchematicProps) {
             const { main, sub } = splitLabel(node.label)
             const note = annotations?.[node.id]
             const position: Vars = { '--wx': node.wide[0], '--wy': node.wide[1], '--nx': node.narrow[0], '--ny': node.narrow[1] }
+            const className = cx(styles.node, lit.has(node.id) && styles.nodeActive)
+            const label = (
+              <>
+                <span className={styles.nodeMain}>{main}</span>
+                {sub ? <span className={styles.nodeSub}>{`(${sub})`}</span> : null}
+                {note ? <span className={styles.nodeNote}>{note}</span> : null}
+              </>
+            )
+            if (!interactive) {
+              return (
+                <div key={node.id} className={className} style={position}>
+                  {label}
+                </div>
+              )
+            }
             return (
               <button
                 key={node.id}
                 type="button"
-                className={cx(styles.node, lit.has(node.id) && styles.nodeActive)}
+                className={className}
                 style={position}
                 aria-haspopup="dialog"
                 onPointerEnter={prefetch}
                 onFocus={prefetch}
                 onClick={(event) => openPart(node.id, event.currentTarget)}
               >
-                <span className={styles.nodeMain}>{main}</span>
-                {sub ? <span className={styles.nodeSub}>{`(${sub})`}</span> : null}
-                {note ? <span className={styles.nodeNote}>{note}</span> : null}
+                {label}
               </button>
             )
           })}
         </div>
-        <figcaption className={styles.schematicHint}>{copy.services.panel.schematicHint}</figcaption>
+        <figcaption className={styles.schematicHint} data-js-only="">
+          {copy.services.panel.schematicHint}
+        </figcaption>
       </figure>
       <dialog
         ref={dialog}

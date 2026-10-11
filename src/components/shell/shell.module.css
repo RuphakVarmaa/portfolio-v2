@@ -110,6 +110,9 @@
 
 .brand {
   grid-area: brand;
+  /* A 44 px target around a 24 px line: the padding is taken back with the margin, so the header does not grow. */
+  padding-block: 10px;
+  margin-block: -10px;
   color: var(--ink);
   font-family: var(--font-stencil);
   font-size: 1.25rem;
@@ -178,15 +181,16 @@
   text-decoration-thickness: 3px;
 }
 
+/* The rail's key hint is for 900 to 1099 px only: from 1100 px the utility bar above prints the keys, and one hint is enough. */
 .railKeys {
   display: none;
   color: var(--ink-muted);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   letter-spacing: 0.3em;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 900px) and (max-width: 1099px) {
   .railKeys {
     display: inline;
   }
@@ -322,7 +326,9 @@
   color: var(--paper);
 }
 
-.toggle:disabled {
+/* aria-disabled, not disabled: a toggle the system holds on (reduced motion, the Basic tier) stays in the Tab order and says why. */
+.toggle:disabled,
+.toggle[aria-disabled='true'] {
   border-style: dashed;
   cursor: not-allowed;
 }
@@ -368,14 +374,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s-2) var(--s-3);
-}
-
-.tierControl select {
-  min-height: 44px;
-  padding: 0 var(--s-3);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-1);
-  background: var(--paper);
 }
 
 .tierHint {
@@ -540,7 +538,7 @@
   overflow: hidden;
   color: var(--ink-muted);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
   text-align: end;
   text-overflow: ellipsis;

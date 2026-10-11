@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { announce } from '../../cluster/live-region.ts'
 import { cx } from './cx.ts'
-import { useSvgId } from './ids.ts'
+import { TapeText } from './TapeText.tsx'
 import styles from './ui.module.css'
 
 export interface TapeLine {
@@ -42,14 +42,16 @@ const textOf = (line: string | TapeLine): string => {
 }
 
 /**
- * Mono lines on ruled paper with sprocket holes down the left edge. Scrolls itself to the newest line
- * unless the visitor has scrolled up to read. Focusable (it scrolls), `role="log"`.
+ * Mono entries on ruled paper. Each entry has one sprocket hole at its first row; a long entry breaks between its
+ * fields only (a `key=value` pair, a `·` part, never `policy-b` in the middle) and the rows after the first hang
+ * under the hole, so an entry reads as one entry. On a narrow tape an entry is one row and the tape pans
+ * sideways. Scrolls itself to the newest entry unless the visitor has scrolled up to read. Focusable (it scrolls),
+ * `role="log"`.
  */
 export function Tape({ lines, label, header, max = 200, announce: announceLines = false, empty, height = '14rem', className }: TapeProps) {
   const scroller = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
   const lastAnnounced = useRef('')
-  const holesId = useSvgId('holes')
   const visible = lines.length > max ? lines.slice(-max) : lines
 
   const last = lines.length > 0 ? lines[lines.length - 1] : undefined
@@ -84,14 +86,6 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
         }}
       >
         <div className={styles.tapeInner}>
-          <svg className={styles.tapeHoles} aria-hidden="true">
-            <defs>
-              <pattern id={holesId} width="20" height="24" patternUnits="userSpaceOnUse">
-                <circle cx="10" cy="12" r="3.2" className={styles.tapeHole} />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill={`url(#${holesId})`} />
-          </svg>
           {visible.length === 0 ? (
             <p className={styles.tapeEmpty}>{empty ?? 'no entries yet'}</p>
           ) : (
@@ -100,7 +94,7 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
                 const item: TapeLine = typeof line === 'string' ? { text: line } : line
                 return (
                   <li key={item.id ?? index} className={cx(styles.tapeLine, item.tone && styles[`tape-${item.tone}`])}>
-                    {item.text}
+                    {typeof item.text === 'string' ? <TapeText text={item.text} /> : item.text}
                   </li>
                 )
               })}

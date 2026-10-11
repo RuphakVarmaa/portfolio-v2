@@ -112,6 +112,7 @@ function Timings({ answer }: { answer: Answer }) {
         {S.roundTrip} {fmtMs(roundTripMs)} · {S.rerankNote(result.rerank)}
         {result.coldStartMs !== undefined ? ` · ${S.coldStart(result.coldStartMs)}` : ''}
       </p>
+      <p className={styles.note}>{S.drawingNote}</p>
     </div>
   )
 }
@@ -420,7 +421,7 @@ export default function AskTheSite() {
             value={text}
             onChange={(event) => setText(event.target.value)}
           />
-          <Button type="submit" variant="primary" busy={searching !== null} iconAfter={<Icon name="arrow-right" size={18} />}>
+          <Button type="submit" variant="primary" className={styles.ask} busy={searching !== null} iconAfter={<Icon name="arrow-right" size={18} />}>
             {S.ask}
           </Button>
         </div>

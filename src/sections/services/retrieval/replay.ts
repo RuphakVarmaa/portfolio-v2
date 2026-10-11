@@ -2,13 +2,17 @@
  * "Show me the pipeline" for retrieval: how one real search is replayed on the schematic.
  *
  * A search is five stages the worker timed (`tokenize`, `embed (or BM25)`, `score`, `rerank`, `cite`, see
- * `copy.services.retrieval.pipeline`) and each stage stands for one part of the production drawing. This file
- * is the pure half of the replay: given the measured stages it says, step by step, which parts are lit, what
- * small mono text sits under each part, and which stages the panel's list shows so far. The component walks
- * the steps with a short dwell so a person can see them; every number in a step is one the worker measured.
+ * `copy.services.retrieval.pipeline`). The drawing is the production system's, so a stage lights a part only
+ * when that part is what stood in for it in this port. This file is the pure half of the replay: given the
+ * measured stages it says, step by step, which parts are lit, what small mono text sits under each part, and
+ * which stages the panel's list shows so far. The component walks the steps with a short dwell so a person can
+ * see them; every number in a step is one the worker measured.
  *
- * Nothing here invents a number. A part with no measured stage behind it (the production-only ones) never
- * appears in a step.
+ * Nothing here invents a number, and nothing lights a part that did not run. That has two consequences:
+ *   - `agents` (production's LLM agents, which split a question into sub-goals) has no counterpart in this
+ *     port. It is never lit and never annotated, so no real time can sit next to a part that did not run.
+ *   - `tokenize` really runs (the question is read into words before it meets the index) and is really timed,
+ *     but production's drawing has no part for it. It lights nothing; its time is in the stage list.
  *
  * Pure and DOM-free: the panel imports it, and the tests run it under Node.
  */
@@ -16,9 +20,13 @@ import type { Stage } from '../../../cluster/protocol.ts'
 import type { RetrievalMode, WarmResult } from '../../../lib/retrieval/types.ts'
 import { fmtMs } from './format.ts'
 
-/** Which schematic part each pipeline stage lights (the retrieval schematic's own ids, src/data/schematics.ts). */
+/**
+ * Which schematic part each pipeline stage lights (the retrieval schematic's own ids, src/data/schematics.ts).
+ * An empty list is a stage the production drawing has no part for: it still runs, is still listed with its time,
+ * and lights nothing.
+ */
 export const STAGE_NODES: Readonly<Record<string, readonly string[]>> = {
-  tokenize: ['agents'],
+  tokenize: [],
   'embed (or BM25)': ['pgvector'],
   score: ['pgvector'],
   rerank: ['rerank'],
@@ -27,6 +35,13 @@ export const STAGE_NODES: Readonly<Record<string, readonly string[]>> = {
 
 /** Index-time parts: the page's text (fetched) and its windows (built into the index). They ran once, at warm-up. */
 export const WARM_NODES: readonly string[] = ['ingest', 'chunk']
+
+/**
+ * Parts of the production drawing this port does not have: no LLM, so no agents. They stay dark in every step,
+ * whatever stage ran, and never get a note, because a real time next to a part that did not run would say that it did.
+ * (The policy panel does the same with its JWT, API and indexes.) The panel says so under the timings.
+ */
+export const PRODUCTION_ONLY: readonly string[] = ['agents']
 
 /** The parts a stage lights; a stage this file does not know lights nothing. */
 function nodesOf(stageName: string): readonly string[] {
@@ -73,8 +88,8 @@ export function annotate(stages: readonly Stage[], mode: RetrievalMode, warm?: W
 
 /**
  * The replay as steps: first the two index-time parts (when the warm-up facts are known: they are what the
- * search ran against), then one step per measured stage, cumulatively. Unknown stage names are shown in the
- * list but light nothing.
+ * search ran against), then one step per measured stage, cumulatively. A stage that has no part on the drawing
+ * (`tokenize`, or a name this file does not know) is a step like the others: the list shows it, no part is lit.
  */
 export function planReplay(stages: readonly Stage[], mode: RetrievalMode, warm?: WarmFacts | null): ReplayStep[] {
   const steps: ReplayStep[] = []

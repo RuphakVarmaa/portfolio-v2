@@ -264,11 +264,6 @@
   gap: 0 var(--s-1);
 }
 
-/* The readout reserves its width in ch (no layout shift) but sits flush left under its label. */
-.reading > span > span {
-  text-align: start;
-}
-
 .unit {
   font-family: var(--font-readout);
   font-size: 1rem;

@@ -64,12 +64,25 @@ Everything the build can verify, `pnpm check` verifies. These are the things onl
 - [ ] **Two user read-throughs.** `docs/USER_TESTS.md` is a template and says so; nobody has been tested yet.
 - [ ] **Firefox and Safari.** The build was only exercised in Chrome. Check the quorum (BroadcastChannel and Web Locks),
   the camera dialog, the iOS motion permission and the print stylesheet before you announce it.
-- [ ] **`copy.colophon.sourceUrl`** (`src/data/copy.ts`) points at `https://github.com/RuphakVarmaa`; use the exact repository.
-- [ ] **Copy you own.** The work-trace paragraphs marked `[OWNER REVIEW]`, the Neural Inverse dates (Sep 2022 - Sep 2024
-  precede the 2024 degree start; kept verbatim), and whether the phone number stays visible (`profile.publishPhone`
-  in `src/data/portfolio.ts`; it is never in `profile.json`, `llms.txt` or the JSON-LD).
-- [ ] **Budgets.** `dist/index.html` is within about 1 KB of its 60 KB limit. If you lengthen the copy and the build
-  fails, trim the prose or raise the limit on purpose in `scripts/check-budgets.mjs`; do not edit the check around it.
+- [ ] **`copy.colophon.sourceUrl`** (`src/data/copy.ts`) points at `https://github.com/RuphakVarmaa`, your account page, not a
+  repository. Until it names one (`https://github.com/<you>/<repo>`) the Colophon's credits link says "GitHub profile" and the
+  "Making-of (repo README)" link is left out; set the exact repository and both come back by themselves.
+- [ ] **Copy you own: confirm or replace the narrative** (details under "Content" below). The Neural Inverse dates (Sep 2022 - Sep 2024
+  precede the 2024 degree start; kept verbatim) and whether the phone number stays visible (`profile.publishPhone`
+  in `src/data/portfolio.ts`; it is never in `profile.json`, `llms.txt` or the JSON-LD) are yours to decide too.
+- [ ] **Confirm the JavaScript budget.** The spec asks for 95 KB gzipped of initial JavaScript for "React + shell + cluster + board".
+  React alone is 59 KB gzipped, so that line cannot hold: today the site entry is about 60 KB, React 59 KB, 119 KB together, and
+  `scripts/check-budgets.mjs` caps the sum at 125 KB (spec section 10, item 7; `docs/INTERFACES.md` section 10, item 1). Say whether
+  you accept that, or what to cut. (Moving the résumé and Experiments pages into their own chunks was tried: it split the bundle
+  into 35 shared files and made both the sum and the HTML larger, so it was reverted.)
+- [ ] **Speed on a slow link.** Measured here (Chrome, DevTools "Fast 3G" profile, 4x CPU throttle, gzip on): first paint 1.8 s.
+  It was 2.2 s with five font preloads queued ahead of the stylesheet; the head now puts the stylesheet first and preloads only the
+  two fonts the first screen uses. The spec asks for 1.2 s. The rest is two round trips at a 562 ms round-trip time (the page, then
+  its render-blocking stylesheet); the only way under 1.2 s is inlining the first screen's CSS into the HTML, and the HTML has no room
+  for it. On an unthrottled link first paint is about 0.3 s (4x CPU throttle).
+- [ ] **Budgets.** `dist/index.html` is within about 2 KB of its 60 KB limit and the stylesheet within about 0.7 KB of its 24 KB.
+  If you lengthen the copy and the build fails, trim the prose or raise the limit on purpose in `scripts/check-budgets.mjs`;
+  do not edit the check around it.
 
 ## Making-of (skeleton)
 
@@ -87,9 +100,28 @@ This section is for the owner to grow into the write-up that the Colophon links 
 
 ## Content
 
-Résumé-derived facts live in `src/data/portfolio.ts`; all first-person prose in `src/data/copy.ts`
-(paragraphs marked `[OWNER REVIEW]` were drafted strictly from the résumé bullets; edit any sentence that
-overstates). The downloadable résumé is `public/Ruphak-Varmaa-Resume.pdf`; an HTML résumé is prerendered at
+Résumé-derived facts (every number, date, title, stack and metric) live in `src/data/portfolio.ts` and are
+never retyped; all first-person prose is in `src/data/copy.ts` (and the schematic parts' dialogs in
+`src/data/node-copy.ts`). A test rejects any figure in the prose that is not in the data.
+
+**What the prose is, and is not.** The depth paragraphs, the work traces (Decisions, Trade-offs, What broke, What I'd change)
+and the part dialogs are drafts in your voice, built from the résumé bullets. Where the résumé gives a fact they state it. Where
+it does not, they state a design reason, never an event: nothing says "this happened" that the résumé does not say. Read the
+"What broke" lines as "the failure I design against" (an uncited answer that looks right; free-form review text that cannot be
+merged with ESLint and Semgrep output; latency variance hiding behind a good mean), because the résumé has no incident for
+retrieval, vision or review (policy's 340 ms to 120 ms is the résumé's own). An interviewer will ask about each. Confirm or replace:
+
+- Retrieval: agents split a question into sub-goals; HNSW chosen over exact search to stay inside the p95 budget as the corpus grows;
+  overlapping windows as a storage cost accepted so a fact is less likely to be cut at a boundary; uncited answers as the failure to avoid.
+- Vision: a bounded producer-consumer queue between capture and inference; SLO alerts on inference p95, detection rate and queue
+  depth; a queue that sheds load can lower the detection rate; latency variance as the thing to guard (the 40% is the résumé's).
+  The drop-oldest ring buffer of four frames belongs to the browser port, not to production, and the text says so.
+- Policy: the JWT carries the tenant claim and row-level policies refuse other tenants' rows even if application code is wrong;
+  N+1 fans collapsed into joins; composite indexes that lead with `tenant_id` (the résumé says "tenant-scoped composite indexes").
+- Review: five severity tiers separate urgent from advisory; structured LLM output so it merges with deterministic tools; fewer rules
+  per run as the price of staying under three minutes; one issue could be reported three ways without structured findings.
+
+The downloadable résumé is `public/Ruphak-Varmaa-Resume.pdf`; an HTML résumé is prerendered at
 `/resume/`. Agents get `/profile.json`, `/llms.txt` and `/sitemap.xml` (the phone number is shown on the page
 but is never in these files).
 

@@ -3,6 +3,7 @@ import { announce } from '../../cluster/live-region.ts'
 import { formatMs } from '../../cluster/format.ts'
 import { Button } from '../../components/ui/Button.tsx'
 import { Icon } from '../../components/ui/Icon.tsx'
+import { Select } from '../../components/ui/Select.tsx'
 import { copy } from '../../data/copy.ts'
 import { analyzeQuery } from '../../lib/retrieval/analyze.ts'
 import { explainBm25, termTable, type TermContribution } from '../../lib/retrieval/bm25.ts'
@@ -12,12 +13,15 @@ import chaos from '../../sections/chaos-lab/ChaosLab.module.css'
 import { ScrollBox } from '../../sections/chaos-lab/ScrollBox.tsx'
 import styles from '../Experiments.module.css'
 import {
+  RIBBON_TARGET,
   citedSentence,
   filterTerms,
   highlightSegments,
   indexStats,
   parseCorpus,
+  ribbonHeight,
   ribbonRows,
+  ribbonTop,
   snippet,
   type IndexStats,
   type Segment,
@@ -209,13 +213,14 @@ export default function IndexExplorer() {
         {rows.map((row) => (
           <div key={row.sectionId} className={styles.ribbonRow}>
             <span className={styles.ribbonLabel}>{row.title}</span>
-            <div className={styles.ribbonTrack}>
+            <div className={styles.ribbonTrack} style={{ height: ribbonHeight(row.lines) }}>
               {row.items.map((item) => (
                 <button
                   key={item.chunkId}
                   type="button"
                   className={styles.win}
-                  style={{ left: `${item.left}%`, width: `${item.width}%`, top: item.line * 26 }}
+                  // A window is a 44 px target (the window you see is drawn smaller, inside it); one near the track's end is pulled back so its whole target stays on the track.
+                  style={{ left: `min(${item.left}%, calc(100% - ${RIBBON_TARGET}px))`, width: `${item.width}%`, top: ribbonTop(item.line) }}
                   data-hit={hitIds.has(item.chunkId) || undefined}
                   aria-pressed={selected === item.chunkId}
                   aria-label={`${t.chunk} ${item.chunkId}, ${item.tokens} ${unit}`}
@@ -334,10 +339,10 @@ export default function IndexExplorer() {
           </label>
           <label className={styles.field}>
             <span className="stencil">{tools.trace.show}</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as TermSort)}>
+            <Select value={sort} onChange={(event) => setSort(event.target.value as TermSort)}>
               <option value="common">{t.termsSort.common}</option>
               <option value="rare">{t.termsSort.rare}</option>
-            </select>
+            </Select>
           </label>
         </div>
         <ScrollBox label={t.termsHeading}>

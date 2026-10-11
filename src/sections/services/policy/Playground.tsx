@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { announce } from '../../../cluster/live-region.ts'
 import { formatBytes, formatMs } from '../../../cluster/format.ts'
 import type { Action, Resource, Role } from '../../../cluster/protocol.ts'
@@ -10,7 +10,9 @@ import { usePanelContext } from '../../../components/ui/panel-context.ts'
 import { PlainCaption } from '../../../components/ui/PlainCaption.tsx'
 import { Readout } from '../../../components/ui/Readout.tsx'
 import { Stamp } from '../../../components/ui/Stamp.tsx'
-import { Tape } from '../../../components/ui/Tape.tsx'
+import { Select } from '../../../components/ui/Select.tsx'
+import { Tape, type TapeLine } from '../../../components/ui/Tape.tsx'
+import { SoftText, TapeText } from '../../../components/ui/TapeText.tsx'
 import { copy, projectFor } from '../../../data/copy.ts'
 import type { EvaluateResult } from '../../../lib/policy/engine.ts'
 import { FUZZ_BATCHES, FUZZ_BATCH_SIZE, type FuzzRunState } from '../../../lib/policy/fuzz-run.ts'
@@ -19,7 +21,7 @@ import { FuzzMeter } from './FuzzMeter.tsx'
 import { Ladder } from './Ladder.tsx'
 import { NodeLamps } from './NodeLamps.tsx'
 import styles from './Policy.module.css'
-import { policyStore } from './policy-store.ts'
+import { policyStore, type TapeEntry } from './policy-store.ts'
 import { Rulebook } from './Rulebook.tsx'
 import { POLICY_STRINGS as t, label } from './strings.ts'
 
@@ -60,6 +62,9 @@ const POOL = ['policy-a', 'policy-b'] as const
 const TOTAL = FUZZ_BATCHES * FUZZ_BATCH_SIZE
 
 const grouped = (n: number) => n.toLocaleString('en-US')
+
+/** A tape entry as the Tape draws it: the same text (the Tape breaks it between fields, see TapeText). */
+const tapeLine = (entry: TapeEntry): TapeLine => ({ id: entry.id, tone: entry.tone, text: entry.text })
 
 /** The headline of a fuzz: a status while it runs, the spec's result line when it ends. */
 function headlineOf(run: FuzzRunState, demo: typeof copy.services.policy.demo): string {
@@ -112,6 +117,7 @@ export default function Playground() {
     }
   }, [selection])
 
+  const tape = useMemo(() => store.tape.map(tapeLine), [store.tape])
   const run = store.run
   const summary = run?.summary
   const finished = run?.status === 'done' && summary !== undefined
@@ -122,22 +128,19 @@ export default function Playground() {
   const field = (name: keyof Selection, values: readonly string[], text: string) => (
     <label className={styles.field}>
       <span className="stencil">{text}</span>
-      <span className={styles.selectWrap}>
-        <select
-          className={styles.select}
-          value={selection[name]}
-          onChange={(event) => {
-            touched.current = true
-            setSelection({ ...selection, [name]: event.target.value } as Selection)
-          }}
-        >
-          {values.map((value) => (
-            <option key={value} value={value}>
-              {name === 'tenant' ? value : label(value)}
-            </option>
-          ))}
-        </select>
-      </span>
+      <Select
+        value={selection[name]}
+        onChange={(event) => {
+          touched.current = true
+          setSelection({ ...selection, [name]: event.target.value } as Selection)
+        }}
+      >
+        {values.map((value) => (
+          <option key={value} value={value}>
+            {name === 'tenant' ? value : label(value)}
+          </option>
+        ))}
+      </Select>
     </label>
   )
 
@@ -164,12 +167,16 @@ export default function Playground() {
               <Stamp key={verdict.seq} size="lg" tone={verdict.result.allow ? 'cobalt' : 'live'} shape={<Icon name={verdict.result.allow ? 'check' : 'close'} size={24} />} animate>
                 {verdict.result.allow ? demo.allow : demo.deny}
               </Stamp>
-              <p className={styles.policyLine}>{t.policyLine(verdict.result.policy)}</p>
+              <p className={styles.policyLine}>
+                <PolicyLine policy={verdict.result.policy} />
+              </p>
             </div>
             <div className={styles.ladderWrap}>
               <Ladder key={verdict.seq} stop={verdict.result.stop} allow={verdict.result.allow} />
               <p className={styles.why}>{verdict.why}</p>
-              <p className={styles.engine}>{pending ? (problem ?? t.asking) : t.engineTime(verdict.result.us, verdict.result.runs, verdict.result.node)}</p>
+              <p className={styles.engine}>
+                <SoftText text={pending ? (problem ?? t.asking) : t.engineTime(verdict.result.us, verdict.result.runs, verdict.result.node)} />
+              </p>
             </div>
           </>
         ) : (
@@ -180,10 +187,9 @@ export default function Playground() {
       <Rulebook tenant={selection.tenant} role={selection.role} resource={selection.resource} action={selection.action} initiallyOpen={standalone} />
 
       <Tape
-        className={styles.tape}
         label={t.tapeLabel}
         header={demo.tapeHeader}
-        lines={store.tape}
+        lines={tape}
         empty={t.tapeEmpty}
       />
 
@@ -200,7 +206,9 @@ export default function Playground() {
             {demo.plugButton}
           </Button>
         </div>
-        <p className={styles.hint}>{t.plugNote}</p>
+        <p className={styles.hint}>
+          <SoftText text={t.plugNote} />
+        </p>
 
         {run ? (
           <div className={styles.fuzzGrid}>
@@ -212,9 +220,13 @@ export default function Playground() {
             </div>
             <div className={styles.fuzzBody}>
               <p className={styles.resultLine} data-state={run.status}>
-                {headlineOf(run, demo)}
+                <TapeText text={headlineOf(run, demo)} />
               </p>
-              {recovery ? <p className={styles.recovery}>{recovery.sentence}</p> : null}
+              {recovery ? (
+                <p className={styles.recovery}>
+                  <TapeText text={recovery.sentence} />
+                </p>
+              ) : null}
               <FuzzMeter batches={run.batches} />
               <dl className={styles.stats}>
                 <Stat label={t.stats.evaluated} value={grouped(run.evaluated)} width={6} />
@@ -233,7 +245,7 @@ export default function Playground() {
                     {recovery && recovered?.attempts[0] ? (
                       <>
                         {' '}
-                        {t.plainPlug({ node: recovered.attempts[0].node, batch: recovery.batch, retryNode: recovery.node, ms: recovery.ms, evaluated: summary.evaluated })}
+                        <SoftText text={t.plainPlug({ node: recovered.attempts[0].node, batch: recovery.batch, retryNode: recovery.node, ms: recovery.ms, evaluated: summary.evaluated })} />
                       </>
                     ) : null}
                   </PlainCaption>
@@ -245,6 +257,19 @@ export default function Playground() {
         ) : null}
       </section>
     </div>
+  )
+}
+
+/** `policy=audit.immutable`: on a 320 px phone it is wider than its box, so it may break after the `=` and nowhere else. */
+function PolicyLine({ policy }: { policy: string }) {
+  const text = t.policyLine(policy)
+  const equals = text.indexOf('=') + 1
+  return (
+    <>
+      {text.slice(0, equals)}
+      <wbr />
+      {text.slice(equals)}
+    </>
   )
 }
 

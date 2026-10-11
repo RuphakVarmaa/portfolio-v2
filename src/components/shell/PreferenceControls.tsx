@@ -1,7 +1,9 @@
+import { useId } from 'react'
 import { copy } from '../../data/copy.ts'
 import { setTierOverride, type Tier } from '../../cluster/tier.ts'
 import { useTierInfo } from '../../cluster/store.ts'
 import { Icon, type IconName } from '../ui/Icon.tsx'
+import { Select } from '../ui/Select.tsx'
 import { cx } from '../ui/cx.ts'
 import { usePreferences } from './preferences-context.ts'
 import { SoundToggle } from './SoundToggle.tsx'
@@ -13,15 +15,34 @@ interface ToggleProps {
   icon: IconName
   label: string
   title: string
-  disabled?: boolean
+  /**
+   * Set when the system holds this toggle in its current state (reduced motion holds Lite motion on; the Basic tier holds
+   * Skip the machine on). The button is aria-disabled, not disabled: it stays in the Tab order, ignores a press, and
+   * the reason is read with it (aria-describedby), not only shown as a tooltip that a keyboard or a finger never sees.
+   */
+  forcedReason?: string
 }
 
-function Toggle({ pressed, onClick, icon, label, title, disabled }: ToggleProps) {
+function Toggle({ pressed, onClick, icon, label, title, forcedReason }: ToggleProps) {
+  const reasonId = useId()
   return (
-    <button type="button" className={styles.toggle} aria-pressed={pressed} title={title} disabled={disabled} onClick={onClick}>
+    <button
+      type="button"
+      className={styles.toggle}
+      aria-pressed={pressed}
+      aria-disabled={forcedReason ? true : undefined}
+      aria-describedby={forcedReason ? reasonId : undefined}
+      title={title}
+      onClick={forcedReason ? undefined : onClick}
+    >
       <Icon name={icon} size={18} />
       <span className={styles.toggleLabel}>{label}</span>
       <span className={styles.toggleLamp} aria-hidden="true" />
+      {forcedReason ? (
+        <span id={reasonId} className="sr-only">
+          {forcedReason}
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -50,7 +71,7 @@ export function PreferenceControls({ variant = 'header', className }: Preference
         icon="machine"
         label={t.machine.label}
         title={prefs.machineForced ? t.machine.forced : t.machine.title}
-        disabled={prefs.machineForced}
+        forcedReason={prefs.machineForced ? t.machine.forced : undefined}
       />
       <Toggle
         pressed={prefs.theme === 'dark'}
@@ -65,13 +86,13 @@ export function PreferenceControls({ variant = 'header', className }: Preference
         icon="gauge"
         label={t.motion.label}
         title={prefs.motionForced ? t.motion.forced : t.motion.title}
-        disabled={prefs.motionForced}
+        forcedReason={prefs.motionForced ? t.motion.forced : undefined}
       />
       <SoundToggle />
       {variant === 'panel' ? (
         <label className={styles.tierControl}>
           <span className="stencil">{copy.header.tier.label}</span>
-          <select
+          <Select
             value={tier.override ?? ''}
             onChange={(event) => {
               const value = event.target.value
@@ -87,7 +108,7 @@ export function PreferenceControls({ variant = 'header', className }: Preference
                 {copy.header.tier.names[name]}
               </option>
             ))}
-          </select>
+          </Select>
           <span className={styles.tierHint}>{copy.header.tier.applies}</span>
         </label>
       ) : null}

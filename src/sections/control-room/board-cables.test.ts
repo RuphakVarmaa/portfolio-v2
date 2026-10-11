@@ -92,7 +92,7 @@ test('the lamp end of each cable is one plug-length from the lamp bezel', () => 
   }
 })
 
-test('the wide board wires the left lamps to the left sockets and the right lamps to the right; the portrait board uses the top and bottom', () => {
+test('the wide board wires the left lamps to the left sockets and the right lamps to the right; the portrait board uses the top and bottom (SENSORS the bottom-centre one, on both)', () => {
   const wide = layoutGeometry('wide')
   const startOf = (id: string, g = wide) => points(g.cables.find((cable) => cable.id === id)!.d)[0]
   assert.ok(startOf('retrieval')[0] < wide.relay.x && startOf('policy')[0] < wide.relay.x)
@@ -101,7 +101,7 @@ test('the wide board wires the left lamps to the left sockets and the right lamp
   const narrow = layoutGeometry('narrow')
   assert.ok(startOf('retrieval', narrow)[1] < narrow.relay.y && startOf('vision', narrow)[1] < narrow.relay.y)
   assert.ok(startOf('policy', narrow)[1] > narrow.relay.y + narrow.relay.h && startOf('review', narrow)[1] > narrow.relay.y + narrow.relay.h)
-  assert.ok(startOf('sensors', narrow)[1] < narrow.relay.y, 'the sensors cable leaves the top of the relay')
+  assert.ok(startOf('sensors', narrow)[1] > narrow.relay.y + narrow.relay.h, 'the sensors cable leaves the bottom of the relay, as on the landscape board')
 })
 
 test('the board never lets two plugs from different cables share a relay socket', () => {

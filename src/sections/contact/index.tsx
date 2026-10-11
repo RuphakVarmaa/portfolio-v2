@@ -6,7 +6,7 @@ import { profile } from '../../data/portfolio.ts'
 import styles from './Contact.module.css'
 import { External } from './External.tsx'
 import { useCopy } from './use-copy.ts'
-import { useHydrated } from './use-hydrated.ts'
+import { useHydrated } from '../../components/ui/use-hydrated.ts'
 
 /** `https://linkedin.com/in/ruphakvarmaa` -> `linkedin.com/in/ruphakvarmaa`: the address as people say it. */
 const bare = (url: string): string => url.replace(/^https?:\/\//, '')

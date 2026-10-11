@@ -115,22 +115,23 @@ test('the stylesheet repeats the numbers the geometry is built from', () => {
   // The lamp art is 110 board units wide on the landscape board and 110 x (36 / 51) on the portrait one.
   near(lamp('\\.lampItem'), share(LAMP_BEZEL.narrow, BOARD_SIZE.narrow.width))
   near(lamp('\\.lampItem\\[data-row=\'mid\'\\]'), share(SENSORS_BEZEL.narrow, BOARD_SIZE.narrow.width))
-  const wide = /@media \(min-width: 700px\) \{[\s\S]*?\.lampItem \{\s*--w:\s*([\d.]+)cqw/.exec(css)
+  const wide = /@media \(min-width: 900px\) \{[\s\S]*?\.lampItem \{\s*--w:\s*([\d.]+)cqw/.exec(css)
   near(Number(wide?.[1]), share(LAMP_BEZEL.wide, BOARD_SIZE.wide.width))
-  const wideMid = /@media \(min-width: 700px\) \{[\s\S]*?\.lampItem\[data-row='mid'\] \{\s*--w:\s*([\d.]+)cqw/.exec(css)
+  const wideMid = /@media \(min-width: 900px\) \{[\s\S]*?\.lampItem\[data-row='mid'\] \{\s*--w:\s*([\d.]+)cqw/.exec(css)
   near(Number(wideMid?.[1]), share(SENSORS_BEZEL.wide, BOARD_SIZE.wide.width))
   // The relay is 43 % of the portrait board and 25 % of the landscape one; the board's aspect ratios are its drawing spaces.
   assert.match(css, new RegExp(`\\.relayBox \\{[^}]*width: ${RELAY_SHARE.narrow * 100}%`))
-  assert.match(css, new RegExp(`@media \\(min-width: 700px\\) \\{[\\s\\S]*?\\.relayBox \\{\\s*width: ${RELAY_SHARE.wide * 100}%`))
+  assert.match(css, new RegExp(`@media \\(min-width: 900px\\) \\{[\\s\\S]*?\\.relayBox \\{\\s*width: ${RELAY_SHARE.wide * 100}%`))
   assert.match(css, new RegExp(`aspect-ratio: ${BOARD_SIZE.narrow.width} / ${BOARD_SIZE.narrow.height}`))
   assert.match(css, new RegExp(`aspect-ratio: ${BOARD_SIZE.wide.width} / ${BOARD_SIZE.wide.height}`))
 })
 
-test('the layout switches at one width (700 px) wherever the board differs between its two layouts', () => {
+test('the layout switches at one width (900 px) wherever the board differs between its two layouts', () => {
   const widths = new Set([...css.matchAll(/@media \(min-width: (\d+)px\)/g)].map((m) => m[1]))
-  assert.ok(widths.has('700'))
-  // 640 (type and spacing), 700 (the board), 1024 (two columns) are the only min-width breakpoints.
-  assert.deepEqual([...widths].sort(), ['1024', '640', '700'])
+  assert.ok(widths.has('900'))
+  // 640 (type and spacing), 900 (the board), 1024 (two columns) are the only min-width breakpoints. The landscape board is
+  // 828 px wide in a 900 px viewport, the least it can be: below that its rem-sized nameplates overprint its frame (review round 1: 700 to 800 px).
+  assert.deepEqual([...widths].sort(), ['1024', '640', '900'])
 })
 
 test('the markup carries the hooks the global state selectors rely on', () => {
@@ -175,4 +176,25 @@ test('the index and the board read paths and ids from the shared constants, not 
   assert.ok(index.includes('copy.contact.resume') && index.includes('SECTION_IDS.contact'))
   assert.ok(!index.includes('/Ruphak-Varmaa-Resume.pdf') && !index.includes("'/resume/'"))
   assert.ok(index.includes("from '../../data/portfolio.ts'") && index.includes('project.headlineMetric') && index.includes('project.title'))
+})
+
+test('the boot line is the log of the boot: it is built from each node\'s first ready, never from the live timing a respawn overwrites', () => {
+  const bootLine = code('BootLine.tsx')
+  assert.match(bootLine, /workers:\s*bootTimings\(remembered, telemetry\.workers\)/)
+  assert.ok(!/workers:\s*telemetry\.workers/.test(bootLine), 'the raw snapshot must not reach buildBootLine')
+  assert.ok(bootLine.includes('rememberFirstReady(firstReady, telemetry.workers)'))
+})
+
+test('hash navigation: the control room mounts it, and links and hash changes go through goToId, the shared landing correction', () => {
+  assert.ok(code('index.tsx').includes('useHashNavigation()'))
+  const nav = code('useHashNavigation.ts')
+  assert.ok(nav.includes("import { goToId, holdOnTarget } from '../../lib/draw/motion.ts'"))
+  assert.equal(nav.match(/\bgoToId\(id\)/g)?.length, 2, 'one call for a click, one for a hash change')
+  // The browser keeps the URL's fragment and history: the page adds its own entry, once, for a link it takes over.
+  assert.ok(nav.includes('window.history.pushState(null, \'\', link.hash)') && nav.includes('window.location.hash !== link.hash'))
+  // It only ever listens: a click, a hash change. The deep-link hold (a resize observer, the visitor's own input) is the shared
+  // one in lib/draw/motion.ts; there is no timer and no frame loop in this file.
+  assert.ok(nav.includes("'hashchange'") && nav.includes('holdOnTarget(target, HOLD_UNTIL_MS)'))
+  // The service index and the list under "Skip the machine" are plain anchors; no per-link handler competes with it.
+  assert.ok(!/onClick/.test(code('ServiceIndex.tsx')) && !/onClick/.test(code('OffList.tsx')))
 })

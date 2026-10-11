@@ -78,10 +78,26 @@
   border-top: 1.5px solid var(--ink);
 }
 
-/* The grid item beside the breakers: it stretches over the whole first row, so its sticky child has room to travel. */
+/*
+ * The grid item beside the breakers: it stretches over the whole first row, so its sticky child has room to travel.
+ * In one column (below 1024 px) it is only as tall as its content, and the frame holds the room the live
+ * plates take (measured: 420 px, 448 px from 464 px down, 486 px from 392 px down) so the page does not jump.
+ */
 .aside {
   min-width: 0;
-  min-height: 17rem;
+  min-height: 26.25rem;
+}
+
+@media (max-width: 29rem) {
+  .aside {
+    min-height: 28rem;
+  }
+}
+
+@media (max-width: 24.5rem) {
+  .aside {
+    min-height: 30.4rem;
+  }
 }
 
 .asideStick {
@@ -320,6 +336,41 @@
   line-height: 1.3;
 }
 
+/*
+ * The stand-ins in the frame (index.tsx): the room the live bench's control takes, held open so the page below
+ * does not move when the bench arrives. A button is the 81.5 px switch plate plus its padding and border (it
+ * stacks taller on the narrowest phones, below). Empty (before the page is interactive, and for the third
+ * experiment, whose live control is only an instruction) it is drawn as a dashed frame.
+ */
+.hold {
+  display: grid;
+  max-width: 30rem;
+  min-height: 100.5px;
+}
+
+.hold:empty {
+  border: 1.5px dashed var(--ink-rule);
+  background: var(--paper-2);
+}
+
+/* The third experiment's live control is only an instruction, and a one-line note under its caption (needs a second tab) adds its room too. */
+.breaker:last-child .hold {
+  min-height: 136px;
+}
+
+:global(html:not([data-js])) .hold,
+:global(html[data-machine='off']) .hold {
+  display: none;
+}
+
+/* The knife-switch plate as an outline, the size Lever.tsx draws it (112 px wide, a 132 x 96 box). */
+.leverGhost {
+  flex: none;
+  width: 112px;
+  aspect-ratio: 132 / 96;
+  border: 1.5px dashed var(--ink-rule);
+}
+
 /* On the narrowest phones the 132 px switch plate would leave the words about 80 px: stack them instead. */
 @media (max-width: 23.5rem) {
   .breaker .leverButton,
@@ -328,6 +379,12 @@
     align-items: flex-start;
     gap: var(--s-2);
     padding: var(--s-2) var(--s-3) var(--s-3);
+  }
+  .hold {
+    min-height: 133px;
+  }
+  .breaker:last-child .hold {
+    min-height: 198px;
   }
 }
 
@@ -716,7 +773,7 @@
 .barTextDark,
 .dimText {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useClusterState } from '../../cluster/store.ts'
 import { Button } from '../../components/ui/Button.tsx'
 import { Icon } from '../../components/ui/Icon.tsx'
+import { Select } from '../../components/ui/Select.tsx'
 import { useChaos } from '../../sections/chaos-lab/chaos.ts'
 import { lastBurst } from '../../sections/chaos-lab/lane-layout.ts'
 import { startFuzz } from '../../sections/chaos-lab/run-fuzz.ts'
@@ -42,10 +43,10 @@ export default function TraceViewer() {
         </Button>
         <label className={styles.field}>
           <span className="stencil">{tools.trace.show}</span>
-          <select value={scope} onChange={(event) => setScope(event.target.value as Scope)}>
+          <Select value={scope} onChange={(event) => setScope(event.target.value as Scope)}>
             <option value="burst">{tools.trace.scopes.burst}</option>
             <option value="all">{tools.trace.scopes.all}</option>
-          </select>
+          </Select>
         </label>
       </div>
 

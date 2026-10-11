@@ -152,8 +152,11 @@
   list-style: none;
 }
 
+/* A line that wraps hangs under its first line's start instead of returning to the left edge, where "WebSockets." on a row of its own read as a new entry. */
 .skills li {
   max-width: 72ch;
+  padding-left: 3ch;
+  text-indent: -3ch;
   line-height: 24px;
 }
 

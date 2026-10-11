@@ -127,8 +127,8 @@ export function Meter({ label, value, min, max, unit, warn, decimals = 0, instan
     const steps = Math.max(3, Math.round((1 - warnFrom) * 12))
     for (let i = 0; i <= steps; i++) {
       const t = warnFrom + ((1 - warnFrom) * i) / steps
-      const a = point(t, RADIUS - 2)
-      const b = point(t, RADIUS - 16)
+      const a = point(t, RADIUS - 3)
+      const b = point(t, RADIUS - 12)
       const jitter = (rng() - 0.5) * 0.8
       hatch.push(`M${fmt(a[0] + jitter)} ${fmt(a[1])}L${fmt(b[0])} ${fmt(b[1] + jitter)}`)
     }
@@ -146,30 +146,35 @@ export function Meter({ label, value, min, max, unit, warn, decimals = 0, instan
       aria-valuenow={value}
       aria-valuetext={`${shown}${unit ? ` ${unit}` : ''}${warn !== undefined && value >= warn ? ', over the limit' : ''}`}
     >
-      <svg className={styles.meterDial} viewBox="0 0 200 134" aria-hidden="true">
-        <path className={styles.meterFrame} d={frame} />
-        <path className={styles.meterScale} d={arc(0, 1, RADIUS)} />
-        {warnFrom !== null ? <path className={styles.meterWarnArc} d={arc(warnFrom, 1, RADIUS - 2)} /> : null}
-        {hatch.map((d, i) => (
-          <path key={i} className={styles.meterHatch} d={d} />
-        ))}
-        {ticks.map((tick, i) => (
-          <path key={i} className={tick.major ? styles.meterTickMajor : styles.meterTick} d={tick.d} />
-        ))}
-        <g ref={needle} transform={`rotate(${fmt(firstDegrees)} ${CX} ${CY})`}>
-          <path className={styles.meterNeedle} d={`M${CX} ${CY}L${CX} ${CY - NEEDLE}`} />
-        </g>
-        <circle className={styles.meterHub} cx={fmt(pivotWobble[0])} cy={fmt(pivotWobble[1])} r="6" />
-      </svg>
-      <div className={styles.meterFoot}>
-        <span className={cx('stencil', styles.meterLabel)}>{label}</span>
-        <span className={styles.meterReading}>
-          <Readout value={shown} width={Math.max(3, shown.length)} size="sm" />
-          {unit ? <span className={styles.meterUnit}>{unit}</span> : null}
+      <div className={styles.meterFace}>
+        <svg className={styles.meterDial} viewBox="0 0 200 134" aria-hidden="true">
+          <path className={styles.meterFrame} d={frame} />
+          <path className={styles.meterScale} d={arc(0, 1, RADIUS)} />
+          {warnFrom !== null ? <path className={styles.meterWarnArc} d={arc(warnFrom, 1, RADIUS - 2)} /> : null}
+          {hatch.map((d, i) => (
+            <path key={i} className={styles.meterHatch} d={d} />
+          ))}
+          {ticks.map((tick, i) => (
+            <path key={i} className={tick.major ? styles.meterTickMajor : styles.meterTick} d={tick.d} />
+          ))}
+          <g ref={needle} transform={`rotate(${fmt(firstDegrees)} ${CX} ${CY})`}>
+            <path className={styles.meterNeedle} d={`M${CX} ${CY}L${CX} ${CY - NEEDLE}`} />
+          </g>
+          <circle className={styles.meterHub} cx={fmt(pivotWobble[0])} cy={fmt(pivotWobble[1])} r="6" />
+        </svg>
+        {/* The ends of the scale, set under the ends of the arc (HTML, so they stay 12 px whatever width the dial is drawn at). */}
+        <span className={styles.meterEnd} data-end="min" aria-hidden="true">
+          {min}
         </span>
-        <span className={styles.meterRange} aria-hidden="true">
-          <span>{min}</span>
-          <span>{max}</span>
+        <span className={styles.meterEnd} data-end="max" aria-hidden="true">
+          {max}
+        </span>
+      </div>
+      <div className={styles.meterFoot}>
+        <span className="stencil">{label}</span>
+        <span className={styles.meterReading}>
+          <Readout value={shown} width={Math.max(2, shown.length)} size="md" align="start" face="mono" />
+          {unit ? <span className={styles.meterUnit}>{unit}</span> : null}
         </span>
       </div>
     </div>

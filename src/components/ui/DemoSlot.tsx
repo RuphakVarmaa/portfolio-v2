@@ -34,6 +34,32 @@ class DemoBoundary extends Component<BoundaryProps, { failed: boolean }> {
 type Status = 'idle' | 'loading' | 'ready' | 'failed'
 
 /**
+ * Every slot that has not started loading, so that one key press can start them all.
+ *
+ * The viewport is the right moment to load a demo for a mouse or a finger. For the keyboard it is too late: Tab moves
+ * focus to the next focusable element on the page, and a demo that has not loaded yet has none (its fallback is
+ * static), so focus walks past it and the demo appears behind the focus point. A forward Tab walk on the home page
+ * went from the Review panel straight to the Deploy History, past the Chaos Lab. The first Tab key press anywhere is
+ * the earliest sign that the visitor navigates by keyboard, so it starts every idle slot at once, seconds before focus
+ * can reach one. (Mouse and touch visitors never press Tab, and load nothing they have not scrolled near.)
+ */
+const idleSlots = new Set<() => void>()
+let watchingTab = false
+
+function watchForTab() {
+  if (watchingTab || typeof document === 'undefined') return
+  watchingTab = true
+  // The capture phase, so a control that stops the event still counts.
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key !== 'Tab') return
+    document.removeEventListener('keydown', onKey, true)
+    watchingTab = false
+    for (const start of [...idleSlots]) start()
+  }
+  document.addEventListener('keydown', onKey, true)
+}
+
+/**
  * Lazy-loads a service's interactive demo. Until the panel is within 50 % of the viewport the slot
  * renders the static fallback (which is also what the prerendered HTML contains), then it imports the
  * demo chunk and swaps it in. Model and runtime bytes are never loaded here: the demo itself decides
@@ -45,9 +71,13 @@ export function DemoSlot<P extends object>({ load, props, fallback, disabled = f
   const shown = fallback ?? panelFallback
   const [status, setStatus] = useState<Status>('idle')
   const [Demo, setDemo] = useState<ComponentType<P> | null>(null)
+  const started = useRef(false)
 
   // Always sees the latest `load`, so an inline `() => import(...)` does not restart the observer on every render.
   const begin = useEffectEvent(() => {
+    // The viewport and the first Tab key press can both ask: the demo is imported once.
+    if (started.current) return
+    started.current = true
     setStatus('loading')
     load().then(
       (module) => {
@@ -75,7 +105,13 @@ export function DemoSlot<P extends object>({ load, props, fallback, disabled = f
       { rootMargin },
     )
     observer.observe(element)
-    return () => observer.disconnect()
+    const start = () => begin()
+    idleSlots.add(start)
+    watchForTab()
+    return () => {
+      observer.disconnect()
+      idleSlots.delete(start)
+    }
   }, [disabled, status, rootMargin])
 
   return (

@@ -3,7 +3,8 @@
 // Reads dist/index.html (the Vite client build) as the template and the SSR bundle in dist-ssr/, then:
 //   - writes dist/<route>/index.html for every route, with the server-rendered app inside
 //     <div id="root" data-prerendered="1" data-route="..."> plus per-route <title>, description,
-//     canonical, Open Graph and Twitter tags, and preloads for the latin font files
+//     canonical, Open Graph and Twitter tags, the stylesheet link (first thing in the head block, ahead of
+//     everything else that is fetched) and preloads for the two latin font files the first screen paints with
 //   - writes dist/404.html (the home page; unknown paths boot the SPA from it)
 //   - writes dist/profile.json, dist/llms.txt, dist/sitemap.xml from buildAgentFiles
 //   - writes dist/build-info.json (chunk sizes, fonts, models, the CSP verbatim) for the Colophon
@@ -54,11 +55,27 @@ if (!HEAD_BLOCK.test(template)) throw new Error('prerender: the <!--head:start--
 
 const cssFiles = walk(join(DIST, 'assets')).filter((file) => file.endsWith('.css'))
 const cssText = cssFiles.map((file) => readFileSync(file, 'utf8')).join('\n')
-// The latin file of each family: the only one a page of English text needs, so the only one worth preloading.
-const preloadFonts = [...new Set([...cssText.matchAll(/url\((\/assets\/[^)]*-latin-(?:wght|full)-normal-[^)]*\.woff2)\)/g)].map((m) => m[1]))]
+// Only the two faces the first screen paints with are preloaded: Big Shoulders (the name, the headings, the numerals) and Atkinson (the lead
+// and the body). The stencil, mono and dot-matrix faces are used in small parts further down and arrive with the stylesheet. Five preloads
+// (139 KB) queued ahead of the render-blocking stylesheet delayed first paint on a slow link: on Fast 3G the same bytes compete with the CSS.
+const FIRST_SCREEN_FONTS = /\/(?:big-shoulders|atkinson-hyperlegible-next)-latin-wght-normal-[^/]*\.woff2$/
+const preloadFonts = [
+  ...new Set(
+    [...cssText.matchAll(/url\((\/assets\/[^)]*-latin-(?:wght|full)-normal-[^)]*\.woff2)\)/g)]
+      .map((m) => m[1])
+      .filter((href) => FIRST_SCREEN_FONTS.test(href)),
+  ),
+]
+
+// Vite puts the stylesheet link at the very end of <head>. It is render-blocking, so it moves to the front of the head block: the browser
+// asks for it before the font preloads, the favicon-sized things and the module script, and nothing queues ahead of it.
+const STYLESHEET = /[ \t]*<link rel="stylesheet"[^>]*>[ \t]*\n?/
+const stylesheetLink = STYLESHEET.exec(template)?.[0].trim() ?? ''
+if (!stylesheetLink) throw new Error('prerender: the built index.html has no <link rel="stylesheet">')
 
 function headBlock(head) {
   return [
+    stylesheetLink,
     `<title>${escapeText(head.title)}</title>`,
     `<meta name="description" content="${escapeAttr(head.description)}" />`,
     `<link rel="canonical" href="${escapeAttr(head.canonical)}" />`,
@@ -87,9 +104,21 @@ const pages = new Map()
 for (const route of server.ROUTES) {
   const { html, head } = server.render(route.match)
   const page = template
+    .replace(STYLESHEET, '')
     .replace(HEAD_BLOCK, `<!--head:start-->\n${headBlock(head)}\n    <!--head:end-->`)
     .replace(ROOT_DIV, `<div id="root" data-prerendered="1" data-route="${route.key}">${html}</div>`)
   pages.set(route.file, page)
+}
+
+// The head order is part of the first-paint budget (docs/INTERFACES.md deviation 20): the render-blocking stylesheet is requested before
+// anything else that is fetched, and only the two first-screen fonts are preloaded. Fail the build rather than let it drift back.
+for (const [file, page] of pages) {
+  const head = page.slice(0, page.indexOf('</head>'))
+  const sheet = head.indexOf('<link rel="stylesheet"')
+  const firstFetch = Math.min(...['<link rel="preload"', '<script type="module"', '<link rel="modulepreload"'].map((tag) => (head.indexOf(tag) < 0 ? Infinity : head.indexOf(tag))))
+  if (sheet < 0 || sheet > firstFetch) throw new Error(`prerender: ${file}: the stylesheet link must come before every preload and script in the head`)
+  const fontPreloads = (head.match(/<link rel="preload"[^>]*as="font"/g) ?? []).length
+  if (fontPreloads > 2) throw new Error(`prerender: ${file}: ${fontPreloads} font preloads (only the two first-screen faces are preloaded)`)
 }
 
 const csp = readCsp(template)
@@ -162,9 +191,19 @@ const assets = optional.map(([path, label]) => {
   return { path, label, bytes: present ? statSync(join(DIST, path)).size : 0, present }
 })
 
+/**
+ * The commit the Colophon names as the build's. In CI that is the commit the workflow checked out (GITHUB_SHA, shortened the way
+ * `git rev-parse --short` shortens it). Anywhere else it is HEAD, with `-dirty` when the working tree differs from it: a build of
+ * uncommitted work used to print the last commit's hash as if that were what was built.
+ */
 const gitCommit = () => {
+  const run = (...args) => execFileSync('git', args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
   try {
-    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || null
+    const sha = process.env.GITHUB_SHA?.trim()
+    if (sha && /^[0-9a-f]{7,40}$/i.test(sha)) return sha.slice(0, 7).toLowerCase()
+    const head = run('rev-parse', '--short', 'HEAD')
+    if (!head) return null
+    return run('status', '--porcelain').length > 0 ? `${head}-dirty` : head
   } catch {
     return null
   }

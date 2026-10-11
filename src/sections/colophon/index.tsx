@@ -5,23 +5,29 @@ import { Section } from '../../components/ui/Section.tsx'
 import { Stamp } from '../../components/ui/Stamp.tsx'
 import { copy } from '../../data/copy.ts'
 import { External } from '../contact/External.tsx'
-import { useHydrated } from '../contact/use-hydrated.ts'
+import { useHydrated } from '../../components/ui/use-hydrated.ts'
 import { Changelog } from './Changelog.tsx'
 import styles from './Colophon.module.css'
 import { useOperatorStamp } from './operator.ts'
 import { BUILD_INFO_PATH } from './build-info-path.ts'
+import { colophonSource, splitAtLink, type ColophonSource } from './source-link.ts'
 
-/** The credits sentence from copy, with the source address turned into a link (the words are unchanged). */
-function Credits() {
-  const { sourceUrl, credits } = copy.colophon
-  const text = credits(sourceUrl)
-  const at = text.indexOf(sourceUrl)
-  if (at < 0) return <>{text}</>
+/**
+ * The credits sentence from copy with the source words turned into a link. While the source address is only a
+ * GitHub account page the link says "GitHub profile" rather than passing the page off as the code (source-link.ts).
+ * It is an inline link with no arrow, so the sentence's full stop follows it directly.
+ */
+function Credits({ source }: { source: ColophonSource }) {
+  const { href, label, sentence } = source
+  const parts = splitAtLink(sentence, label)
+  if (!parts) return <>{sentence}</>
   return (
     <>
-      {text.slice(0, at)}
-      <External href={sourceUrl}>{sourceUrl}</External>
-      {text.slice(at + sourceUrl.length)}
+      {parts.before}
+      <External href={href} inline>
+        {label}
+      </External>
+      {parts.after}
     </>
   )
 }
@@ -34,10 +40,13 @@ function Credits() {
  * chunks that load when they are within half a screen of the viewport; the trace is the last thing on the
  * page, so nothing sits below it to be pushed down when it arrives, and the telemetry's room is held. Without
  * JavaScript the page still has the plate, the links, the changelog and a link to the raw build trace. The
- * Experiments link lights once the Chaos Lab's stamp is earned.
+ * Experiments link lights once the Chaos Lab's stamp is earned. The Making-of link (its label says "repo
+ * README") is shown only once `copy.colophon.sourceUrl` names a repository; until then the credits link
+ * is labelled "GitHub profile" and the Making-of link is left out (source-link.ts).
  */
 export function Colophon() {
   const t = copy.colophon
+  const source = colophonSource()
   const root = useRef<HTMLDivElement>(null)
   const stamped = useOperatorStamp(root)
   const ready = useHydrated()
@@ -48,7 +57,7 @@ export function Colophon() {
         <div className={styles.plate}>
           <p className={styles.statement}>{t.authorship}</p>
           <p className={styles.credits}>
-            <Credits />
+            <Credits source={source} />
           </p>
         </div>
 
@@ -63,9 +72,11 @@ export function Colophon() {
                 </Stamp>
               ) : null}
             </li>
-            <li>
-              <External href={`${t.sourceUrl}${t.links.makingOf.hrefSuffix}`}>{t.links.makingOf.label}</External>
-            </li>
+            {source.makingOfHref ? (
+              <li>
+                <External href={source.makingOfHref}>{t.links.makingOf.label}</External>
+              </li>
+            ) : null}
             <li>
               <a href="#changelog">{t.links.changelog.label}</a>
             </li>

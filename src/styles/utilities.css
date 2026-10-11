@@ -130,7 +130,7 @@
   border-radius: var(--radius-1);
   background: var(--paper);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-variation-settings: 'wdth' 90;
   line-height: 1.5;
   text-align: center;

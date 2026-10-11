@@ -69,6 +69,13 @@ export const S = {
   roundTrip: 'round trip',
   total: 'total',
   rerankNote: (what: string) => `rerank: ${what}`,
+  /**
+   * Under the timings: what the pipeline drawing does and does not show (replay.ts has the rules). It is true
+   * whether the replay animates or, under reduced motion, fills in at once, so it says what is never lit and never
+   * timed rather than how the lighting moves.
+   */
+  drawingNote:
+    'The pipeline drawing is the production system’s. This port has no LLM, so the part named agents is production only: it is never lit and never shows a time. Tokenize runs and is timed, but the drawing has no part for it: its time is in the stage lists, not on the drawing.',
   coldStart: (ms: number) => `first search after a start: the worker also fetched and indexed the page (${formatMs(ms)})`,
 
   announce: {
