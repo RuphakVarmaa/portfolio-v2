@@ -1,3 +1,6 @@
+/** The four in-browser services. Same union as `ServiceId` in src/cluster/protocol.ts (kept local so data stays dependency-free). */
+export type ServiceKey = 'retrieval' | 'vision' | 'policy' | 'review'
+
 export type Project = {
   id: string
   title: string
@@ -7,6 +10,12 @@ export type Project = {
   metrics: Array<{ value: string; label: string }>
   details: string[]
   art: 'rag' | 'vision' | 'rbac' | 'review'
+  /** v3: which in-browser service runs this project (spec 3.9). */
+  serviceId: ServiceKey
+  /** v3: the one metric shown in the hero's Service index. Exact strings from spec 3.2. */
+  headlineMetric: string
+  /** v3: prerendered per-project route. */
+  route: string
 }
 
 export type Experience = {
@@ -37,6 +46,9 @@ export const projects: Project[] = [
       'Reduced manual document analysis time by 70 percent with adaptive 512-token sliding-window chunking.',
     ],
     art: 'rag',
+    serviceId: 'retrieval',
+    headlineMetric: '87% retrieval precision',
+    route: '/projects/retrieval/',
   },
   {
     id: 'vision-pipeline',
@@ -57,6 +69,9 @@ export const projects: Project[] = [
       'Instrumented inference p95, detection rate, and queue depth with Prometheus SLO alerts.',
     ],
     art: 'vision',
+    serviceId: 'vision',
+    headlineMetric: '94% mAP@0.5',
+    route: '/projects/vision/',
   },
   {
     id: 'multi-tenant-rbac',
@@ -77,6 +92,9 @@ export const projects: Project[] = [
       'Tuned connection-pool reuse to keep latency stable during burst traffic.',
     ],
     art: 'rbac',
+    serviceId: 'policy',
+    headlineMetric: '120ms query latency, down from 340ms',
+    route: '/projects/policy/',
   },
   {
     id: 'code-review-agent',
@@ -97,6 +115,9 @@ export const projects: Project[] = [
       'Automated 80 percent of routine review overhead across a 12-engineer repository.',
     ],
     art: 'review',
+    serviceId: 'review',
+    headlineMetric: '-45% median PR cycle',
+    route: '/projects/review/',
   },
 ]
 
@@ -161,6 +182,12 @@ export const profile = {
   institution: 'KPR Institute of Engineering and Technology, Coimbatore',
   educationPeriod: '2024 - 2028',
   cgpa: '8.5/10',
+  /**
+   * Owner override (2026-10): the phone number is rendered in the Contact section, as on the current
+   * site. It is still kept OUT of profile.json, llms.txt and JSON-LD (agent files never read `phone`).
+   * Set to false to stop rendering it.
+   */
+  publishPhone: true,
 }
 
 export const highlights = [

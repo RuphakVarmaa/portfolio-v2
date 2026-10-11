@@ -5,31 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-yplCGjrQX/IyljNChOA1UxCaWZ8UysBJdJSN0C6zlj0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests"
+      content="default-src 'self'; script-src 'self' 'sha256-g3GD9Hg7w1gfE/z0Uu35waJT6rIU52ACNz3G+GSY6Z4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="#0a0c0c" />
+    <meta name="theme-color" content="#f3eee4" />
+    <meta name="keywords" content="Ruphak Varmaa, backend engineer, distributed systems, cloud infrastructure, AI ML, FastAPI, AWS, React" />
+    <meta name="author" content="Ruphak Varmaa S" />
+    <link rel="icon" type="image/png" href="/ruphak-mark.png" />
+    <!--head:start-->
+    <title>Ruphak Varmaa S — backend and AI systems; this site is one</title>
     <meta
       name="description"
-      content="Ruphak Varmaa S is a computer science undergraduate building backend systems, distributed AI, and cloud infrastructure."
+      content="Backend and AI systems by Ruphak Varmaa S. This site is one: workers are the nodes, open tabs form a quorum, and four projects run live in your browser."
     />
-    <meta
-      name="keywords"
-      content="Ruphak Varmaa, backend engineer, distributed systems, cloud infrastructure, AI ML, FastAPI, AWS, React"
-    />
-    <meta name="author" content="Ruphak Varmaa S" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Ruphak Varmaa S | Backend and AI Systems" />
-    <meta
-      property="og:description"
-      content="Systems that think. Infrastructure that holds."
-    />
-    <meta property="og:url" content="https://www.ruphak.me" />
-    <meta property="og:image" content="https://www.ruphak.me/ruphak-mark.png" />
-    <meta name="twitter:card" content="summary" />
     <link rel="canonical" href="https://www.ruphak.me" />
-    <link rel="icon" type="image/png" href="/ruphak-mark.png" />
-    <title>Ruphak Varmaa S | Backend and AI Systems</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ruphak Varmaa S — backend and AI systems; this site is one" />
+    <meta property="og:url" content="https://www.ruphak.me" />
+    <meta property="og:image" content="https://www.ruphak.me/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!--head:end-->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -57,15 +52,23 @@
     <script>
       ;(() => {
         const root = document.documentElement
-        const savedTheme = localStorage.getItem('ruphak-theme')
-        const storedTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null
-        const dark = matchMedia('(prefers-color-scheme: dark)').matches
-        root.dataset.theme = storedTheme || (dark ? 'dark' : 'light')
-        const savedMotion = localStorage.getItem('ruphak-motion')
-        const storedMotion = savedMotion === 'lite' || savedMotion === 'full' ? savedMotion : null
-        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
-        const compact = matchMedia('(max-width: 767px)').matches
-        root.dataset.motion = reduce ? 'lite' : storedMotion || (compact ? 'lite' : 'full')
+        const read = (key) => {
+          try {
+            return localStorage.getItem(key)
+          } catch {
+            return null
+          }
+        }
+        const matches = (query) => matchMedia(query).matches
+        const savedTheme = read('ruphak-theme')
+        const theme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : matches('(prefers-color-scheme: dark)') ? 'dark' : 'light'
+        root.dataset.theme = theme
+        root.dataset.motion = matches('(prefers-reduced-motion: reduce)') || read('ruphak-motion') === 'lite' ? 'lite' : 'full'
+        root.dataset.machine = read('ruphak-machine') === 'off' ? 'off' : 'on'
+        root.dataset.plain = read('ruphak-plain') === 'off' ? 'off' : 'on'
+        root.dataset.js = '1'
+        const color = document.querySelector('meta[name="theme-color"]')
+        if (color) color.setAttribute('content', theme === 'dark' ? '#141311' : '#f3eee4')
       })()
     </script>
   </head>

@@ -1,0 +1,575 @@
+/*
+ * The shell: skip link, header (Quick-view rail), status strip, key sheet, live region, display toggles.
+ * Above 900 px the header is sticky and its utility bar scrolls away; below 900 px nothing is sticky
+ * except the bottom strip, and the display toggles live in a modal menu.
+ */
+
+.skipLink {
+  position: absolute;
+  top: -5rem;
+  left: var(--s-4);
+  z-index: calc(var(--z-dialog) + 10);
+  padding: var(--s-3) var(--s-4);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.skipLink:focus {
+  top: var(--s-3);
+}
+
+.live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ===== Header ===== */
+
+.header {
+  --utility-h: 2.5rem;
+  position: relative;
+  z-index: var(--z-header);
+  background: var(--paper);
+  border-bottom: var(--rule-strong);
+}
+
+@media (min-width: 900px) {
+  .header {
+    position: sticky;
+    top: calc(-1 * var(--utility-h));
+  }
+}
+
+.utility {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .utility {
+    display: block;
+    height: var(--utility-h);
+    background: var(--paper-2);
+    border-bottom: var(--rule);
+  }
+}
+
+.utilityInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  height: 100%;
+}
+
+/* The key hint needs room; below 1100 px the five toggles get the whole bar. */
+.keyHint {
+  display: none;
+  align-items: center;
+  gap: var(--s-1);
+  margin: 0;
+  font-size: var(--fs-small);
+}
+
+@media (min-width: 1100px) {
+  .keyHint {
+    display: flex;
+  }
+}
+
+.keyHint .muted {
+  margin-right: var(--s-1);
+}
+
+.primaryInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'brand menu'
+    'rail readout';
+  align-items: center;
+  gap: var(--s-1) var(--s-4);
+  padding-block: var(--s-2) var(--s-3);
+}
+
+@media (min-width: 900px) {
+  .primaryInner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'brand rail readout';
+    height: var(--header-h);
+    padding-block: 0;
+    gap: var(--s-6);
+  }
+}
+
+.brand {
+  grid-area: brand;
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.rail {
+  grid-area: rail;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .rail {
+    justify-content: center;
+  }
+  .rail a {
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+.rail ul {
+  display: flex;
+  gap: var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .rail ul {
+    gap: var(--s-5);
+  }
+}
+
+.rail a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-muted);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+  text-transform: uppercase;
+}
+
+.rail a:hover {
+  text-decoration-color: var(--cobalt);
+  text-decoration-thickness: 3px;
+}
+
+.railKeys {
+  display: none;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+}
+
+@media (min-width: 900px) {
+  .railKeys {
+    display: inline;
+  }
+}
+
+/* On phones the readout stacks (NODES over TERM) so it fits beside the three rail links. */
+.readout {
+  grid-area: readout;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.readoutDot {
+  display: none;
+  font-family: var(--font-readout);
+  font-weight: 800;
+  font-size: var(--fs-readout);
+  color: var(--ink-muted);
+}
+
+@media (min-width: 900px) {
+  .readout {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.6ch;
+  }
+  .readoutDot {
+    display: inline;
+  }
+}
+
+.menuButton {
+  grid-area: menu;
+  justify-self: end;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--key-shadow);
+  cursor: pointer;
+}
+
+.menuButton:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+@media (min-width: 900px) {
+  .menuButton {
+    display: none;
+  }
+}
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--paper-3);
+}
+
+/* ===== Toggles ===== */
+
+.controls {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.controls-header {
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-left: auto;
+}
+
+.controls-menu {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-3);
+}
+
+.controls-panel {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-1) linear;
+}
+
+.toggle:hover {
+  background: var(--paper-3);
+}
+
+.toggle[aria-pressed='true'],
+.toggle[aria-pressed='true']:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.toggle:disabled {
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.toggleLamp {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-left: auto;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+  transition: background-color var(--dur-1) linear;
+}
+
+.toggleLabel {
+  white-space: nowrap;
+}
+
+.toggle[aria-pressed='true'] .toggleLamp {
+  background: var(--live);
+}
+
+.controls-menu .toggle,
+.controls-panel .toggle {
+  min-height: 44px;
+  padding-inline: var(--s-4);
+  font-size: 0.875rem;
+}
+
+.controls-menu .toggle {
+  justify-content: flex-start;
+}
+
+@media (pointer: coarse) {
+  .toggle {
+    min-height: 44px;
+  }
+}
+
+.tierControl {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+
+.tierControl select {
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-1);
+  background: var(--paper);
+}
+
+.tierHint {
+  color: var(--ink-muted);
+  font-size: var(--fs-small);
+}
+
+/* ===== Menu dialog (small screens) ===== */
+
+.menu {
+  width: min(24rem, calc(100vw - 2 * var(--s-4)));
+}
+
+.menuBody {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+
+.menuHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.menuTitle {
+  font-size: var(--fs-h3);
+}
+
+/* ===== Key sheet ===== */
+
+.keySheet {
+  width: min(28rem, calc(100vw - 2 * var(--s-4)));
+}
+
+.keySheetBody {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+
+.keySheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.keySheetTitle {
+  font-size: var(--fs-h3);
+}
+
+.keyList {
+  display: grid;
+  margin: 0;
+}
+
+.keyRow {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: var(--rule);
+}
+
+.keyRow dt,
+.keyRow dd {
+  margin: 0;
+}
+
+.keyRow dt {
+  display: flex;
+  gap: var(--s-1);
+}
+
+.keySheetActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== Cluster strip ===== */
+
+.strip {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: var(--z-strip);
+  height: calc(var(--strip-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--paper-2);
+  border-top: var(--rule-strong);
+}
+
+.stripInner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  max-width: var(--content-max);
+  height: var(--strip-h);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.stripLamp {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lamp);
+  background: var(--lamp-off);
+}
+
+.stripLamp[data-leader] {
+  outline: 1.5px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.stripLampCore {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-lamp);
+  background: transparent;
+}
+
+/* One flash per real heartbeat (1000 ms interval); lit for the first 300 ms of it. */
+.stripLampCore[data-beat] {
+  animation: strip-beat 1000ms steps(1, end) 1;
+}
+
+@keyframes strip-beat {
+  0% {
+    background: var(--live);
+  }
+  30%,
+  100% {
+    background: transparent;
+  }
+}
+
+.stripReadouts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+}
+
+.stripTag {
+  padding: 0 0.45em;
+  border: 1.5px solid var(--ink);
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+}
+
+.stripEvent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variation-settings: 'wdth' 90;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .stripEvent {
+    display: none;
+  }
+  .stripInner {
+    justify-content: space-between;
+  }
+}
+
+@media (forced-colors: active) {
+  .stripLampCore[data-beat] {
+    background: Highlight;
+  }
+}
+
+/* Forced colors drop backgrounds, so the pressed state needs a shape the system colours keep. */
+@media (forced-colors: active) {
+  .toggle[aria-pressed='true'] {
+    border-width: 3px;
+  }
+  .toggle[aria-pressed='true'] .toggleLamp {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+  }
+}

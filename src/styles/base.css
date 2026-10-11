@@ -1,0 +1,255 @@
+/*
+ * Base styles: reset, page, typography, links, focus, dialogs, and the global state hooks the pre-paint
+ * script sets on <html> (data-theme, data-motion, data-machine, data-plain, data-js, data-tier).
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--paper);
+  scroll-padding-top: var(--scroll-offset);
+}
+
+/* Native smooth anchor scrolling only when motion is allowed; lite and reduced-motion jump. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion='lite']) {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+/* The status strip is fixed to the bottom edge; keep the end of the page clear of it. */
+html[data-machine='on'] body {
+  padding-bottom: calc(var(--strip-h) + env(safe-area-inset-bottom, 0px));
+}
+
+::selection {
+  background: var(--selection);
+  color: var(--ink);
+}
+
+/* ---- typography ---- */
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: var(--fs-masthead);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+h3 {
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+h4 {
+  font-family: var(--font-stencil);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+p {
+  margin: 0;
+}
+
+small {
+  font-size: var(--fs-small);
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variation-settings: 'wdth' 90;
+}
+
+pre {
+  margin: 0;
+  overflow-x: auto;
+}
+
+hr {
+  border: 0;
+  border-top: var(--rule);
+  margin: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* ---- links: cobalt, always underlined (6.75:1 on paper is for links only, never below 16 px) ---- */
+
+a {
+  color: var(--cobalt);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2.5px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- focus: a 2 px ring with a 2 px offset, drawn with `outline` so forced-colors keeps it ---- */
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---- dialogs (native <dialog>) ---- */
+
+dialog {
+  margin: auto;
+  padding: 0;
+  max-width: min(40rem, calc(100vw - 2 * var(--s-4)));
+  max-height: calc(100dvh - 2 * var(--s-4));
+  border: var(--rule-strong);
+  border-radius: var(--radius-0);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--key-shadow);
+  z-index: var(--z-dialog);
+}
+
+dialog::backdrop {
+  background: color-mix(in oklab, var(--ink) 60%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  dialog::backdrop {
+    background: var(--paper-3);
+  }
+}
+
+/* ---- state hooks set on <html> ---- */
+
+/* Controls that do nothing without JavaScript are hidden when the pre-paint script did not run. */
+html:not([data-js]) [data-js-only] {
+  display: none;
+}
+
+/* "Plain language" off hides the plain captions (PlainCaption sets data-plain-caption). */
+html[data-plain='off'] [data-plain-caption] {
+  display: none;
+}
+
+/* "Skip the machine" (data-machine='off'): the board, the strip and the chaos lab collapse to lists. */
+html[data-machine='off'] [data-machine-only] {
+  display: none;
+}
+html:not([data-machine='off']) [data-machine-off-only] {
+  display: none;
+}
+
+/* Lite motion (and prefers-reduced-motion, which sets it): nothing animates, everything switches. */
+html[data-motion='lite'] *,
+html[data-motion='lite'] *::before,
+html[data-motion='lite'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- print: the site chrome never prints (print.css, owned by the résumé page, decides the rest) ---- */
+
+@media print {
+  [data-no-print] {
+    display: none !important;
+  }
+}
