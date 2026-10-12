@@ -27,6 +27,20 @@ export function toneFor(sentence: string): 'ink' | 'live' | 'cobalt' {
 
 const grouped = (n: number) => n.toLocaleString('en-US')
 
+/**
+ * Two real timings describe one respawn, and they start at different moments. Both are measured, so neither is
+ * wrong, but "respawned in 8 ms" next to "back in 11 ms" reads as two answers to one question. Each line
+ * therefore names the moment its number starts from:
+ *
+ *   spun up        the new worker's own start-up: the scheduler spawning it to its `ready` (the scheduler's
+ *                  `readyAt - spawnedAt`). Printed by the store whenever a dead node comes back, whoever killed it.
+ *   after the pull how long the node was gone: the plug being pulled to that same `ready`. It is the first
+ *                  plus the beat between the pull and the scheduler's respawn, so it is never the smaller one.
+ *                  Printed by the plug run and its receipts.
+ */
+export const workerSpunUp = (node: string, ms: number): string => `${node} respawned · worker spun up in ${ms} ms`
+export const backAfterPull = (node: string, ms: number): string => `${node} back ${ms} ms after the pull`
+
 /** Did the retried batch run on the very node that was unplugged (it had already been respawned)? */
 export function retriedOnRespawn(run: Pick<PlugRun, 'killed' | 'recovery'>): boolean {
   return run.killed !== null && run.recovery !== null && run.recovery.node === run.killed.node
@@ -62,7 +76,7 @@ export function plugReceipts(run: PlugRun): string {
     const into = run.killed.inFlightMs !== null ? `, ${rewardMs(run.killed.inFlightMs)} ms after it was dispatched` : ''
     parts.push(`unplugged ${run.killed.node}${during}${into}`)
   }
-  if (run.killed && run.respawnMs !== null) parts.push(`${run.killed.node} back in ${Math.round(run.respawnMs)} ms`)
+  if (run.killed && run.respawnMs !== null) parts.push(backAfterPull(run.killed.node, Math.round(run.respawnMs)))
   if (run.totals) parts.push(`${grouped(run.totals.evaluated)} evaluations, ${run.totals.leaks} cross-tenant leaks`)
   return parts.join(' · ')
 }

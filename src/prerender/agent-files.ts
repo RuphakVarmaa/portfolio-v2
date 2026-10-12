@@ -8,8 +8,10 @@
  * Owner decision: the phone number is shown on the page (Contact) but NEVER written here. Two guards:
  *   1. `profile.json` is built from an explicit allow-list of profile fields, so a field added to `profile`
  *      later cannot leak by accident.
- *   2. Every file is scanned for the phone number in every common spelling before it is returned; a hit
- *      throws and the build fails (scripts/prerender.mjs checks again, independently).
+ *   2. Every file is scanned for the phone number before it is returned, with and without its country code and
+ *      however it is spaced or punctuated (`leaksPhone`, src/lib/retrieval/phone-guard.ts, the one rule the corpus
+ *      build and the prerender share); a hit throws and the build fails (scripts/prerender.mjs checks again,
+ *      independently, and also checks `build-info.json` and the JSON-LD).
  *
  * Pure and deterministic: the same `BuildInfo` gives byte-identical output (the only build-dependent value
  * is the sitemap's `lastmod`, taken from `buildInfo.builtAt`). Runs under Node type stripping (tests, the
@@ -17,6 +19,7 @@
  */
 import { certificationLines, copy, educationLine } from '../data/copy.ts'
 import { experience, highlights, profile, projects, skillGroups } from '../data/portfolio.ts'
+import { leaksPhone, phoneDigitForms } from '../lib/retrieval/phone-guard.ts'
 import { ROUTES, SITE_URL } from '../routes.ts'
 import type { BuildInfo } from './build-info.ts'
 
@@ -51,18 +54,18 @@ export function publicProfile() {
   }
 }
 
-/** Every spelling of the phone number a leak could take: as written, without spaces, digits only, with and without `+`. */
+/** Every spelling of the phone number a leak could take: as written, without spaces, digits only, with and without `+`, and the national number. */
 export function phoneForms(phone: string = profile.phone): string[] {
-  const digits = phone.replace(/\D/g, '')
-  return [...new Set([phone, phone.replaceAll(' ', ''), digits, `+${digits}`])].filter((form) => form.length > 0)
+  return [...new Set([phone, phone.replaceAll(' ', ''), ...phoneDigitForms(phone), `+${phone.replace(/\D/g, '')}`])].filter((form) => form.length > 0)
 }
 
-/** Throws if any generated file contains the phone number. Exported for the tests. */
-export function assertNoPhone(files: Record<string, string>): void {
-  const forms = phoneForms()
+/**
+ * Throws if any generated file contains the phone number, with or without its country code and however it is spaced
+ * (`leaksPhone`: its digits in order, with up to four spaces or punctuation marks between neighbours). Exported for the tests.
+ */
+export function assertNoPhone(files: Record<string, string>, phone: string = profile.phone): void {
   for (const [name, text] of Object.entries(files)) {
-    const hit = forms.find((form) => text.includes(form))
-    if (hit !== undefined) throw new Error(`agent-files: the phone number leaked into ${name}`)
+    if (leaksPhone(text, phone)) throw new Error(`agent-files: the phone number leaked into ${name}`)
   }
 }
 

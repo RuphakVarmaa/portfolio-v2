@@ -24,6 +24,7 @@ function quorumState(leaderId: string | null, term: number, others: string[] = [
     peers: members.filter((m) => !m.isSelf).map((m) => ({ id: m.id, lastSeen: 0, isLeader: m.isLeader })),
     nodes: members.length,
     members,
+    newcomer: false,
   }
 }
 
@@ -106,7 +107,7 @@ test('a lone tab logs its start and has proved nothing yet', () => {
   assert.deepEqual(r.completed, [])
 })
 
-test('experiment 2: a second tab joining latches the reward values, completes the step and is announced once', () => {
+test('experiment 2: a second tab joining latches the reward values and completes the step; the hero says the arrival, so the lab does not', () => {
   const r = rig()
   r.store.start()
   r.advance(100)
@@ -116,11 +117,11 @@ test('experiment 2: a second tab joining latches the reward values, completes th
   const snap = r.store.getSnapshot()
   assert.deepEqual(snap.tab, { leaderId: SELF, term: 1, nodes: 2, seenAfterMs: 640 })
   assert.deepEqual(r.completed, ['tab'])
-  assert.deepEqual(r.announced, [copy.chaos.experiments.tab.reward({ leaderId: SELF, term: 1 })])
+  assert.deepEqual(r.announced, [], 'the arrival is announced once, by the hero (a second voice for it was read twice or dropped)')
   assert.ok(r.texts().includes('tab-b joined'))
   r.setQuorum(quorumState(SELF, 1, ['tab-b', 'tab-c']))
   assert.deepEqual(r.completed, ['tab'], 'a third tab does not complete it again')
-  assert.equal(r.announced.length, 1)
+  assert.deepEqual(r.announced, [])
 })
 
 test('the newcomer tab records the step silently (it would only be announcing the news to itself)', () => {
@@ -131,7 +132,7 @@ test('the newcomer tab records the step silently (it would only be announcing th
   assert.deepEqual(r.announced, [])
 })
 
-test('experiment 3: the surviving tab sees the leader lost and replaced, latches it, and announces it', () => {
+test('experiment 3: the surviving tab sees the leader lost and replaced and latches it; the cluster announces the new leader, the lab does not repeat it', () => {
   const r = rig(quorumState('tab-a', 1, ['tab-a']))
   r.store.start()
   r.completed.length = 0
@@ -147,7 +148,7 @@ test('experiment 3: the surviving tab sees the leader lost and replaced, latches
   const snap = r.store.getSnapshot()
   assert.deepEqual(snap.leader, { nodeId: SELF, term: 2, lostId: 'tab-a', ms: 2, self: true })
   assert.deepEqual(r.completed, ['leader'])
-  assert.deepEqual(r.announced, [copy.chaos.experiments.leader.reward({ nodeId: SELF, term: 2 })])
+  assert.deepEqual(r.announced, [], 'boot.ts says "This tab is now the leader, term 2."; the third-person reward would be a second, clumsier voice')
   const texts = r.texts()
   assert.ok(texts.includes('tab-a left (it was the leader)'))
   assert.ok(texts.includes('leader lost: tab-a went away'))
@@ -205,7 +206,7 @@ test('the scheduler\'s own sentences and worker start-ups go on the log with the
       ['policy-b is up in 38 ms', 'muted'],
       ['policy-b unplugged · batch 4 in flight', 'live'],
       ['retry 1 · batch 4 → policy-a · recovered in 8 ms', 'cobalt'],
-      ['policy-b respawned in 41 ms', 'muted'],
+      ['policy-b respawned · worker spun up in 41 ms', 'muted'],
     ],
   )
 })

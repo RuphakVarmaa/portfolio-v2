@@ -16,6 +16,12 @@ export const label = (word: string): string => capital(word.replace(/-/g, ' '))
 /** `audit-log` -> `audit log`. For the middle of a sentence. */
 const plain = (word: string): string => word.replace(/-/g, ' ')
 
+/** `a viewer`, `an admin`: "a" or "an" before a word, capitalised at the start of a sentence (a screen reader says "A admin" otherwise). */
+export const withArticle = (word: string, capital = false): string => {
+  const article = /^[aeiou]/i.test(word) ? 'an' : 'a'
+  return `${capital ? article.toUpperCase().slice(0, 1) + article.slice(1) : article} ${word}`
+}
+
 export const POLICY_STRINGS = {
   workersLabel: 'Policy workers',
   asking: 'Asking a policy worker…',
@@ -28,7 +34,7 @@ export const POLICY_STRINGS = {
   ladder: { rls: 'Tenant', rule: 'Rule', role: 'Role', out: 'Verdict' },
   ladderState: { passed: 'passed', stopped: 'refused', skipped: 'skipped', allowed: 'allowed', denied: 'denied' },
 
-  /** Why the verdict is what it is, from the engine's own answer (`stop`, `policy`) and the rulebook. */
+  /** Why the verdict is what it is, from the engine's own answer (`stop`, `policy`) and the rulebook. A role takes "a" or "an" ("An admin", "An owner"). */
   why: (input: { allow: boolean; stop: 'rls' | 'rule' | 'role' | null; policy: string; role: Role; resource: Resource; action: Action; actorTenant: string; dataTenant: string }): string => {
     const { allow, stop, policy, role, resource, action, actorTenant, dataTenant } = input
     if (stop === 'rls') {
@@ -43,9 +49,9 @@ export const POLICY_STRINGS = {
     const rule = RULES[resource][action]
     const needs = 'min' in rule ? rule.min : 'a higher role'
     return stop === 'role'
-      ? `A ${role} may not ${action} ${plain(resource)} records: that needs ${needs} or above.`
+      ? `${withArticle(role, true)} may not ${action} ${plain(resource)} records: that needs ${needs} or above.`
       : allow
-        ? `A ${role} in the same tenant may ${action} ${plain(resource)} records: ${needs} or above is enough.`
+        ? `${withArticle(role, true)} in the same tenant may ${action} ${plain(resource)} records: ${needs} or above is enough.`
         : 'The request was refused.'
   },
   /** For the live region: the verdict and the reason in one breath. */

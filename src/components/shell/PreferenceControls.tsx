@@ -47,6 +47,13 @@ function Toggle({ pressed, onClick, icon, label, title, forcedReason }: TogglePr
   )
 }
 
+/** The switch for the single-key shortcuts (WCAG 2.1.4). The key sheet shows it too, so a person who opened the sheet can turn them off there. */
+export function KeysToggle() {
+  const { keys, toggleKeys } = usePreferences()
+  const t = copy.header.toggles.keys
+  return <Toggle pressed={keys} onClick={toggleKeys} icon="help" label={t.label} title={t.title} />
+}
+
 export interface PreferenceControlsProps {
   /**
    * `header` a compact row (the utility bar); `menu` a stacked list (the small-screen menu);
@@ -56,7 +63,7 @@ export interface PreferenceControlsProps {
   className?: string
 }
 
-/** Plain language, Skip the machine, Paper/Ink, Motion, Sound. Every one is a native toggle button with `aria-pressed`. */
+/** Plain language, Skip the machine, Paper/Ink, Motion, Sound, Key shortcuts. Every one is a native toggle button with `aria-pressed`. */
 export function PreferenceControls({ variant = 'header', className }: PreferenceControlsProps) {
   const prefs = usePreferences()
   const t = copy.header.toggles
@@ -89,6 +96,7 @@ export function PreferenceControls({ variant = 'header', className }: Preference
         forcedReason={prefs.motionForced ? t.motion.forced : undefined}
       />
       <SoundToggle />
+      <KeysToggle />
       {variant === 'panel' ? (
         <label className={styles.tierControl}>
           <span className="stencil">{copy.header.tier.label}</span>

@@ -46,6 +46,7 @@ export function VisionService() {
       stages={panel.stages}
       onShowPipeline={requestPipeline}
       pipelineBusy={panel.busy}
+      pipelinePaceMs={panel.paceMs}
     />
   )
 }

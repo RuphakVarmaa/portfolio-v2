@@ -61,3 +61,8 @@ test('no ad-hoc 11 or 12 px type: the smallest size is the --fs-micro token, and
   const tokens = readFileSync(join(SRC, 'styles', 'tokens.css'), 'utf8')
   assert.match(tokens, /--fs-micro:\s*0\.75rem/)
 })
+
+test('a meter with no reading leaves vermilion for the one grey, and its dash is muted (review round 2)', () => {
+  assert.match(rule(ui, '.meter[data-rest]'), /--live:\s*var\(--lamp-off\)/)
+  assert.match(rule(ui, '.meterDash'), /--ink:\s*var\(--ink-muted\)/)
+})

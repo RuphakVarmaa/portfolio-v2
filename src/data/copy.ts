@@ -36,6 +36,12 @@ export interface WorkTrace {
   tradeoffs: string
   broke: string
   change: string
+  /**
+   * The label over `broke`, when "What broke" would promise an incident the résumé does not report. Retrieval, Vision and
+   * Review say "What I guard against" (a failure the design prevents); Policy keeps "What broke" because the résumé's
+   * 340 ms to 120 ms is a real one. If the owner supplies a real incident for a service, delete its `brokeLabel`.
+   */
+  brokeLabel?: string
 }
 
 export interface ServiceCopyBase {
@@ -91,15 +97,18 @@ export const educationLine = (): string =>
 
 // ---- the copy -------------------------------------------------------------------------------------
 
+// Editing this section's text moves the 256-wordpiece windows the search index is cut into, and src/lib/retrieval/engine.test.ts pins what
+// hit 1 for "pgvector" is (a window that holds the Peer paragraph's "pgvector HNSW index" and cites that sentence). If that test fails after
+// an edit here, the windows shifted: adjust the wording (a few wordpieces either way) until the paragraph's window leads again.
 const retrieval = {
   label: 'SERVICE 01',
   depth: {
     '30s':
-      'I built a retrieval system that answers questions over documents of up to 100K tokens and shows where every answer came from. It reached 87% retrieval precision and answered in under two seconds at p95, for more than 50 concurrent sessions.',
+      'I built a retrieval system that answers questions over documents of up to 100K tokens and shows where every answer came from. It reached 87% retrieval precision with p95 latency under two seconds, and handled more than 50 concurrent sessions.',
     engineer:
       'A multi-agent RAG pipeline on LangChain and GPT-4 over 100K-token corpora. Chunks are 512-token sliding windows; pgvector with HNSW indexing does the nearest-neighbour pass, cosine-similarity reranking tightens it, and structured citation metadata keeps every answer grounded. The FastAPI service runs horizontally scaled on AWS EC2 behind an ALB for more than 50 concurrent sessions. The result: 87% retrieval precision, sub-2 s p95, and a 70% reduction in manual document analysis time.',
     peer:
-      'Agents split a question into retrieval sub-goals; each sub-goal queries the pgvector HNSW index and reranks by cosine before synthesis, with citation metadata carried through so the answer can be audited back to the chunk. The chunking is adaptive 512-token sliding windows, the chunking behind the 70% cut in manual document analysis time. Because the windows overlap, a clause or a table row is less likely to be split across two chunks. Horizontal FastAPI replicas behind an ALB kept p95 under 2 s at 50+ concurrent sessions.',
+      'Agents split a question into retrieval sub-goals; each sub-goal queries the pgvector HNSW index and reranks by cosine before synthesis, with citation metadata carried through so the answer can be audited back to the chunk. Chunks are adaptive 512-token sliding windows, the change behind the 70% cut in manual document analysis time. Because the windows overlap, a clause or a table row is less likely to be split across two chunks. Horizontal FastAPI replicas behind an ALB served 50+ concurrent sessions; p95 latency was under 2 s.',
   },
   trace: {
     decisions:
@@ -107,7 +116,8 @@ const retrieval = {
     tradeoffs:
       'Overlapping windows mean more vectors to store and embed. I accept that cost so a fact is less likely to be cut in half at a chunk boundary.',
     broke:
-      'The failure I design against in a retrieval system: an answer with no citation can look right and still be wrong. That is why every answer carries structured citation metadata, so it can be checked against the chunk it came from.',
+      'An answer with no citation can look right and still be wrong. That is why every answer carries structured citation metadata, so it can be checked against the chunk it came from.',
+    brokeLabel: 'What I guard against',
     change: 'Measure precision per document type, not just overall, so a weak spot in tables or in prose cannot hide inside one average.',
   },
   plain:
@@ -172,7 +182,8 @@ const vision = {
     tradeoffs:
       'A queue that sheds load keeps latency flat but can lower the detection rate; the alerts watch inference p95, detection rate and queue depth, so none of them is traded away silently.',
     broke:
-      'In a live pipeline the thing to guard is latency variance, not just the mean: a fine average can hide a stuttering tail. The producer–consumer queue is what cut that variance by 40%.',
+      'Latency variance, not just the mean: a fine average can hide a stuttering tail. The producer–consumer queue is what cut that variance by 40%.',
+    brokeLabel: 'What I guard against',
     change: 'Export the per-class analytics as a Prometheus histogram too, so the dashboard and the alerts read from the same source.',
   },
   plain:
@@ -251,11 +262,11 @@ const policy = {
   label: 'SERVICE 03',
   depth: {
     '30s':
-      "I built a task platform where many companies share one system and none can see another's data. It held 200+ people at once with zero cross-tenant leaks across more than 10,000 policy checks per session, and I cut query time from 340 ms to 120 ms.",
+      "I built a task platform where many companies share one system and none can see another's data. In load tests it handled more than 200 concurrent users with zero cross-tenant leaks across 10,000+ policy checks per session, and I cut query time from 340 ms to 120 ms.",
     engineer:
       'Role-based access control with JWT authentication, row-level PostgreSQL policies and per-tenant audit logging. Load-tested with more than 200 concurrent users: zero cross-tenant leakage across 10K+ policy evaluations per session. Query latency fell from 340 ms to 120 ms by removing N+1 patterns and adding tenant-scoped composite indexes; connection-pool reuse was tuned to keep latency stable in bursts.',
     peer:
-      "Tenant isolation is enforced twice: the JWT carries the tenant claim, and row-level policies in PostgreSQL refuse rows from any other tenant even if application code gets it wrong. Every evaluation writes an audit line keyed by tenant. The 340→120 ms came from two changes: collapsing N+1 query fans into joins, and composite indexes that lead with tenant_id so the planner stays inside one tenant's slice.",
+      "Tenant isolation is enforced twice: the JWT carries the tenant claim, and row-level policies in PostgreSQL refuse rows from any other tenant even if application code gets it wrong. Every evaluation writes an audit line keyed by tenant. The 340→120 ms came from two changes: removing the N+1 query patterns, and adding tenant-scoped composite indexes, which let a query stay inside one tenant's rows.",
   },
   trace: {
     decisions:
@@ -263,7 +274,7 @@ const policy = {
     tradeoffs:
       'Row-level policies add a predicate to every query; the tenant-scoped composite indexes are what kept that predicate cheap.',
     broke:
-      'Queries were taking 340 ms. The cause was N+1 fans and indexes that did not lead with the tenant; fixing both took it to 120 ms.',
+      'Queries were taking 340 ms. Removing the N+1 query patterns and adding tenant-scoped composite indexes took them to 120 ms.',
     change: 'Run the cross-tenant fuzz in CI on every change, the way this page runs it in your browser.',
   },
   plain:
@@ -332,7 +343,8 @@ const review = {
     tradeoffs:
       'A tighter time budget means fewer rules per run. I accept that to keep the whole pipeline under three minutes.',
     broke:
-      'The failure I design against: free-form review text cannot be deduplicated against ESLint and Semgrep output, so one issue could be reported three ways. Structured findings are what let the three sources merge into one list.',
+      'Free-form review text cannot be deduplicated against ESLint and Semgrep output, so one issue could be reported three ways. Structured findings are what let the three sources merge into one list.',
+    brokeLabel: 'What I guard against',
     change: 'Track precision per tier over time so false positives in the lower tiers can be pruned with evidence.',
   },
   plain:
@@ -436,10 +448,15 @@ export const copy = {
         on: 'Sound on',
         off: 'Sound off',
       },
+      // Pressed = the single-key shortcuts are on (they are on by default). Off is the way to meet WCAG 2.1.4 (Character Key Shortcuts).
+      keys: {
+        label: 'Key shortcuts',
+        title: 'Single-key shortcuts: p, r, c, 2 and ?. Turn them off if a key press ever takes you somewhere you did not mean to go.',
+      },
     },
     keys: {
       title: 'Keyboard shortcuts',
-      lead: 'Shortcuts are ignored while you are typing in a field.',
+      lead: 'Shortcuts are ignored while you are typing in a field. They are single keys, so you can switch them off here, or under Display options.',
       close: 'Close',
       rows: [
         { keys: ['p'], text: 'Projects' },
@@ -483,21 +500,30 @@ export const copy = {
     lead: 'This website is one. It is a small cluster running in your browser: the workers are the nodes, your tabs form a quorum, and my four projects run as live services you can start, break and watch recover.',
     plain:
       'Workers are little helpers inside your browser. The leader hands out jobs. Open this page in a second tab and the two tabs start talking; close the leader and the other one takes over.',
-    identity: `Third-year ${profile.degree}, ${profile.institution} · ${profile.educationPeriod} · CGPA ${profile.cgpa}.`,
+    // No "Third-year": a literal year of study is false from mid-2027 and the page cannot know today's date when it is built (review
+    // round 2). The period says it. The owner may add the year back by hand.
+    identity: `${profile.degree}, ${profile.institution} · ${profile.educationPeriod} · CGPA ${profile.cgpa}.`,
     authorship:
       'The cluster is new work, built for this site. The four services are ports of my projects; the production numbers were measured on the real systems.',
     boot: {
       /** What the prerendered HTML says; replaced by the measured line after hydration. */
       prerendered: 'booting ruphak.me v3 · node 1 of 1',
       closing: 'no backend was harmed; this trace is yours.',
+      /** Shown instead of the prerendered boot text while JavaScript is off (the cluster never starts). */
+      noScript: 'JavaScript is off: the cluster is not running; every fact is on this page.',
     },
     quorumPrompt: {
       button: 'Open this page in a second tab',
       hint: 'or press 2',
       blocked: 'Your browser blocked the pop-up; duplicate the tab manually.',
-      /** Reward line (live region) once a peer has joined; `nodes` is the measured node count. */
+      /** Reward line (live region) in a tab that was already open when another tab joined; `nodes` is the measured node count. */
       joined: (nodes: number) =>
         `That tab just joined this one over BroadcastChannel. NODES ${nodes}. Close whichever tab is leader and the other takes over.`,
+      /** The same event in the tab that has just opened: it is the one that joined, so it cannot call itself "that tab". */
+      joinedNew: (nodes: number) =>
+        `This tab just joined another one over BroadcastChannel. NODES ${nodes}. Close whichever tab is leader and the other takes over.`,
+      /** A tab's own id inside a sentence that names it (the failover line in the hero, after "Leader lost."). */
+      self: (nodeId: string) => `${nodeId} (this tab)`,
       unsupported:
         'Your browser does not expose BroadcastChannel or Web Locks, so this tab runs as a single node. Everything else works.',
     },
@@ -537,6 +563,8 @@ export const copy = {
     panel: {
       depthLegend: 'Explain at',
       depthOptions: { '30s': '30 s', engineer: 'Engineer', peer: 'Peer' } satisfies DepthText,
+      /** What a screen reader says: the face is "30 s", which the uppercase styling turns into "30 S". */
+      depthNames: { '30s': '30 seconds', engineer: 'Engineer', peer: 'Peer' } satisfies DepthText,
       traceHeading: 'Work trace',
       traceLabels: { decisions: 'Decisions', tradeoffs: 'Trade-offs', broke: 'What broke', change: "What I'd change" },
       demoHeading: 'Demo',
@@ -546,6 +574,8 @@ export const copy = {
       showPipeline: 'Show me the pipeline',
       pipelineHeading: 'Pipeline',
       pipelineIdle: 'Run it to see the real timing of each stage.',
+      /** While a replay runs at a fixed pace (a timer, not the work's own clock): the times shown are the measured ones. */
+      pipelinePace: (ms: number) => `Replayed one stage every ${Number((ms / 1000).toFixed(2))} s so you can follow it; the times are the measured ones.`,
       noRun: 'No recorded run published yet.',
       schematicHint: 'Click a part of the drawing to read about it.',
       nodeDialogClose: 'Close',
@@ -565,6 +595,9 @@ export const copy = {
     label: '03',
     title: 'CHAOS LAB',
     lead: 'Three experiments. Buttons only; nothing runs until you press it. Each one ends by telling you exactly what you just proved.',
+    /** Replaces `lead` while JavaScript is off: there are no buttons and no cluster. */
+    leadNoScript:
+      'Three experiments on the cluster. JavaScript is off, so there are no buttons and nothing runs; each caption below says what its experiment shows.',
     experiments: {
       plug: {
         button: 'Pull the plug on policy-b',
@@ -676,7 +709,7 @@ export const copy = {
     /** The credits link's words while `sourceUrl` is only the owner's GitHub account page (see src/sections/colophon/source-link.ts). */
     profileLabel: 'GitHub profile',
     credits: (sourceUrl: string) =>
-      `Designed and drawn by hand (SVG), set in Big Shoulders, Atkinson Hyperlegible Next, Martian Mono and Doto. No generated imagery. The cluster — scheduler, quorum, chaos lab — was built for this site; source: ${sourceUrl}.`,
+      `Drawn in code as SVG, with a seeded pen wobble; set in Big Shoulders, Atkinson Hyperlegible Next, Martian Mono and Doto. No stock or AI-generated images. The cluster — scheduler, quorum, chaos lab — was built for this site; source: ${sourceUrl}.`,
     links: {
       experiments: { label: 'Experiments (/experiments/)', href: '/experiments/' },
       makingOf: { label: 'Making-of (repo README)', hrefSuffix: '#readme' },

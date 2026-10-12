@@ -56,7 +56,6 @@
 .seed {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .sourceLabel {
@@ -74,7 +73,6 @@
   font-family: var(--font-mono);
   /* iOS Safari zooms the page when a field under 16 px gets focus, and leaves it zoomed after blur. */
   font-size: max(16px, var(--fs-mono));
-  font-variation-settings: 'wdth' 75;
   line-height: 1.5;
   tab-size: 2;
   resize: vertical;
@@ -141,7 +139,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  font-variation-settings: 'wdth' 90;
 }
 
 /* ---- results ---- */
@@ -168,15 +165,26 @@
   text-transform: uppercase;
 }
 
-/* Five tiers in a grid, not a wrapping row: in a 680 px column a row held four and left "T5 Info" alone on the second line.
-   Two columns on a phone, three from 30 rem (three and two). */
+/* The tally is a ledger: a line per tier, its shape and name on the left and its count on the right, a dotted rule under each.
+   A line fills its column, so the rules and the counts line up whatever the names' lengths, and a tier's name is one line,
+   always. "T3 Medium" with its shape and count needs 138 px, and the two columns a 290 px phone gave were 137 each: the name
+   wrapped, the counts sat at different heights and the rules were different lengths. So: one column below 300 px of panel
+   (a phone: the whole line is the tap target), two from 300 px, three from 30 rem. A grid and not a wrapping row: in a 680 px
+   column a row held four and left "T5 Info" alone on the second line. */
 .tally {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-2) var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--s-4);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+@container (min-width: 18.75rem) {
+  .tally {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--s-2);
+  }
 }
 
 @container (min-width: 30rem) {
@@ -187,11 +195,12 @@
 
 /* Each tier is a button: it scrolls the galley to that tier's first finding. */
 .tallyItem {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--s-2);
+  width: 100%;
   min-height: 44px;
-  padding: 0 var(--s-2);
+  padding: 0 var(--s-1);
   border: 0;
   border-bottom: 2px dotted var(--ink);
   border-radius: 0;
@@ -200,6 +209,7 @@
   font-family: var(--font-text);
   font-size: 1rem;
   font-weight: 700;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -207,21 +217,28 @@
   background: var(--paper-3);
 }
 
-/* The tier's shape is half of "shape plus label": in a narrow cell the name wraps, the shape never shrinks. */
+/* The tier's shape is half of "shape plus label": neither shrinks, and the name never wraps. */
 .tallyItem svg {
   flex: none;
 }
 
+.tallyName {
+  white-space: nowrap;
+}
+
 .count {
   min-width: 1.25ch;
+  margin-inline-start: auto;
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1;
+  text-align: end;
 }
 
+/* A tier with nothing in it is not a button that goes anywhere: muted, a faint rule so the ledger keeps its rhythm. */
 .tallyItem[data-zero] {
-  border-bottom-color: transparent;
+  border-bottom-color: var(--ink-rule);
   color: var(--ink-muted);
   font-weight: 400;
   cursor: default;
@@ -311,7 +328,8 @@
     gap: 2px;
   }
   .stage {
-    grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem;
+    /* The time column holds up to eight characters (`<0.01 ms`, 78 px in Martian Mono at this size). */
+    grid-template-columns: 7.5rem minmax(0, 1fr) 5rem;
     align-items: center;
     gap: var(--s-3);
     min-height: 34px;
@@ -340,7 +358,6 @@
 .stageMs {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -408,7 +425,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
   line-height: 24px;
 }
 
@@ -441,7 +457,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
   line-height: 24px;
   text-align: right;
   user-select: none;
@@ -484,7 +499,6 @@
   display: block;
   padding: 0 var(--s-3) 0 var(--s-2);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 75;
   line-height: 24px;
   overflow-wrap: anywhere;
   tab-size: 2;
@@ -693,30 +707,31 @@ html[data-js] .hold[data-reserve] .fallback {
   }
 }
 
+/* Below 300 px the tally is five lines, not three rows of two (220 px, not 163): the three narrowest steps are measured again. */
 @container (max-width: 299.98px) {
   .results[data-first] {
-    --first: 81rem;
+    --first: 85.5rem;
   }
   html[data-js] .hold[data-reserve] .fallback {
-    --room: 105.3rem;
+    --room: 109.8rem;
   }
 }
 
 @container (max-width: 269.98px) {
   .results[data-first] {
-    --first: 85.6rem;
+    --first: 86.9rem;
   }
   html[data-js] .hold[data-reserve] .fallback {
-    --room: 111.7rem;
+    --room: 113rem;
   }
 }
 
 @container (max-width: 239.98px) {
   .results[data-first] {
-    --first: 91.6rem;
+    --first: 88.2rem;
   }
   html[data-js] .hold[data-reserve] .fallback {
-    --room: 118.2rem;
+    --room: 114.8rem;
   }
 }
 

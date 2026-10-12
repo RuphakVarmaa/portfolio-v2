@@ -9,7 +9,7 @@
 //   - writes dist/profile.json, dist/llms.txt, dist/sitemap.xml from buildAgentFiles
 //   - writes dist/build-info.json (chunk sizes, fonts, models, the CSP verbatim) for the Colophon
 //   - verifies the CSP: the meta is byte-identical in every page and every inline script is hashed
-//   - verifies the phone number appears in none of the agent files nor in the JSON-LD
+//   - verifies the phone number appears in none of the agent files, build-info.json nor the JSON-LD
 //   - verifies the LeetCode and certification facts (`highlights`) appear exactly once in dist/index.html
 //   - removes dist/.vite/
 import { execFileSync } from 'node:child_process'
@@ -18,6 +18,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { gzipSync } from 'node:zlib'
+import { leaksPhone } from '../src/lib/retrieval/phone-guard.ts'
 import { checkHtml, readCsp } from './csp-hash.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -230,15 +231,21 @@ const { profileJson, llmsTxt, sitemapXml } = server.buildAgentFiles(buildInfo)
 await writeFile(join(DIST, 'profile.json'), profileJson)
 await writeFile(join(DIST, 'llms.txt'), llmsTxt)
 await writeFile(join(DIST, 'sitemap.xml'), sitemapXml)
-await writeFile(join(DIST, 'build-info.json'), JSON.stringify(buildInfo, null, 2) + '\n')
+const buildInfoJson = JSON.stringify(buildInfo, null, 2) + '\n'
+await writeFile(join(DIST, 'build-info.json'), buildInfoJson)
 
-// The phone number is shown on the page but must never reach the agent files or the JSON-LD (owner decision).
-const phone = data.profile.phone
-const digits = phone.replace(/\D/g, '')
-const phoneForms = [phone, phone.replaceAll(' ', ''), digits, `+${digits}`]
+// The phone number is shown on the page but must never reach the agent files, build-info.json or the JSON-LD (owner
+// decision). `leaksPhone` finds its digits with and without the country code, however they are spaced (review round 2:
+// the first guard only knew the number as the data file spells it).
 const jsonLd = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(template)?.[1] ?? ''
-for (const [name, text] of [['profile.json', profileJson], ['llms.txt', llmsTxt], ['sitemap.xml', sitemapXml], ['JSON-LD', jsonLd]]) {
-  if (phoneForms.some((form) => text.includes(form))) throw new Error(`prerender: the phone number leaked into ${name}`)
+for (const [name, text] of [
+  ['profile.json', profileJson],
+  ['llms.txt', llmsTxt],
+  ['sitemap.xml', sitemapXml],
+  ['build-info.json', buildInfoJson],
+  ['JSON-LD', jsonLd],
+]) {
+  if (leaksPhone(text, data.profile.phone)) throw new Error(`prerender: the phone number leaked into ${name}`)
 }
 
 // Facts the site states once must be on the page once (spec 3.5 and the Definition of Done): the LeetCode count and

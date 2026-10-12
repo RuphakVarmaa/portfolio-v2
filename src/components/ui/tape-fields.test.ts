@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { auditLine, decide, rowNumberFor } from '../../lib/policy/engine.ts'
 import { ACTIONS, DATA_TENANT, RESOURCES, ROLES, TENANTS } from '../../lib/policy/rulebook.ts'
-import { splitUnbroken, tapeFields } from './tape-fields.ts'
+import { compactLine, splitUnbroken, tapeFields } from './tape-fields.ts'
 
 const AT = Date.UTC(2026, 9, 11, 12, 0, 0)
 
@@ -79,5 +79,48 @@ test('only a hyphen or slash between two letters is kept in one piece', () => {
   // Whatever the split, the pieces are the text again.
   for (const text of ['policy-b was unplugged while it held batch 6.', '0 cross-tenant leaks', 'a/b-c d']) {
     assert.equal(splitUnbroken(text).join(''), text)
+  }
+})
+
+// ---- a phone's tape: the answer first (review round 2) --------------------------------------------------
+
+test('an audit line prints verdict and policy first on a narrow tape, with the time of day and no date', () => {
+  const line = '2026-10-11T23:19:38.707Z tenant=B actor=u_3fa9(role=owner) action=write resource=project:A-417 → DENY policy=rls.tenant'
+  assert.equal(compactLine(line), 'DENY policy=rls.tenant 23:19:38.7 tenant=B actor=u_3fa9(role=owner) action=write resource=project:A-417')
+  const allow = '2026-10-11T08:05:00.000Z tenant=A actor=u_77ab(role=member) action=read resource=task:A-102 → ALLOW policy=task.read'
+  assert.equal(compactLine(allow), 'ALLOW policy=task.read 08:05:00.0 tenant=A actor=u_77ab(role=member) action=read resource=task:A-102')
+})
+
+test('every audit line the engine can write has a narrow form that starts with its verdict and keeps every field', () => {
+  let checked = 0
+  for (const actorTenant of TENANTS) {
+    for (const role of ROLES) {
+      for (const resource of RESOURCES) {
+        for (const action of ACTIONS) {
+          const request = { tenant: actorTenant, actorTenant, role, resource, action, resourceTenant: DATA_TENANT }
+          const decision = decide(request)
+          const line = auditLine(request, decision, AT, rowNumberFor(resource))
+          const narrow = compactLine(line)
+          assert.ok(narrow !== null, line)
+          assert.ok(narrow.startsWith(`${decision.allow ? 'ALLOW' : 'DENY'} policy=${decision.policy} `), narrow)
+          // The fields are the wide line's, in the wide line's order, after the answer and the time.
+          const [, , , ...fields] = narrow.split(' ')
+          assert.deepEqual(fields, tapeFields(line).slice(1, 5), line)
+          checked += 1
+        }
+      }
+    }
+  }
+  assert.equal(checked, 3 * 4 * 4 * 4)
+})
+
+test('an operator-log line prints what happened first and the clock last', () => {
+  assert.equal(compactLine('00:18.3  retry 1 · batch 7 → policy-a · recovered in 15 ms'), 'retry 1 · batch 7 → policy-a · recovered in 15 ms · 00:18.3')
+  assert.equal(compactLine('00:00.2  tab-3b9a (this tab) started · leader · term 1'), 'tab-3b9a (this tab) started · leader · term 1 · 00:00.2')
+})
+
+test('any other line has no second form', () => {
+  for (const line of ['batch 7 · policy-a · 1,000 evaluated · 505 across tenants · 0 leaks · 1.1 ms', 'no entries yet', '', '00:18.3 one space only', '2026-10-11T23:19:38.707Z tenant=B']) {
+    assert.equal(compactLine(line), null, line)
   }
 })

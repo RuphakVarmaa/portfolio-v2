@@ -80,9 +80,11 @@ Everything the build can verify, `pnpm check` verifies. These are the things onl
   two fonts the first screen uses. The spec asks for 1.2 s. The rest is two round trips at a 562 ms round-trip time (the page, then
   its render-blocking stylesheet); the only way under 1.2 s is inlining the first screen's CSS into the HTML, and the HTML has no room
   for it. On an unthrottled link first paint is about 0.3 s (4x CPU throttle).
-- [ ] **Budgets.** `dist/index.html` is within about 2 KB of its 60 KB limit and the stylesheet within about 0.7 KB of its 24 KB.
-  If you lengthen the copy and the build fails, trim the prose or raise the limit on purpose in `scripts/check-budgets.mjs`;
-  do not edit the check around it.
+- [ ] **Budgets.** `dist/index.html` is within about 0.9 KB of its 60 KB limit and the stylesheet within about 0.14 KB of its 24 KB
+  (23,863 bytes gzipped). Review round 2 spent the room the stylesheet had and then held it by deleting dead CSS (52 `wdth`
+  declarations the mono font cannot honour, the unused grid and span utilities, SVG path decimals), not by raising the limit. If you
+  lengthen the copy or add a style and the build fails, trim the prose or the CSS, or raise the limit on purpose in
+  `scripts/check-budgets.mjs`; do not edit the check around it.
 
 ## Making-of (skeleton)
 
@@ -106,20 +108,29 @@ never retyped; all first-person prose is in `src/data/copy.ts` (and the schemati
 
 **What the prose is, and is not.** The depth paragraphs, the work traces (Decisions, Trade-offs, What broke, What I'd change)
 and the part dialogs are drafts in your voice, built from the résumé bullets. Where the résumé gives a fact they state it. Where
-it does not, they state a design reason, never an event: nothing says "this happened" that the résumé does not say. Read the
-"What broke" lines as "the failure I design against" (an uncited answer that looks right; free-form review text that cannot be
-merged with ESLint and Semgrep output; latency variance hiding behind a good mean), because the résumé has no incident for
-retrieval, vision or review (policy's 340 ms to 120 ms is the résumé's own). An interviewer will ask about each. Confirm or replace:
+it does not, they state a design reason, never an event: nothing says "this happened" that the résumé does not say. That is why
+three of the four work traces are headed "What I guard against", not "What broke" (retrieval: an uncited answer that looks right;
+vision: latency variance hiding behind a good mean; review: free-form review text that cannot be merged with ESLint and Semgrep
+output): the résumé has no incident for them. Policy keeps "What broke" because its 340 ms to 120 ms is the résumé's own. If you
+have a real incident for one of the three, write it in `src/data/copy.ts` and delete that service's `brokeLabel`. An interviewer
+will ask about each. Confirm or replace:
 
 - Retrieval: agents split a question into sub-goals; HNSW chosen over exact search to stay inside the p95 budget as the corpus grows;
   overlapping windows as a storage cost accepted so a fact is less likely to be cut at a boundary; uncited answers as the failure to avoid.
+  The 30-second and Peer texts keep two résumé facts apart: the 87% and the p95 under 2 s are metrics, the more than 50 concurrent
+  sessions is the deployment bullet; neither text says the p95 was measured at that load.
 - Vision: a bounded producer-consumer queue between capture and inference; SLO alerts on inference p95, detection rate and queue
   depth; a queue that sheds load can lower the detection rate; latency variance as the thing to guard (the 40% is the résumé's).
   The drop-oldest ring buffer of four frames belongs to the browser port, not to production, and the text says so.
-- Policy: the JWT carries the tenant claim and row-level policies refuse other tenants' rows even if application code is wrong;
-  N+1 fans collapsed into joins; composite indexes that lead with `tenant_id` (the résumé says "tenant-scoped composite indexes").
+- Policy: the JWT carries the tenant claim and row-level policies refuse other tenants' rows even if application code is wrong.
+  The 340 ms to 120 ms is told as the résumé tells it (N+1 patterns removed, tenant-scoped composite indexes added); that such an
+  index lets a query stay inside one tenant's rows is design reasoning, not a reported event. The 30-second text says "in load tests
+  it handled more than 200 concurrent users" (the résumé's "load-tested"), not that production held them.
 - Review: five severity tiers separate urgent from advisory; structured LLM output so it merges with deterministic tools; fewer rules
   per run as the price of staying under three minutes; one issue could be reported three ways without structured findings.
+
+The hero's identity line does not say "Third-year" any more: a literal year of study is false from mid-2027 and a static page cannot
+know the date it is read. The period (2024 - 2028) carries it. Add the ordinal back by hand if you want it, and change it each year.
 
 The downloadable résumé is `public/Ruphak-Varmaa-Resume.pdf`; an HTML résumé is prerendered at
 `/resume/`. Agents get `/profile.json`, `/llms.txt` and `/sitemap.xml` (the phone number is shown on the page

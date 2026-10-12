@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { announce } from '../../cluster/live-region.ts'
 import { cx } from './cx.ts'
+import { compactLine } from './tape-fields.ts'
 import { TapeText } from './TapeText.tsx'
 import styles from './ui.module.css'
 
@@ -35,6 +36,29 @@ export interface TapeProps {
   className?: string
 }
 
+/**
+ * A string line: as written, and for the two logs with a fixed shape (the policy audit line, the operator log) also in the form
+ * a phone's tape prints (`compactLine`: the answer first, the time short or last). The tape's own width picks one, in CSS.
+ */
+function LineText({ text }: { text: string }) {
+  const narrow = compactLine(text)
+  if (narrow === null) return <TapeText text={text} />
+  return (
+    <>
+      <span className={styles.tapeWide}>
+        <TapeText text={text} />
+      </span>
+      <span className={styles.tapeNarrow}>{narrow}</span>
+    </>
+  )
+}
+
+/** Mark the scroller `data-pan` while there is more to read to its right (a narrow tape pans sideways), so CSS can fade that edge. */
+const markPan = (el: HTMLElement) => {
+  if (el.scrollWidth - el.clientWidth - el.scrollLeft > 4) el.setAttribute('data-pan', '')
+  else el.removeAttribute('data-pan')
+}
+
 const textOf = (line: string | TapeLine): string => {
   if (typeof line === 'string') return line
   if (line.plain) return line.plain
@@ -60,8 +84,19 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
 
   useEffect(() => {
     const el = scroller.current
-    if (el && stick.current) el.scrollTop = el.scrollHeight
+    if (!el) return
+    if (stick.current) el.scrollTop = el.scrollHeight
+    markPan(el)
   }, [signature])
+
+  // The tape's width follows its column, so a window that is resized (or a phone turned) changes whether it pans.
+  useEffect(() => {
+    const el = scroller.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => markPan(el))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!announceLines || lines.length === 0 || signature === lastAnnounced.current) return
@@ -83,6 +118,7 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
         onScroll={(event) => {
           const el = event.currentTarget
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+          markPan(el)
         }}
       >
         <div className={styles.tapeInner}>
@@ -94,7 +130,7 @@ export function Tape({ lines, label, header, max = 200, announce: announceLines 
                 const item: TapeLine = typeof line === 'string' ? { text: line } : line
                 return (
                   <li key={item.id ?? index} className={cx(styles.tapeLine, item.tone && styles[`tape-${item.tone}`])}>
-                    {typeof item.text === 'string' ? <TapeText text={item.text} /> : item.text}
+                    {typeof item.text === 'string' ? <LineText text={item.text} /> : item.text}
                   </li>
                 )
               })}

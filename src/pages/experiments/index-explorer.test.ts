@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { analyze, analyzeQuery } from '../../lib/retrieval/analyze.ts'
 import { explainBm25, termTable } from '../../lib/retrieval/bm25.ts'
-import { RetrievalEngine } from '../../lib/retrieval/engine.ts'
+import { RetrievalEngine, STAGE_NAMES } from '../../lib/retrieval/engine.ts'
+import { fmtMs } from '../../sections/services/retrieval/format.ts'
 import {
   RIBBON_GAP,
   RIBBON_TARGET,
@@ -15,6 +16,7 @@ import {
   ribbonRows,
   ribbonTop,
   snippet,
+  stageTimes,
 } from './index-explorer.ts'
 
 const chunk = (id: string, sectionId: string, text: string, start: number, end: number) => ({
@@ -152,4 +154,34 @@ test('a snippet is cut around the first match at word boundaries and says what i
   assert.equal(none.before, false)
   assert.ok(none.text.startsWith('Alpha'))
   assert.deepEqual(snippet('tiny', new Set()), { text: 'tiny', before: false, after: false })
+})
+
+test('stage times print as the home panel prints them: a stage the clock cannot resolve reads "<0.1 ms", never "0 ms"', async () => {
+  assert.deepEqual(
+    stageTimes([
+      { name: 'tokenize', ms: 0.12 },
+      { name: 'embed (or BM25)', ms: 0 },
+      { name: 'score', ms: 0.019 },
+      { name: 'rerank', ms: 0.2 },
+      { name: 'cite', ms: 5.2 },
+      { name: 'warm', ms: 412 },
+    ]),
+    [
+      { name: 'tokenize', time: '0.1 ms' },
+      { name: 'embed (or BM25)', time: '<0.1 ms' },
+      { name: 'score', time: '<0.1 ms' },
+      { name: 'rerank', time: '0.2 ms' },
+      { name: 'cite', time: '5.2 ms' },
+      { name: 'warm', time: '412 ms' },
+    ],
+  )
+  // One formatter for both pages: the same search cannot read differently on / and on /experiments/.
+  for (const ms of [0, 0.004, 0.049, 0.05, 1.46, 9.96, 10, 14.4]) assert.equal(stageTimes([{ name: 'x', ms }])[0].time, fmtMs(ms))
+
+  // A real search through the engine, whatever the clock reads on this machine: every stage is printed, none as a bare zero.
+  const engine = new RetrievalEngine(parseCorpus(corpus)!)
+  const result = await engine.search('What is pgvector?', { mode: 'bm25', topK: 5 })
+  const printed = stageTimes(result.stages)
+  assert.deepEqual(printed.map((stage) => stage.name), [...STAGE_NAMES])
+  for (const stage of printed) assert.doesNotMatch(stage.time, /^0(\.0)? ms$/)
 })

@@ -57,7 +57,7 @@
   --fs-body: 1.0625rem; /* Atkinson 400, lh 1.55, measure 62ch max */
   --fs-small: 0.9375rem; /* Atkinson 400 captions */
   --fs-label: 0.8125rem; /* Stencil 600 uppercase, tracking .12em */
-  --fs-mono: 0.875rem; /* Martian Mono 400, wdth 90 */
+  --fs-mono: 0.875rem; /* Martian Mono 400 (shipped with the wght axis only: no wdth) */
   --fs-micro: 0.75rem; /* the smallest size anything is set in: Martian Mono or Atkinson only. A stencil face never goes under --fs-label (its bridges close up). */
   --fs-readout: clamp(1.25rem, 1rem + 1vw, 1.75rem); /* Doto 700, ROND 100 */
 

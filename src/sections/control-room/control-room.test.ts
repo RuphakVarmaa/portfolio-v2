@@ -129,9 +129,80 @@ test('the stylesheet repeats the numbers the geometry is built from', () => {
 test('the layout switches at one width (900 px) wherever the board differs between its two layouts', () => {
   const widths = new Set([...css.matchAll(/@media \(min-width: (\d+)px\)/g)].map((m) => m[1]))
   assert.ok(widths.has('900'))
-  // 640 (type and spacing), 900 (the board), 1024 (two columns) are the only min-width breakpoints. The landscape board is
+  // 640 (type and spacing), 900 (the board), 1024 (two columns) are the only plain min-width breakpoints. The landscape board is
   // 828 px wide in a 900 px viewport, the least it can be: below that its rem-sized nameplates overprint its frame (review round 1: 700 to 800 px).
+  // The two other conditions below are about the first screen, not the board's drawing: a short desktop screen (1024 px and up,
+  // 860 px high or less) and the screen-only 1280 px rule that hangs the boot tape in the board's top band.
   assert.deepEqual([...widths].sort(), ['1024', '640', '900'])
+})
+
+test('the first screen is a budget: one column in the spec\'s order below 1024 px, two columns from it, and nothing reserved for the notice', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  // Phones and tablets: eyebrow, identity, headline, lead, the lead's plain caption, the prompt, the links, the index, the authorship line.
+  assert.match(bare, /\.layout \{[^}]*grid-template-areas: 'e' 'i' 't' 'l' 'c' 'p' 'k' 'n' 'a';/)
+  assert.match(bare, /\.side \{\s*display: contents;/, 'the right column dissolves below 1024 px, so its pieces are placed by the hero grid')
+  for (const [selector, area] of [['eyebrow', 'e'], ['identity', 'i'], ['title', 't'], ['lead', 'l'], ['plain', 'c'], ['prompt', 'p'], ['links', 'k'], ['indexBox', 'n'], ['authorship', 'a']]) {
+    assert.match(bare, new RegExp(`\\.${selector} \\{[^}]*grid-area: ${area};`), `.${selector} is in the grid area ${area}`)
+  }
+  // From 1024 px the old two columns: the right one is one block again.
+  assert.match(bare, /@media \(min-width: 1024px\) \{[\s\S]*?grid-template-areas: 'e s' 'i s' 't s' 'l s' 'p s';[\s\S]*?\.side \{\s*display: block;\s*grid-area: s;/)
+  // The notice is empty until something happened: no min-height holds a blank band under the button (it kept the switchboard below the fold).
+  assert.ok(!/\.rewards?\s*\{[^}]*min-height/.test(bare))
+  assert.ok(!/\.reward\[data-shown\]\s*\{[^}]*min-height/.test(bare))
+  // A short desktop screen is sized by its height too.
+  assert.match(bare, /@media \(min-width: 1024px\) and \(max-height: 860px\) \{[\s\S]*?\.title \{[^}]*9\.6vh/)
+  // The markup keeps the two-column order (the index, the links, the authorship line, the caption inside `.side`); the service index is two boxes.
+  const hero = code('index.tsx')
+  assert.ok(hero.indexOf('<QuorumPrompt />') < hero.indexOf('className={styles.side}'))
+  assert.ok(hero.indexOf('<ServiceIndex />') < hero.indexOf('styles.authorship') && hero.indexOf('styles.authorship') < hero.indexOf('styles.plain'))
+  // The résumé links are drawn on both sides of the list, and CSS shows one of the two (a phone: before the list; from 1024 px: after it), so the Tab order is the reading order at every width.
+  const index = code('ServiceIndex.tsx')
+  const body = index.slice(index.indexOf('export function ServiceIndex()'))
+  assert.ok(body.indexOf('<Links first />') < body.indexOf('styles.indexBox') && body.indexOf('styles.indexBox') < body.indexOf('<Links />'))
+  assert.match(bare, /\.links:not\(\[data-first\]\) \{\s*display: none;/)
+  assert.match(bare, /@media \(min-width: 1024px\) \{\s*\.links\[data-first\] \{\s*display: none;\s*\}\s*\.links:not\(\[data-first\]\) \{\s*display: flex;/)
+})
+
+test('from 1280 px the boot tape hangs in the board\'s top band, out of the flow, only where the board is shown and never in print', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.match(
+    bare,
+    /@media screen and \(min-width: 1280px\) \{\s*html\[data-js\]:not\(\[data-machine='off'\]\) \.boot \{\s*position: absolute;\s*z-index: 3;\s*inset-inline: calc\(var\(--gutter\) \+ 28px\);\s*margin-top: calc\(var\(--s-4\) \+ 8px\);/,
+  )
+  // The wrap is its containing block, and the tape is the board's previous sibling (so its static position is the board's top edge less the figure's margin).
+  assert.match(bare, /\.inner \{\s*position: relative;/)
+  const hero = code('index.tsx')
+  assert.ok(hero.includes('`wrap ${styles.inner}`'))
+  assert.ok(hero.indexOf('<BootLine />') < hero.indexOf('<Board />'))
+  assert.match(bare, /\.boardFigure \{\s*margin: var\(--s-4\) 0 0;/, 'the board starts 16 px under the columns: the tape hangs 8 px inside its frame')
+})
+
+test('the boot line is drawn as tokens: unbreakable measurements with their separator glued on, no break "anywhere", and a row count reserved for every width', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.ok(!/overflow-wrap:\s*anywhere/.test(bare), 'a measurement is never cut in the middle')
+  assert.match(bare, /\.tok,\s*\.tok\[data-closing\] > span \{\s*white-space: nowrap;/)
+  assert.match(bare, /@media \(max-width: 639px\) \{\s*\.tok\[data-closing\] \{\s*white-space: normal;/, 'a phone may part the closing clause after its semicolon')
+  const bootLine = code('BootLine.tsx')
+  assert.ok(bootLine.includes('bootTokens(text)') && bootLine.includes('styles.tok') && bootLine.includes('data-closing'))
+  assert.ok(!/\{text\}/.test(bootLine), 'the line is no longer one string')
+  // The rows the tape reserves (--lines) only ever grow as the width shrinks, from two on a desktop; they were measured with the
+  // longest line the page can print (src/sections/control-room/boot-tokens.test.ts simulates the wrapping at every width).
+  assert.match(bare, /\.boot \{[^}]*--lines: 2;/)
+  const steps = [...bare.matchAll(/@media \(max-width: (\d+)px\) \{\s*\.boot \{\s*--lines: (\d+);/g)].map((m) => [Number(m[1]), Number(m[2])])
+  assert.ok(steps.length >= 5, 'the tape reserves more rows on narrower phones')
+  for (const [index, [width, lines]] of steps.entries()) {
+    assert.ok(lines > (index === 0 ? 2 : steps[index - 1][1]), `${width} px: more rows than the wider band`)
+    if (index > 0) assert.ok(width < steps[index - 1][0], 'bands run from wide to narrow')
+  }
+  assert.equal(steps.at(-1)?.[1], 8, 'a 320 px phone needs eight rows for the longest line')
+})
+
+test('the hero shows a failover in the tab that survived it, without a second status region', () => {
+  const prompt = code('QuorumPrompt.tsx')
+  assert.ok(prompt.includes('advanceNotice(memory, state)') && prompt.includes('advanceNotice(NO_NOTICE, state)') && prompt.includes('noticeLines(remembered, state, blocked, NOTICE_TEXT)'))
+  assert.ok(prompt.includes('copy.chaos.experiments.leader.reward'), 'the spec 3.4 sentence, written once')
+  assert.equal(prompt.match(/role="status"/g)?.length, 1, 'the join line is the only status region; the failover line is shown, not announced')
+  assert.ok(prompt.includes('key={remembered.seq}'), 'a new failover redraws the line, so its entrance flash plays again')
 })
 
 test('the markup carries the hooks the global state selectors rely on', () => {

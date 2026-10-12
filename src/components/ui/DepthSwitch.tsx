@@ -10,6 +10,8 @@ export interface DepthSwitchProps {
   legend?: string
   /** Option labels. Default `30 s · Engineer · Peer`. */
   labels?: DepthText
+  /** What each option is called to a screen reader (the face `30 s` is read "30 S" once it is set in capitals). Default `30 seconds · Engineer · Peer`. */
+  names?: DepthText
   /** Called on pointer or keyboard focus entering the control (a hint to preload what the change will need). */
   onIntent?: () => void
   className?: string
@@ -24,6 +26,7 @@ export function DepthSwitch({
   onChange,
   legend = copy.services.panel.depthLegend,
   labels = copy.services.panel.depthOptions,
+  names = copy.services.panel.depthNames,
   onIntent,
   className,
 }: DepthSwitchProps) {
@@ -38,6 +41,7 @@ export function DepthSwitch({
               className="sr-only"
               type="radio"
               name={name}
+              aria-label={names[depth]}
               value={depth}
               checked={value === depth}
               onChange={() => onChange(depth)}

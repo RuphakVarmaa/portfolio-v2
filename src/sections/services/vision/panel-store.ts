@@ -19,6 +19,8 @@ export interface PanelState {
   stages: readonly Stage[]
   /** A pipeline run is in flight. */
   busy: boolean
+  /** Milliseconds per stage while the run's stages are being revealed on a timer (so the panel can say the pacing is a timer); null otherwise. */
+  paceMs: number | null
   /** Schematic part ids drawn as running (`camera`, `queue`, `yolo`, `react`). */
   active: readonly string[]
   /** Measured text under a schematic part, keyed by part id (`{ camera: '1.2 ms' }`). */
@@ -27,7 +29,7 @@ export interface PanelState {
   detector: DetectorKnown
 }
 
-export const EMPTY_PANEL: PanelState = Object.freeze({ stages: [], busy: false, active: [], annotations: {}, detector: 'unknown' })
+export const EMPTY_PANEL: PanelState = Object.freeze({ stages: [], busy: false, paceMs: null, active: [], annotations: {}, detector: 'unknown' })
 
 export const panelStore = createStore<PanelState>(EMPTY_PANEL)
 

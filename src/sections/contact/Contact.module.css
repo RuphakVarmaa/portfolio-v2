@@ -5,7 +5,7 @@
  */
 
 .layout {
-  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 26'%3E%3Cpath d='M27.95 12.96L21.44 24.5L8.18 24.1L1.93 12.69L8.4 1.92L21.77 1.98Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --hex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 26'%3E%3Cpath d='M27.9 13L21.4 24.5L8.2 24.1L1.9 12.7L8.4 1.9L21.8 2Z' fill='none' stroke='%23000' stroke-width='1.9' stroke-linejoin='round'/%3E%3C/svg%3E");
   --rivet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='4.6' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='6' cy='6' r='1.3' fill='%23000'/%3E%3C/svg%3E");
   display: grid;
   gap: var(--s-7) var(--s-8);

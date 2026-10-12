@@ -129,7 +129,17 @@ export function ChaosLab() {
     })
 
   return (
-    <Section id={t.id} label={t.label} title={t.title} lead={t.lead}>
+    <Section
+      id={t.id}
+      label={t.label}
+      title={t.title}
+      lead={
+        <>
+          <span data-js-only="">{t.lead}</span>
+          <span data-nojs-only="">{t.leadNoScript}</span>
+        </>
+      }
+    >
       {/*
         With the machine off the lab is the plain list, always: a bench that was already loaded is swapped out
         for it (DemoSlot would keep showing a loaded demo), and nothing observes the cluster any more.

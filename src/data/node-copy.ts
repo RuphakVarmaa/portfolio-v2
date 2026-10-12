@@ -17,7 +17,7 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
       "peer": "Entry point for the 100K-token corpora. The chunker takes it from here."
     },
     "chunk": {
-      "30s": "Long documents are cut into overlapping pieces so a fact is never lost at the edge of a piece.",
+      "30s": "Long documents are cut into overlapping pieces, so a fact is less likely to be cut in half at the edge of a piece.",
       "engineer": "Adaptive 512-token sliding-window chunking: the windows slide across the text. It cut manual document analysis time by 70%.",
       "peer": "Sliding windows overlap, so a table row or a clause is less likely to be split across two chunks; this is the chunking behind the 70% cut in manual analysis time. This port uses 256-wordpiece windows with 64 overlap because its encoder only sees 256."
     },
@@ -102,8 +102,8 @@ export const NODE_COPY: Record<ServiceKey, Record<string, DepthText>> = {
     },
     "indexes": {
       "30s": "Database indexes organised by company, so each query only looks at one company's data.",
-      "engineer": "Composite indexes that lead with tenant_id. With the N+1 patterns removed, they took query latency from 340 ms to 120 ms.",
-      "peer": "Composite indexes that lead with tenant_id keep the planner inside one tenant's slice; collapsing N+1 query fans into joins did the rest of the 340→120 ms."
+      "engineer": "Tenant-scoped composite indexes. With the N+1 patterns removed, they took query latency from 340 ms to 120 ms.",
+      "peer": "Tenant-scoped composite indexes let a query stay inside one tenant's rows; removing the N+1 query patterns did the rest of the 340→120 ms."
     }
   },
   "review": {

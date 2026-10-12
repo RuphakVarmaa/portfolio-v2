@@ -46,6 +46,7 @@ const base: PreferenceInputs = {
   plain: true,
   depth: '30s',
   sound: false,
+  keys: true,
   reduce: false,
   basic: false,
 }
@@ -72,5 +73,6 @@ test('preference storage keys are the documented ones (ruphak-theme is unchanged
     machine: 'ruphak-machine',
     plain: 'ruphak-plain',
     depth: 'ruphak-depth',
+    keys: 'ruphak-keys',
   })
 })

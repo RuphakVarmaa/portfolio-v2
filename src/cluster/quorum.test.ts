@@ -215,6 +215,35 @@ test('a second tab joins: both see two nodes immediately, the first tab leads, t
   ])
 })
 
+test('the tab that started second knows it is the newcomer; the one that was already open does not (review round 2)', async () => {
+  const w = world()
+  const a = w.open()
+  await w.settle()
+  assert.equal(state(a).newcomer, false, 'alone: nobody started before it')
+  await w.elapse(5_000)
+  const b = w.open()
+  await w.settle()
+  assert.equal(state(a).nodes, 2)
+  assert.equal(state(a).newcomer, false, 'the tab that was open first is not the newcomer')
+  assert.equal(state(b).newcomer, true, 'the tab that has just opened joined a quorum that existed')
+  await w.elapse(5_000)
+  const c = w.open()
+  await w.settle()
+  assert.deepEqual([a, b, c].map((tab) => state(tab).newcomer), [false, true, true], 'a third tab is a newcomer; the first never is')
+  w.close(a)
+  await w.settle()
+  assert.equal(state(b).newcomer, false, 'with the older tab gone, nobody here started before b')
+  assert.equal(state(c).newcomer, true)
+})
+
+test('two tabs that started in the same millisecond are not both newcomers (the tie goes by id)', async () => {
+  const w = world()
+  const a = w.open()
+  const b = w.open()
+  await w.settle() // no clock advance: both began at the same instant
+  assert.deepEqual([state(a).newcomer, state(b).newcomer].sort(), [false, true])
+})
+
 test('closing the leader hands leadership to the survivor with a higher term', async () => {
   const w = world()
   const a = w.open()

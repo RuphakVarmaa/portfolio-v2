@@ -36,7 +36,9 @@ export const S = {
   searchFailed: 'The search failed.',
   retry: 'Try again',
 
-  resultsHeading: (query: string) => `Results for “${query}”`,
+  /** The label over an answer (a stencil label, not a headline). The question is echoed once under it, in mono, after `queryMark`. */
+  results: 'Results',
+  queryMark: 'q:',
   none: (query: string) => `No passage matches “${query}”.`,
   count: (shown: number, candidates: number) =>
     candidates > shown ? `${shown} of ${candidates} passages` : `${shown} passage${shown === 1 ? '' : 's'}`,
@@ -52,27 +54,34 @@ export const S = {
   findPlain: 'It is a plain-language caption; the captions are switched on to show it.',
   findElsewhere: 'It is on the home page; this opens it there and underlines the sentence.',
 
+  /** A line of `…` on its own row: whole lines left out of the excerpt (a cut inside a line is a `…` in the line itself). */
   skipped: (n: number) => `… ${n} more line${n === 1 ? '' : 's'}`,
-  showWhole: (total: number) => `Show the whole window (${total} lines)`,
+  /** `deep` is the Engineer and Peer depths; the 30-second depth says the same things without the word "window". */
+  showWhole: (total: number, deep: boolean) => (deep ? `Show the whole window (${total} lines)` : `Show all ${total} lines`),
   showExcerpt: 'Show only the excerpt',
-  excerptOf: (shown: number, total: number) => `Excerpt: ${shown} of ${total} lines in this window`,
-  wholeWindow: (total: number) => `The whole window, as the retriever returned it: ${total} lines`,
+  excerptOf: (shown: number, total: number, deep: boolean) =>
+    deep ? `Excerpt: ${shown} of ${total} lines in this window` : `Showing ${shown} of ${total} lines, around the answer`,
+  wholeWindow: (total: number, deep: boolean) => (deep ? `The whole window, as the retriever returned it: ${total} lines` : `All ${total} lines of this passage`),
 
   windowCaption: (index: number, count: number, start: number, end: number, tokens: number, overlap: number | null) =>
     `Window ${index + 1} of ${count} · wordpieces ${start}–${end} of ${tokens}` +
     (overlap === null ? '' : ` · shares ${overlap} with its neighbour${overlap === 0 ? '' : 's'}`),
   windowRule: 'each rule is 64 wordpieces',
+  /** The miniature's caption at the 30-second depth: what the drawing shows, with no wordpieces in it ("part", not "passage": the answer's count of passages is a different number). */
+  windowPlain: (index: number, count: number) =>
+    count === 1 ? 'This section is one part. The shaded band marks it.' : `Part ${index + 1} of ${count} of this section. The shaded band and the bold bracket show where it sits.`,
 
-  timings: 'Measured in the retrieval worker',
-  timingsMain: 'Measured on the main thread',
+  /** The disclosure under the passages: the stage times, the round trip, and (once the pipeline has been shown) what the drawing leaves out. */
+  how: 'How this was measured',
+  measuredIn: { worker: 'measured in the retrieval worker', main: 'measured on the main thread' },
   timingsLabel: 'Pipeline timings',
   roundTrip: 'round trip',
   total: 'total',
   rerankNote: (what: string) => `rerank: ${what}`,
   /**
-   * Under the timings: what the pipeline drawing does and does not show (replay.ts has the rules). It is true
-   * whether the replay animates or, under reduced motion, fills in at once, so it says what is never lit and never
-   * timed rather than how the lighting moves.
+   * What the pipeline drawing does and does not show (replay.ts has the rules). It is shown once "Show me the pipeline"
+   * has been pressed, not under every answer. It is true whether the replay animates or, under reduced motion, fills in
+   * at once, so it says what is never lit and never timed rather than how the lighting moves.
    */
   drawingNote:
     'The pipeline drawing is the production system’s. This port has no LLM, so the part named agents is production only: it is never lit and never shows a time. Tokenize runs and is timed, but the drawing has no part for it: its time is in the stage lists, not on the drawing.',

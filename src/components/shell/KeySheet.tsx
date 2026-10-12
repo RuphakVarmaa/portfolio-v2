@@ -4,21 +4,29 @@ import { quorum } from '../../cluster/quorum.ts'
 import { copy } from '../../data/copy.ts'
 import { goToId } from '../../lib/draw/motion.ts'
 import { Button } from '../ui/Button.tsx'
+import { cx } from '../ui/cx.ts'
 import { Icon } from '../ui/Icon.tsx'
+import { KeysToggle } from './PreferenceControls.tsx'
+import { usePreferencesStore } from './preferences-context.ts'
+import { WIDGET_SELECTOR, shortcutFor, type KeyPress } from './shortcuts.ts'
 import styles from './shell.module.css'
 
-/** Keys are ignored while the visitor is typing, or while any modifier (other than Shift) is held. */
-function shouldIgnore(event: KeyboardEvent): boolean {
-  if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return true
-  const target = event.target
-  if (target instanceof HTMLElement) {
-    if (target.isContentEditable) return true
-    const tag = target.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
-    if (target.getAttribute('role') === 'textbox') return true
+/** The facts `shortcutFor` needs, read from the key event and the page. */
+function readPress(event: KeyboardEvent): KeyPress {
+  const target = event.target instanceof HTMLElement ? event.target : null
+  const tag = target?.tagName
+  return {
+    key: event.key,
+    defaultPrevented: event.defaultPrevented,
+    composing: event.isComposing,
+    ctrl: event.ctrlKey,
+    meta: event.metaKey,
+    alt: event.altKey,
+    typing: target !== null && (target.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.getAttribute('role') === 'textbox'),
+    inWidget: target?.closest(WIDGET_SELECTOR) != null,
+    // A modal dialog owns the keyboard (Esc is handled natively).
+    modalOpen: document.querySelector('dialog[open]') !== null,
   }
-  // A modal dialog owns the keyboard (Esc is handled natively).
-  return document.querySelector('dialog[open]') !== null
 }
 
 /** Scroll to a home-page section, or go to the home page's section from another route. */
@@ -29,42 +37,42 @@ function goHome(id: string) {
 /**
  * The key sheet (a native dialog, opened with `?`) and the global shortcuts: p / r / c for the quick-view
  * rail, 2 for a second tab, ? for this sheet. Esc closes dialogs natively; the camera listens for it
- * itself. Mount it once, in the App.
+ * itself. The shortcuts are single keys, so they have an off switch (shortcuts.ts: WCAG 2.1.4); the switch is
+ * in the display options and on this sheet. Mount it once, in the App.
  */
 export function KeySheet() {
   const dialog = useRef<HTMLDialogElement>(null)
+  const preferences = usePreferencesStore()
   // The sheet's content is only rendered while it is open, which keeps it out of the prerendered HTML.
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (shouldIgnore(event)) return
-      switch (event.key) {
-        case 'p':
-          event.preventDefault()
+      // Read the switch at the moment of the press (not when the effect ran), so turning it off takes effect at once.
+      const action = shortcutFor(readPress(event), preferences.getSnapshot().keys)
+      if (action === null) return
+      event.preventDefault()
+      switch (action) {
+        case 'projects':
           goHome('services')
           break
-        case 'c':
-          event.preventDefault()
+        case 'contact':
           goHome('contact')
           break
-        case 'r':
-          event.preventDefault()
+        case 'resume':
           window.location.href = '/resume/'
           break
-        case '2':
-          event.preventDefault()
+        case 'second-tab':
           if (!quorum.openSecondTab()) announce(copy.controlRoom.quorumPrompt.blocked)
           break
-        case '?':
-          event.preventDefault()
+        case 'key-sheet':
           setOpen(true)
           break
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [preferences])
 
   useEffect(() => {
     const element = dialog.current
@@ -96,6 +104,9 @@ export function KeySheet() {
             </button>
           </div>
           <p className="muted">{keys.lead}</p>
+          <div className={cx(styles.controls, styles['controls-menu'])}>
+            <KeysToggle />
+          </div>
           <dl className={styles.keyList}>
             {keys.rows.map((row) => (
               <div key={row.text} className={styles.keyRow}>

@@ -16,7 +16,7 @@ import type {
  * HTML) and re-renders with `getSnapshot()` (the visitor's stored choices) right after.
  *
  * localStorage keys (unchanged from v2 where they existed): ruphak-theme, ruphak-motion,
- * ruphak-machine, ruphak-plain, ruphak-depth. Sound is never stored. Every storage access is wrapped:
+ * ruphak-machine, ruphak-plain, ruphak-depth, ruphak-keys (the single-key shortcuts; `off` or absent-means-on). Sound is never stored. Every storage access is wrapped:
  * private windows and blocked storage must not break the page.
  */
 
@@ -26,6 +26,7 @@ export const STORAGE_KEYS = {
   machine: 'ruphak-machine',
   plain: 'ruphak-plain',
   depth: 'ruphak-depth',
+  keys: 'ruphak-keys',
 } as const
 
 export const THEME_COLORS: Record<Theme, string> = { light: '#f3eee4', dark: '#141311' }
@@ -68,6 +69,7 @@ export interface PreferenceInputs {
   plain: boolean
   depth: Depth
   sound: boolean
+  keys: boolean
   reduce: boolean
   basic: boolean
 }
@@ -87,6 +89,7 @@ export function derivePreferences(i: PreferenceInputs): PreferencesSnapshot {
     machineForced: i.basic,
     depth: i.depth,
     sound: i.sound,
+    keys: i.keys,
   }
 }
 
@@ -99,6 +102,7 @@ export function createPreferencesStore(options: StoreOptions): PreferencesStore 
     plain: true,
     depth: options.defaultDepth,
     sound: false,
+    keys: true,
     reduce: false,
     basic: false,
   })
@@ -117,6 +121,7 @@ export function createPreferencesStore(options: StoreOptions): PreferencesStore 
           return isDepth(stored) ? stored : options.defaultDepth
         })(),
         sound: false,
+        keys: read(STORAGE_KEYS.keys) !== 'off',
         reduce: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
         basic: getTierInfo().tier === 'basic',
       }
@@ -127,6 +132,7 @@ export function createPreferencesStore(options: StoreOptions): PreferencesStore 
         plain: true,
         depth: options.defaultDepth,
         sound: false,
+        keys: true,
         reduce: false,
         basic: false,
       }
@@ -195,6 +201,13 @@ export function createPreferencesStore(options: StoreOptions): PreferencesStore 
     },
     toggleSound() {
       actions.setSound(!inputs.sound)
+    },
+    setKeys(on) {
+      write(STORAGE_KEYS.keys, on ? 'on' : 'off')
+      commit({ ...inputs, keys: on })
+    },
+    toggleKeys() {
+      actions.setKeys(!inputs.keys)
     },
   }
 

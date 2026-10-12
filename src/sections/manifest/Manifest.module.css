@@ -84,7 +84,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 /* Lit once the file has actually been fetched: the same lamp language as the board, with a quantized glow. */
@@ -132,7 +131,6 @@
 /* The agent view names a path: shown exactly as written, in mono, never upper-cased. */
 .sheet[data-view='agent'] .label {
   font-family: var(--font-mono);
-  font-variation-settings: 'wdth' 90;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -275,7 +273,6 @@ html[data-js] .files li {
   min-height: 44px;
   font-family: var(--font-mono);
   font-size: 1rem;
-  font-variation-settings: 'wdth' 90;
 }
 
 @media (max-width: 639px) {

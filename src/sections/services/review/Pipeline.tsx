@@ -1,6 +1,6 @@
 import { copy } from '../../../data/copy.ts'
 import type { AnalysisResult } from '../../../lib/review/analyze.ts'
-import { formatDuration } from '../../../lib/review/timing.ts'
+import { durationFormatter } from '../../../lib/review/timing.ts'
 import styles from './Review.module.css'
 import { REVIEW_STRINGS as t } from './strings.ts'
 
@@ -13,10 +13,16 @@ import { REVIEW_STRINGS as t } from './strings.ts'
  * resolve); the round trip is one measured run on this page. Both are real, and the footnote says which is
  * which. During the slow-motion replay of "Show me the pipeline" (`shown` is how many stages have been
  * revealed) the modules not yet reached wait, dashed and empty, and light one by one.
+ *
+ * The five times share one unit and one precision (`1520 µs`, `270 µs`, `3.3 µs`, not `1.5 ms` beside `270 µs`): the
+ * formatter is built from all five stages of the run, not from the ones revealed so far, so the unit does not change
+ * mid-replay. It is the same formatter the drawing's parts and the stage list use. A stage that did not run is 0 and
+ * does not pick the unit.
  */
 export function Pipeline({ result, roundTripMs, shown }: { result: AnalysisResult; roundTripMs?: number; shown: number | null }) {
   const visible = shown ?? result.stages.length
   const total = result.stages.reduce((sum, stage) => sum + stage.ms, 0)
+  const format = durationFormatter(result.stages.map((stage) => stage.ms))
   // Scaled against every stage, so the bars do not rescale as the replay reveals them.
   const slowest = Math.max(...result.stages.map((stage) => stage.ms), 0)
   return (
@@ -32,7 +38,7 @@ export function Pipeline({ result, roundTripMs, shown }: { result: AnalysisResul
               {skipped ? (
                 <span className={styles.skipped}>{copy.services.review.demo.astSkipped}</span>
               ) : (
-                <span className={styles.stageMs}>{waiting ? '—' : formatDuration(stage.ms)}</span>
+                <span className={styles.stageMs}>{waiting ? '—' : format(stage.ms)}</span>
               )}
               <span className={styles.bar} aria-hidden="true">
                 <span style={{ width: `${width}%` }} />

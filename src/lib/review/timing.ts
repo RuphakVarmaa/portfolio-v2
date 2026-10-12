@@ -74,3 +74,65 @@ export function formatDuration(ms: number): string {
   const us = ms * 1000
   return us >= 10 ? `${Math.round(us)} µs` : `${Math.max(0.1, Math.round(us * 10) / 10)} µs`
 }
+
+/**
+ * One cell of a ledger whose unit is in its label (the fuzz's batch ledger, `Batches · worker, ms`): `4.0`, `4.7`, `12`.
+ * One decimal under 10 and none from 10 up, always, so the trailing `.0` stays and a row of cells reads alike
+ * (a bare `4` next to a `4.7` looks like a different instrument).
+ */
+export function formatCell(ms: number): string {
+  if (!(ms > 0)) return '0.0'
+  const tenth = Math.round(ms * 10) / 10
+  // 9.96 rounds up to 10.0 here; from 10 up the rule is no decimals, so it prints `10`, not `10.0`.
+  return tenth < 10 ? tenth.toFixed(1) : String(Math.round(ms))
+}
+
+/**
+ * Decimals that keep two significant figures of a time in milliseconds, and never more than two, so a cell stays within
+ * seven characters (`27 ms`, `4.0 ms`, `0.50 ms`): the stage cards and the narrow stage rows are about that wide.
+ */
+const decimalsFor = (value: number): number => (value >= 10 ? 0 : value >= 1 ? 1 : 2)
+
+/** Two significant figures (whole numbers from 10 up), the trailing zero kept; rounding up across a boundary (9.96 to 10) re-reads the value. */
+function twoFigures(value: number): string {
+  const first = Number(value.toFixed(decimalsFor(value)))
+  return first.toFixed(decimalsFor(first))
+}
+
+/**
+ * Microseconds: from 10 up whole numbers (`1520`, no grouping: `1,520 µs` is too wide for a stage card, and a set that
+ * reaches 10 ms is in milliseconds, so it is never more than four digits); under 10 one decimal, floored at 0.1 like
+ * `formatDuration`.
+ */
+function microseconds(ms: number): string {
+  const us = ms * 1000
+  const tenth = Math.round(us * 10) / 10
+  return tenth >= 10 ? String(Math.round(us)) : Math.max(0.1, tenth).toFixed(1)
+}
+
+/**
+ * How to print a SET of durations that sit side by side (the five stage cards, the parts of a schematic, the stage
+ * list): one unit for all of them and one precision rule for every cell, the trailing zero kept: whole numbers from 10
+ * up, one decimal from 1 to 10 (two under 1 in milliseconds), so every cell has two figures or more. `formatDuration`
+ * is for one time inside a sentence and picks its own unit; side by side that gives `0.5 ms` next to `54 µs` and a
+ * bare `2 µs` next to `3.3 µs`, which reads as cells from different instruments.
+ *
+ * The unit is milliseconds when the smallest time is at least 0.1 ms (every cell then keeps two figures with at most
+ * two decimals) or when the largest is 10 ms or more (a long paste: five-digit microseconds do not fit a card), and
+ * microseconds otherwise. A review of a seeded diff has stages from about 1 ms down to a few microseconds, so it
+ * prints `1520 µs`, `270 µs`, `3.3 µs`; the policy fuzz's stages print `28 ms`, `0.60 ms`, `0.40 ms`.
+ *
+ * Build it from every time the set will ever show, not from the ones on screen so far, or the unit would change
+ * while a slow-motion replay reveals the stages one by one. Zero (a stage that did not run) is not a measurement and
+ * does not choose the unit.
+ */
+export function durationFormatter(times: readonly number[]): (ms: number) => string {
+  const measured = times.filter((time) => time > 0 && Number.isFinite(time))
+  if (measured.length === 0) return formatDuration
+  const milliseconds = Math.min(...measured) >= 0.1 || Math.max(...measured) >= 10
+  if (milliseconds) {
+    // Under 5 microseconds the second decimal would read 0.00: say "under", never zero, for work that took time.
+    return (ms) => (!(ms > 0) ? '0 ms' : ms < 0.005 ? '<0.01 ms' : `${twoFigures(ms)} ms`)
+  }
+  return (ms) => (!(ms > 0) ? '0 µs' : `${microseconds(ms)} µs`)
+}

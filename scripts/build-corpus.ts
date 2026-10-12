@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { profile } from '../src/data/portfolio.ts'
 import { buildCorpus, serializeCorpus, type Corpus, type CorpusAsset } from '../src/lib/retrieval/corpus.ts'
 import { SECTIONS, pageRecords } from '../src/lib/retrieval/page-records.ts'
+import { leaksPhone } from '../src/lib/retrieval/phone-guard.ts'
 import { parseVocab, type Vocab } from '../src/lib/retrieval/wordpiece.ts'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -60,10 +61,9 @@ if (corpus.chunks.length === 0) throw new Error('build-corpus: the page produced
 
 const json = serializeCorpus(corpus)
 
-// The phone number is on the page (owner decision) but must not reach a public data file.
-const digits = profile.phone.replace(/\D/g, '')
-const squashed = json.replace(/[\s\-+().]/g, '')
-if (digits.length >= 8 && squashed.includes(digits)) {
+// The phone number is on the page (owner decision) but must not reach a public data file: not as the data spells it
+// (+91 7708358305), and not as the national number without its country code, however it is spaced (src/lib/retrieval/phone-guard.ts).
+if (leaksPhone(json, profile.phone)) {
   throw new Error('build-corpus: the phone number reached corpus.json. It must stay out of every machine-readable file.')
 }
 

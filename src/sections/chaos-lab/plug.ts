@@ -1,6 +1,7 @@
 import type { NodeId } from '../../cluster/protocol.ts'
 import { nodeIdFor } from '../../cluster/registry.ts'
 import type { ClusterSpan, ClusterState, Scheduler } from '../../cluster/scheduler.ts'
+import { backAfterPull } from './format.ts'
 
 /**
  * Experiment 1, "Pull the plug": run a real fuzz on the two policy workers, terminate one of them while
@@ -80,7 +81,10 @@ export interface PlugRun {
   /** `inFlightMs`: how long the batch had been dispatched to the worker when it was cut off. */
   killed: { node: NodeId; batch: number | null; at: number; inFlightMs: number | null } | null
   recovery: Recovery | null
-  /** From the pull to the respawned node posting `ready`. */
+  /**
+   * From the pull to the respawned node posting `ready` (printed as "back N ms after the pull"). Not the
+   * worker's own start-up, which the operator log prints separately as "worker spun up in N ms" (format.ts).
+   */
   respawnMs: number | null
   totals: { evaluated: number; leaks: number } | null
   /** This run's spans, copied so the chart still has them after the scheduler's ring moves on. */
@@ -356,7 +360,7 @@ export async function runPlug(deps: PlugDeps, sink: PlugSink, options: PlugOptio
     return fail('The plug was pulled but no batch had to be retried, so no failover was observed. Run it again.')
   }
 
-  const respawnText = killed !== null && respawnMs !== null ? ` · ${killed.node} back in ${Math.round(respawnMs)} ms` : ''
+  const respawnText = killed !== null && respawnMs !== null ? ` · ${backAfterPull(killed.node, Math.round(respawnMs))}` : ''
   sink.log(`fuzz finished · ${grouped(totals.evaluated)} evaluations · ${totals.leaks} leaks${respawnText}`, 'cobalt')
   emit({ phase: 'done', batches: deriveBatches(jobs, scheduler.getState()), spans: mine(scheduler.getState()), recovery, respawnMs, totals, killed })
   return run

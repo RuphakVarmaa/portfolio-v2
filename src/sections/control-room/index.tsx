@@ -19,9 +19,11 @@ import styles from './ControlRoom.module.css'
  *
  * The first screen is two columns from 1024 px: the letterhead, headline, lead and the quorum prompt on
  * the left, the service index (with the résumé and contact links, the authorship line that qualifies its
- * numbers, and the plain-language caption) on the right. On a phone the index comes straight after the
- * prompt, so the four projects and their numbers are on the first screen. The boot line is a ruled tape
- * above the board.
+ * numbers, and the plain-language caption) on the right. Below 1024 px it is one column in the spec's order:
+ * the lead, then its plain-language translation (the lead talks of workers, nodes and a quorum), then the
+ * prompt, the résumé and contact links, and the index (`.side` is `display: contents` there, so its pieces are
+ * placed by the hero's grid; the markup keeps the two-column order). The boot line is a ruled tape above the
+ * board, and from 1280 px, where the board's top band has room, it hangs inside that band (`.boot`).
  *
  * Under "Skip the machine" (or the Basic tier) the board is replaced by a plain list of the services.
  *
@@ -36,7 +38,7 @@ export function ControlRoom() {
   return (
     <section id={t.id} aria-labelledby="hero-title" className={styles.hero}>
       <Sprite />
-      <div className="wrap">
+      <div className={`wrap ${styles.inner}`}>
         <div className={styles.layout}>
           <p className={styles.eyebrow}>
             <Hex className={styles.hx} label={t.label} />

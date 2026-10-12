@@ -17,9 +17,11 @@ export interface PipelineState {
   readonly annotations: Readonly<Record<string, string>>
   /** A run is in flight (the button shows busy). */
   readonly busy: boolean
+  /** Milliseconds per stage while the stages are replayed on a timer (so the panel can say the pacing is a timer); null otherwise. */
+  readonly paceMs: number | null
 }
 
-const EMPTY: PipelineState = Object.freeze({ stages: [], active: [], annotations: {}, busy: false })
+const EMPTY: PipelineState = Object.freeze({ stages: [], active: [], annotations: {}, busy: false, paceMs: null })
 
 let state: PipelineState = EMPTY
 let pending = false

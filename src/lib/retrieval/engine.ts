@@ -285,6 +285,7 @@ export class RetrievalEngine {
       },
     }
     if (cosine !== undefined) hit.cosine = round3(cosine)
+    if (chunk.shown) hit.shown = chunk.shown
     return hit
   }
 }

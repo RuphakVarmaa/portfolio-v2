@@ -53,7 +53,8 @@ test('the hero copy matches spec 3.2', () => {
   assert.equal(t.h1, 'I build backend and AI systems.')
   assert.equal(
     t.identity,
-    'Third-year B.E. Computer Science and Engineering, KPR Institute of Engineering and Technology, Coimbatore · 2024 - 2028 · CGPA 8.5/10.',
+    // No "Third-year": a literal year of study is false from mid-2027 (review round 2); the period says it.
+    'B.E. Computer Science and Engineering, KPR Institute of Engineering and Technology, Coimbatore · 2024 - 2028 · CGPA 8.5/10.',
   )
   assert.equal(
     t.authorship,
@@ -65,6 +66,31 @@ test('the hero copy matches spec 3.2', () => {
     t.quorumPrompt.joined(2),
     'That tab just joined this one over BroadcastChannel. NODES 2. Close whichever tab is leader and the other takes over.',
   )
+  // The tab that has just opened is the one that joined, so it says "this tab" (review round 2).
+  assert.equal(
+    t.quorumPrompt.joinedNew(2),
+    'This tab just joined another one over BroadcastChannel. NODES 2. Close whichever tab is leader and the other takes over.',
+  )
+  assert.equal(t.quorumPrompt.self('tab-3b9a'), 'tab-3b9a (this tab)')
+})
+
+test('review round 2 copy: honest trace labels, spoken depth names, the pipeline pace caption, the no-JS words', () => {
+  // "What broke" promises an incident: only the résumé's own (policy's 340 ms to 120 ms) keeps it.
+  assert.equal(copy.services.panel.traceLabels.broke, 'What broke')
+  for (const id of ['retrieval', 'vision', 'review'] as const) assert.equal(copy.services[id].trace.brokeLabel, 'What I guard against', id)
+  assert.equal('brokeLabel' in copy.services.policy.trace, false, 'policy keeps "What broke": the résumé reports that one')
+  for (const id of SERVICE_ORDER) assert.doesNotMatch(copy.services[id].trace.broke, /^The failure I design against/i, id)
+  // The 30 s radio is read "30 seconds", not "30 S".
+  assert.deepEqual(copy.services.panel.depthNames, { '30s': '30 seconds', engineer: 'Engineer', peer: 'Peer' })
+  assert.equal(copy.services.panel.pipelinePace(280), 'Replayed one stage every 0.28 s so you can follow it; the times are the measured ones.')
+  assert.match(copy.services.panel.pipelinePace(260), /every 0\.26 s/)
+  // With JavaScript off nothing runs: the words say so instead of promising a boot and buttons.
+  assert.match(copy.controlRoom.boot.noScript, /^JavaScript is off: the cluster is not running/)
+  assert.match(copy.chaos.leadNoScript, /JavaScript is off/)
+  assert.match(copy.chaos.leadNoScript, /no buttons/)
+  // The drawings are made in code, and the colophon says so.
+  assert.match(copy.colophon.credits('https://example.test/repo'), /Drawn in code as SVG, with a seeded pen wobble/)
+  assert.doesNotMatch(copy.colophon.credits('x'), /by hand/)
 })
 
 test('manifest, certification and education lines are derived from the data and match spec 3.5 and 3.6', () => {

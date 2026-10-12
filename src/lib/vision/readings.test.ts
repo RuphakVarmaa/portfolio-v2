@@ -1,9 +1,46 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatMs } from '../../cluster/format.ts'
-import { buildPipelineSteps, createBackpressure, megabytes, parseLimit, pickRange, tapLabelFor, twoDigits, type PipelineTimings } from './readings.ts'
+import {
+  buildPipelineSteps,
+  createBackpressure,
+  megabytes,
+  noTimingReason,
+  parseLimit,
+  pickRange,
+  queueHasReading,
+  tapLabelFor,
+  twoDigits,
+  type PipelineTimings,
+  type QueueActivity,
+} from './readings.ts'
 
 const STEPS = [60, 120, 250, 500]
+
+const QUIET: QueueActivity = { frames: 0, samples: 0, depth: 0, droppedFrames: 0, droppedSamples: 0 }
+
+test('before anything has gone through the queue the depth and drop dials have no reading (a dash, never a zero nobody measured)', () => {
+  assert.equal(queueHasReading(QUIET), false)
+})
+
+test('a finished frame or a finished motion sample is a reading, and so is zero afterwards (a measured empty queue)', () => {
+  assert.equal(queueHasReading({ ...QUIET, frames: 1 }), true)
+  assert.equal(queueHasReading({ ...QUIET, samples: 1 }), true, 'the first motion sample counts as much as the first frame')
+})
+
+test('any non-zero count is a measurement by itself, even before the first frame finishes', () => {
+  assert.equal(queueHasReading({ ...QUIET, depth: 1 }), true, 'a card is visibly waiting in the rack')
+  assert.equal(queueHasReading({ ...QUIET, droppedFrames: 1 }), true)
+  assert.equal(queueHasReading({ ...QUIET, droppedSamples: 3 }), true)
+})
+
+test('the first dial says why it is empty: no frame yet, no inference yet, or a recording with no timing', () => {
+  assert.equal(noTimingReason({ framed: false, replay: false, kind: 'pass' }), 'no-frames')
+  assert.equal(noTimingReason({ framed: false, replay: true, kind: 'pass' }), 'no-frames', 'a replay that has not reached its first frame')
+  assert.equal(noTimingReason({ framed: true, replay: true, kind: 'pass' }), 'recording-without-detector', 'frames play but the run was made without a detector')
+  assert.equal(noTimingReason({ framed: true, replay: false, kind: 'infer' }), 'no-inference', 'the detector has just loaded')
+  assert.equal(noTimingReason({ framed: false, replay: false, kind: 'infer' }), 'no-frames')
+})
 
 test('the dial range is the smallest step that holds the value with headroom', () => {
   assert.equal(pickRange(10, STEPS, 0), 60)

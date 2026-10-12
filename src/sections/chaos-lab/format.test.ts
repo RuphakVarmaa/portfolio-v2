@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { copy } from '../../data/copy.ts'
-import { logStamp, plugReceipts, plugReward, retriedOnRespawn, rewardMs, splitNodeIds, toneFor } from './format.ts'
+import { backAfterPull, logStamp, plugReceipts, plugReward, retriedOnRespawn, rewardMs, splitNodeIds, toneFor, workerSpunUp } from './format.ts'
 import type { PlugRun } from './plug.ts'
 
 const run = (patch: Partial<PlugRun> = {}): PlugRun => ({
@@ -62,8 +62,19 @@ test('when the retry landed on the respawned node itself, the sentence says so i
   assert.ok(sentence.startsWith('You just killed a worker.') && sentence.endsWith('That is failover, on a static page.'))
 })
 
+test('the two respawn timings each name where they start, so one unplug never shows two unlabelled answers', () => {
+  const spunUp = workerSpunUp('policy-b', 8)
+  const back = backAfterPull('policy-b', 11)
+  assert.equal(spunUp, 'policy-b respawned · worker spun up in 8 ms')
+  assert.equal(back, 'policy-b back 11 ms after the pull')
+  // Neither sentence is the other's wording, and neither reads as a bare "in N ms" for the same event.
+  assert.doesNotMatch(spunUp, /back|pull/)
+  assert.doesNotMatch(back, /spun up|respawned/)
+  assert.doesNotMatch(`${spunUp} ${back}`, /respawned in|back in/)
+})
+
 test('the receipts carry only what the sentence does not: the cut, the respawn, the totals', () => {
-  assert.equal(plugReceipts(run()), 'unplugged policy-b during batch 3, 8.4 ms after it was dispatched · policy-b back in 45 ms · 200,000 evaluations, 0 cross-tenant leaks')
+  assert.equal(plugReceipts(run()), 'unplugged policy-b during batch 3, 8.4 ms after it was dispatched · policy-b back 45 ms after the pull · 200,000 evaluations, 0 cross-tenant leaks')
   assert.equal(plugReceipts(run({ respawnMs: null, totals: null, killed: { node: 'policy-b', batch: null, at: 1, inFlightMs: null } })), 'unplugged policy-b')
   assert.equal(plugReceipts(run({ killed: null, recovery: null, respawnMs: null, totals: null })), '')
 })

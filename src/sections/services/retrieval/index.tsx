@@ -89,6 +89,7 @@ export function RetrievalService() {
       formatStageMs={fmtMs}
       onShowPipeline={pipeline.requestRun}
       pipelineBusy={state.busy}
+      pipelinePaceMs={state.paceMs}
     />
   )
 }

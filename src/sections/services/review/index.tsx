@@ -6,7 +6,7 @@ import { ServicePanel } from '../../../components/ui/ServicePanel.tsx'
 import { copy } from '../../../data/copy.ts'
 import { projects } from '../../../data/portfolio.ts'
 import { getSchematic } from '../../../data/schematics.ts'
-import { formatDuration } from '../../../lib/review/timing.ts'
+import { durationFormatter, formatDuration } from '../../../lib/review/timing.ts'
 import styles from './Review.module.css'
 import { reviewStore, type ReviewState } from './review-store.ts'
 
@@ -63,8 +63,9 @@ function Fallback({ reserve }: { reserve: boolean }) {
 
 /**
  * The stages of the latest finished review that are on show: all of them, or those the slow-motion replay has reached.
- * Each stage time is a mean over repeats (see timing.ts), so it is real to the microsecond; ServicePanel prints
- * them with `formatDuration` (`46 µs`, `0.42 ms`) through its `formatStageMs` prop, the same as this panel's own views.
+ * Each stage time is a mean over repeats (see timing.ts), so it is real to the microsecond. ServicePanel prints them
+ * through its `formatStageMs` prop with the same formatter as the drawing and the stage cards (`durationFormatter`:
+ * one unit for the whole set, built from every stage of the run so it does not change while a replay reveals them).
  */
 function visibleStages(state: ReviewState): readonly Stage[] {
   const result = state.done?.result
@@ -73,7 +74,7 @@ function visibleStages(state: ReviewState): readonly Stage[] {
   return result.stages.slice(0, upto).filter((stage) => stage.name !== 'AST pass' || result.parsed)
 }
 
-function schematicFor(state: ReviewState) {
+function schematicFor(state: ReviewState, format: (ms: number) => string) {
   const order = copy.services.review.pipeline
   const annotations: Record<string, string> = {}
   const active: string[] = []
@@ -92,7 +93,7 @@ function schematicFor(state: ReviewState) {
         continue
       }
       active.push(node)
-      annotations[node] = formatDuration(stage.ms)
+      annotations[node] = format(stage.ms)
     }
   }
   return { ...getSchematic('review'), active, annotations }
@@ -104,9 +105,12 @@ export function ReviewService() {
   const state = useSyncExternalStore(reviewStore.subscribe, reviewStore.getSnapshot, reviewStore.getServerSnapshot)
   // Server and first client render agree (true); the real answer arrives right after hydration.
   const workers = useSyncExternalStore(subscribeNothing, () => scheduler.isSupported(), () => true)
-  const schematic = useMemo(() => schematicFor(state), [state])
-  const stages = useMemo(() => visibleStages(state), [state])
   const result = state.done?.result
+  // One unit and one precision for every time printed side by side: the drawing, the stage list and the stage cards.
+  // A stage that did not run is 0 and does not pick the unit.
+  const format = useMemo(() => durationFormatter(result ? result.stages.map((stage) => stage.ms) : []), [result])
+  const schematic = useMemo(() => schematicFor(state, format), [state, format])
+  const stages = useMemo(() => visibleStages(state), [state])
   const workerMs = result ? result.stages.reduce((sum, stage) => sum + stage.ms, 0) : 0
   return (
     <ServicePanel
@@ -117,7 +121,7 @@ export function ReviewService() {
       fallback={<Fallback reserve={workers} />}
       demo={<DemoSlot load={() => import('./Demo.tsx')} disabled={!workers} />}
       stages={stages}
-      formatStageMs={formatDuration}
+      formatStageMs={format}
       onShowPipeline={() => reviewStore.runCurrent({ replay: true })}
       pipelineBusy={state.busy}
       demoFooter={

@@ -43,6 +43,12 @@ export interface QuorumState {
   nodes: number
   /** Every tab including this one (this tab first, then peers in join order). Convenience for node lamps. */
   members: QuorumMember[]
+  /**
+   * True when this tab started after another tab that is still here: it joined a quorum that already existed. False when it
+   * was here first, or is alone. Tabs that started in the same millisecond are ordered by id, so exactly one of them is the
+   * newcomer. The hero uses it to say "this tab joined" in the new tab and "that tab joined" in the old one.
+   */
+  newcomer: boolean
 }
 
 export interface Quorum {
@@ -109,6 +115,7 @@ export const SERVER_QUORUM_STATE: QuorumState = Object.freeze({
   peers: [],
   nodes: 1,
   members: [],
+  newcomer: false,
 })
 
 interface PeerRec {
@@ -202,6 +209,7 @@ export function createQuorum(deps: QuorumDeps): Quorum {
       peers: sharedPeers,
       nodes: 1 + sharedPeers.length,
       members,
+      newcomer: ordered.some((peer) => peer.startedAt < startedAt || (peer.startedAt === startedAt && peer.id < deps.nodeId)),
     }
     return shallowEqual(next, previous) ? previous : next
   }

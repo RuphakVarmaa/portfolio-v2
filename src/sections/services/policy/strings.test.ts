@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { decide } from '../../../lib/policy/engine.ts'
 import { ACTIONS, DATA_TENANT, RESOURCES, ROLES, TENANTS } from '../../../lib/policy/rulebook.ts'
-import { POLICY_STRINGS as t, label } from './strings.ts'
+import { POLICY_STRINGS as t, label, withArticle } from './strings.ts'
 
 test('labels read as words: hyphens become spaces, the first letter is a capital', () => {
   assert.equal(label('audit-log'), 'Audit log')
@@ -26,9 +26,9 @@ test('every verdict the engine can give has a reason that names what decided it 
           } else if (decision.stop === 'rule') {
             assert.match(why, /Nobody may/, `${where}: ${why}`)
           } else if (decision.stop === 'role') {
-            assert.ok(why.includes(`A ${role} may not ${action}`), `${where}: ${why}`)
+            assert.ok(why.includes(`${withArticle(role, true)} may not ${action}`), `${where}: ${why}`)
           } else {
-            assert.ok(why.includes(`A ${role} in the same tenant may ${action}`), `${where}: ${why}`)
+            assert.ok(why.includes(`${withArticle(role, true)} in the same tenant may ${action}`), `${where}: ${why}`)
           }
           checked += 1
         }
@@ -36,6 +36,19 @@ test('every verdict the engine can give has a reason that names what decided it 
     }
   }
   assert.equal(checked, 3 * 4 * 4 * 4)
+})
+
+test('a role takes "a" or "an": the live region never says "A admin" or "A owner" (review round 2)', () => {
+  assert.equal(withArticle('admin', true), 'An admin')
+  assert.equal(withArticle('owner', true), 'An owner')
+  assert.equal(withArticle('member', true), 'A member')
+  assert.equal(withArticle('viewer', true), 'A viewer')
+  assert.equal(withArticle('owner'), 'an owner')
+  for (const role of ROLES) {
+    const refused = t.why({ allow: false, stop: 'role', policy: 'project.delete', role, resource: 'project', action: 'delete', actorTenant: 'A', dataTenant: 'A' })
+    const allowed = t.why({ allow: true, stop: null, policy: 'project.read', role, resource: 'project', action: 'read', actorTenant: 'A', dataTenant: 'A' })
+    for (const sentence of [refused, allowed]) assert.doesNotMatch(sentence, /^A [aeiou]/i, sentence)
+  }
 })
 
 test('a role refusal names the lowest role that would be enough, from the rulebook', () => {

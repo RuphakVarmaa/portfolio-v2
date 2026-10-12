@@ -1,10 +1,12 @@
+import type { Stage } from '../../cluster/protocol.ts'
 import { terms } from '../../lib/retrieval/analyze.ts'
 import type { Corpus, CorpusChunk, CorpusPart, CorpusSection } from '../../lib/retrieval/corpus.ts'
 import type { RichHit } from '../../lib/retrieval/types.ts'
+import { fmtMs } from '../../sections/services/retrieval/format.ts'
 
 /**
  * Pure helpers for the BM25 index explorer: the shape of the corpus file, where each window sits on the
- * section ribbon, the highlighted text of a chunk, and the filtered term table.
+ * section ribbon, the highlighted text of a chunk, the filtered term table, and the stage times.
  *
  * The explorer does not re-implement search. It builds the very `RetrievalEngine` the retrieval worker
  * builds (src/lib/retrieval/engine.ts) from the very file the worker fetches, so every term, count, score
@@ -179,6 +181,21 @@ export function indexStats(corpus: Pick<Corpus, 'window' | 'overlap' | 'tokenize
     tokenizer: corpus.tokenizer,
     buildMs: engine.buildMs,
   }
+}
+
+export interface StageTime {
+  name: string
+  /** The measured time, printed. */
+  time: string
+}
+
+/**
+ * The strip under a question: each stage the engine ran and how long it took, printed the way the home
+ * retrieval panel prints it (`fmtMs`). A stage too short for the browser's clock (it ticks in tenths of a
+ * millisecond) reads `<0.1 ms`, never `0 ms`: a printed zero looks hard-coded, and these are measured.
+ */
+export function stageTimes(stages: readonly Stage[]): StageTime[] {
+  return stages.map((stage) => ({ name: stage.name, time: fmtMs(stage.ms) }))
 }
 
 /**

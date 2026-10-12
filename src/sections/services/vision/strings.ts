@@ -81,7 +81,10 @@ export const strings = {
       'You are watching a replay. These numbers were measured on the device named below when the run was recorded; none of them is measured on yours. The dials mean the same things as in a live run.',
     pass: 'worker pass p95 (ms)',
     passNote: 'No detector is loaded, so the first dial is the worker’s letterbox pass, not inference.',
+    /** Under the dials while the first one has no timing, in the three situations where that happens (see `noTimingReason`). */
     noData: 'No frames yet.',
+    noInference: 'No inference has finished yet.',
+    noRecordedTiming: 'This recording was made without a detector, so it holds no timing for the first dial.',
     limit: (production: string) => `Hatched zone: slower than production (${production}).`,
     queueNote: 'recent peak',
     thisDevice: 'THIS DEVICE',

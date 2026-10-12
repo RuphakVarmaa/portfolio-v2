@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { flushSync } from 'react-dom'
 import { announce } from '../../../cluster/live-region.ts'
 import { isLit, type ServicePhase } from '../../../cluster/phase.ts'
@@ -15,17 +15,16 @@ import { copy } from '../../../data/copy.ts'
 import { LAMP_GLOW_RINGS, lamp } from '../../../lib/draw/paths.ts'
 import { analyzeQuery } from '../../../lib/retrieval/analyze.ts'
 import { MODEL_NOT_LOADED } from '../../../lib/retrieval/messages.ts'
-import type { LoadModelResult, RetrievalMode, RichHit, SearchResult, WarmResult } from '../../../lib/retrieval/types.ts'
-import { serviceAnchor } from '../../../routes.ts'
+import type { LoadModelResult, RetrievalMode, RichHit, WarmResult } from '../../../lib/retrieval/types.ts'
+import { Answer } from './Answer.tsx'
 import { loadModel, restartWorker, search, warm, workerAvailable, type SearchRun, type Where } from './client.ts'
 import { showCitation } from './cite.ts'
 import { citeNeeds, citedPart, citedSentence, whereLabel, DEPTH_NAMES } from './hit-view.ts'
-import { fmtMs } from './format.ts'
 import { elementAfter, placeToHold, scrollToRestore } from './hold-place.ts'
-import { IndexCard } from './IndexCard.tsx'
 import { ModelTap, type ModelView } from './ModelTap.tsx'
 import { savePending } from './pending.ts'
 import { DWELL_MS, annotate, engineName, planReplay } from './replay.ts'
+import { firstScreenFor, revealDelta } from './reveal.ts'
 import { pipeline } from './state.ts'
 import { S } from './strings.ts'
 import { TAP_START, describeProgress, reduceProgress, type ExpectedSizes, type TapProgress } from './tap-view.ts'
@@ -44,6 +43,10 @@ import styles from './Retrieval.module.css'
  *
  * Every number on screen was measured by code that ran: stage times in the worker, the round trip here, the
  * index size by the index, the model bytes by the download.
+ *
+ * The answer (Answer.tsx) puts the passage first and how it was measured last. When the visitor's own question
+ * lands below the fold the page scrolls, by the least it takes, until the start of the answer is on screen
+ * (reveal.ts); the keyboard stays where it was.
  */
 
 const MAX_QUESTION = 200
@@ -61,7 +64,8 @@ interface Index {
   where: Where
 }
 
-interface Answer {
+/** A question and what came back, as the answer is rendered from it. */
+interface Exchange {
   id: number
   query: string
   run: SearchRun
@@ -88,35 +92,6 @@ function WorkerLamp({ phase, mainThread }: { phase: ServicePhase; mainThread: bo
   )
 }
 
-/** The five measured stages as a strip: name, time, and the share of the total each took. */
-function Timings({ answer }: { answer: Answer }) {
-  const { result, roundTripMs, where } = answer.run
-  const total = result.totalMs
-  return (
-    <div className={styles.timings} role="group" aria-label={S.timingsLabel}>
-      <p className="stencil">{where === 'main' ? S.timingsMain : S.timings}</p>
-      <ol className={styles.stages}>
-        {result.stages.map((stage) => (
-          <li key={stage.name} className={styles.stageCell}>
-            <span className={styles.stageName}>{stage.name}</span>
-            <span className={styles.stageMs}>{fmtMs(stage.ms)}</span>
-            <span className={styles.stageBar} style={{ '--share': total > 0 ? Math.round((stage.ms / total) * 100) : 0 } as CSSProperties} aria-hidden="true" />
-          </li>
-        ))}
-        <li className={cx(styles.stageCell, styles.stageTotal)}>
-          <span className={styles.stageName}>{S.total}</span>
-          <span className={styles.stageMs}>{fmtMs(total)}</span>
-        </li>
-      </ol>
-      <p className={styles.timingNote}>
-        {S.roundTrip} {fmtMs(roundTripMs)} · {S.rerankNote(result.rerank)}
-        {result.coldStartMs !== undefined ? ` · ${S.coldStart(result.coldStartMs)}` : ''}
-      </p>
-      <p className={styles.note}>{S.drawingNote}</p>
-    </div>
-  )
-}
-
 /** Why the model tap cannot be offered, in one line (or null when it can). The model not being published comes first: it is the one that matters now. */
 function unavailableReason(index: Index | null, tier: string, simd: boolean): string | null {
   if (index === null) return null
@@ -132,18 +107,18 @@ export default function AskTheSite() {
   const demo = copy.services.retrieval.demo
   const { headingLevel, standalone } = usePanelContext()
   const SubHeading = (['h2', 'h3', 'h4'] as const)[headingLevel - 1]
-  const ResultsHeading = (['h3', 'h4', 'h5'] as const)[headingLevel - 1]
   const { depth, plain, motionLite, setDepth, setPlain } = usePreferences()
   const tier = useTierInfo()
   const phase = useServicePhase('retrieval')
   const inputId = useId()
   const chipsId = useId()
-  const resultsId = useId()
 
   const [text, setText] = useState('')
   const [hint, setHint] = useState(false)
   const [searching, setSearching] = useState<string | null>(null)
-  const [answer, setAnswer] = useState<Answer | null>(null)
+  const [answer, setAnswer] = useState<Exchange | null>(null)
+  /** "Show me the pipeline" has been pressed: the answer then says what the drawing leaves out, and its measured details are open. */
+  const [pipelineShown, setPipelineShown] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const [index, setIndex] = useState<Index | null>(null)
   const [indexError, setIndexError] = useState<string | null>(null)
@@ -153,8 +128,11 @@ export default function AskTheSite() {
 
   const root = useRef<HTMLDivElement>(null)
   const suggestions = useRef<HTMLDivElement>(null)
+  const results = useRef<HTMLElement>(null)
   /** Where the element after the demo was when a question was asked from further down the panel (see hold-place.ts). */
   const held = useRef<number | null>(null)
+  /** The answer (by number) that the visitor asked for and that has not been brought into view yet (see reveal.ts). */
+  const reveal = useRef<number | null>(null)
   const seq = useRef(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   const job = useRef<JobHandle<'retrieval.loadModel'> | null>(null)
@@ -176,6 +154,31 @@ export default function AskTheSite() {
     }
     if (searching === null) held.current = null
   })
+
+  // A question asked from the box or a chip lands below them, which on a phone is below the fold: scroll, by the least it takes,
+  // until the start of the answer is on screen. The room is the part of the viewport the sticky header and the status strip do
+  // not cover (the page's scroll padding). The keyboard focus is not moved.
+  useLayoutEffect(() => {
+    if (answer === null || reveal.current !== answer.id) return
+    reveal.current = null
+    const section = results.current
+    if (!section) return
+    const page = getComputedStyle(document.documentElement)
+    const view = window.visualViewport
+    const offset = view?.offsetTop ?? 0
+    const box = section.getBoundingClientRect()
+    // The first screenful runs down to the best card's "Find it on this page" link: the passage, then the way to it on the page.
+    const first = firstScreenFor(section.querySelector('[data-find]')?.getBoundingClientRect().bottom ?? null, box.top)
+    const delta = revealDelta(
+      box,
+      {
+        top: offset + (Number.parseFloat(page.scrollPaddingTop) || 0),
+        bottom: offset + (view?.height ?? window.innerHeight) - (Number.parseFloat(page.scrollPaddingBottom) || 0),
+      },
+      first,
+    )
+    if (delta !== 0) window.scrollBy({ top: delta, behavior: latest.current.motionLite ? 'instant' : 'smooth' })
+  }, [answer])
 
   // ---- the index: fetched and built in the worker as soon as the demo is on screen ----------------------------
   useEffect(() => {
@@ -219,7 +222,7 @@ export default function AskTheSite() {
   const publish = (run: SearchRun, replay: boolean) => {
     const { stages, mode: ran } = run.result
     const facts = latest.current.index?.info ?? null
-    const final = { stages, annotations: annotate(stages, ran, facts), active: [], busy: false }
+    const final = { stages, annotations: annotate(stages, ran, facts), active: [], busy: false, paceMs: null }
     clearReplay()
     const steps = planReplay(stages, ran, facts)
     if (!replay || latest.current.motionLite || steps.length === 0) {
@@ -227,7 +230,7 @@ export default function AskTheSite() {
       return
     }
     // Replay the real stages one at a time, so each part lights as its stage "arrives"; the times shown are the measured ones.
-    pipeline.patch({ busy: true, stages: [], active: [], annotations: {} })
+    pipeline.patch({ busy: true, paceMs: DWELL_MS, stages: [], active: [], annotations: {} })
     steps.forEach((step, at) => {
       timers.current.push(setTimeout(() => pipeline.patch({ ...step, busy: true }), at * DWELL_MS))
     })
@@ -239,12 +242,15 @@ export default function AskTheSite() {
     const query = tidy(raw)
     if (query === '') {
       setHint(true)
-      pipeline.patch({ busy: false })
+      pipeline.patch({ busy: false, paceMs: null })
       return
     }
     const engine = options.mode ?? mode
     const id = ++seq.current
     if (root.current) held.current = placeToHold(suggestions.current?.getBoundingClientRect().bottom, elementAfter(root.current)?.getBoundingClientRect().top)
+    // The visitor's own question brings its answer into view. The panel's "Show me the pipeline" does not (its button sits
+    // below the answer, and the page is held where the visitor is instead), nor does a question asked from further down.
+    reveal.current = options.replay === true || held.current !== null ? null : id
     setHint(false)
     setText(query)
     setSearching(query)
@@ -261,7 +267,7 @@ export default function AskTheSite() {
     } catch (error) {
       if (id !== seq.current || isAbort(error)) return
       setSearching(null)
-      pipeline.patch({ busy: false })
+      pipeline.patch({ busy: false, paceMs: null })
       if (engine === 'embed' && messageOf(error).includes(MODEL_NOT_LOADED)) {
         // The worker restarted and forgot the model: say so, and answer this question with BM25 instead.
         setMode('bm25')
@@ -281,6 +287,7 @@ export default function AskTheSite() {
 
   // "Show me the pipeline" in the panel runs a real search (the question in the box, or the placeholder's) and replays it.
   const runPipeline = useEffectEvent(() => {
+    setPipelineShown(true)
     void ask(tidy(text) === '' ? demo.placeholder : text, { replay: true })
   })
   useEffect(() => pipeline.onRun(() => runPipeline()), [])
@@ -359,8 +366,6 @@ export default function AskTheSite() {
   const reason = unavailableReason(index, tier.tier, tier.simd)
   const tapView: ModelView | null = reason !== null ? { kind: 'unavailable', reason } : index === null ? null : tap
 
-  const hits = answer?.run.result.hits ?? []
-  const result: SearchResult | null = answer?.run.result ?? null
   const showStats = index !== null
 
   return (
@@ -470,27 +475,21 @@ export default function AskTheSite() {
         </div>
       ) : null}
 
-      {answer !== null && result !== null ? (
-        <section className={styles.results} aria-labelledby={resultsId} aria-busy={searching !== null || undefined}>
-          <div className={styles.resultsHead}>
-            <ResultsHeading id={resultsId} className={styles.resultsTitle}>
-              {S.resultsHeading(answer.query)}
-            </ResultsHeading>
-            <p className={styles.count}>{S.count(hits.length, result.candidates)}</p>
-          </div>
-          <Timings answer={answer} />
-          {hits.length === 0 ? (
-            <div className={styles.empty}>
-              <p>{demo.noResults}</p>
-            </div>
-          ) : (
-            <ol className={styles.cards}>
-              {hits.map((hit) => (
-                <IndexCard key={`${answer.id}:${hit.chunkId}`} hit={hit} stems={answer.stems} depth={depth} plain={plain} away={standalone && hit.anchor !== serviceAnchor('retrieval')} onCite={cite} />
-              ))}
-            </ol>
-          )}
-        </section>
+      {answer !== null ? (
+        <Answer
+          ref={results}
+          id={answer.id}
+          query={answer.query}
+          run={answer.run}
+          stems={answer.stems}
+          depth={depth}
+          plain={plain}
+          headingLevel={headingLevel}
+          standalone={standalone}
+          pipelineShown={pipelineShown}
+          busy={searching !== null}
+          onCite={cite}
+        />
       ) : null}
 
       {tapView !== null ? (

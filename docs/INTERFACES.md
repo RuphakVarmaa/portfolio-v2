@@ -103,7 +103,13 @@ hydrated. So:
   `--ink-muted`. `--lamp-off` is the only grey. No other greys, no gradients (the lamp glow is the only
   exception and is drawn in SVG with hard stops), no grain, no blur, no translucency.
 - Breakpoints (literal, custom properties cannot be used in media queries): `640px`, `900px` (header),
-  `1024px` (12-column grid). Container query for schematics: `600px`.
+  `1024px` (two-column hero and panels). Container query for schematics: `600px`, for tapes `560px`. The Control Room (review round 2:
+  its first screen is a budget on a phone and on a laptop) also uses, only in `ControlRoom.module.css`: `min-width: 1280px` on
+  screens (the boot tape hangs inside the board's top band), `min-width: 1024px` with `max-height: 860px` (a short desktop: the
+  headline is sized by the height too), `max-width: 479px` with `max-height: 879px` (a small phone hides the eyebrow, which stays
+  readable to a screen reader), and `max-width` 899, 579, 429, 384 and 349 px for the boot tape's reserved rows (`--lines`, measured
+  for the longest line the page can print). The header bar hides its toggle icons below 1280 px so six toggles fit from 900 px.
+  `.wrap` is `position: relative` there: it is the containing block of that tape.
 - Touch targets are 44x44 px or larger. Severity and allow/deny are shape plus text, never colour alone.
 - Under `forced-colors: active` keep outlines with `outline`, not `box-shadow`, and keep pressed, selected and
   active states visible with a border or outline (F's shell and UI components already do; see the tail of
@@ -112,9 +118,13 @@ hydrated. So:
   colour or stroke width.
 - Motion uses `--dur-1/2/3`, `--dur-boot` and `--ease-*`, which are `0ms` under lite motion, so a
   transition written with the tokens is automatically instant. Nothing moves unless a real event happened.
-- Global utility classes (from `src/styles/utilities.css`): `.sr-only`, `.wrap`, `.grid` (+ `--cols` 4/6/12),
-  `.span-full`, `.span-4`, `.span-6`, `.span-12`, `.span-md-4/5/6/7/8` (from 1024 px), `.stencil`, `.mono`,
-  `.lead`, `.muted`, `.measure`, `.panel`, `.ruled`, `.keycap`, `.tabular`.
+- Global utility classes (from `src/styles/utilities.css`): `.sr-only`, `.wrap`, `.stencil`, `.mono`,
+  `.lead`, `.muted`, `.measure`, `.panel`, `.ruled`, `.keycap`. (`.grid`, `.span-*` and `.tabular` were removed in review round 2:
+  nothing used them, and each section lays itself out.)
+- **Martian Mono has no width axis here.** The shipped file is `wght` only (`@fontsource-variable/martian-mono/wght.css`; the file with
+  `wdth` is 38.5 KB against 23.6 KB and would break the 150 KB font budget), so `font-variation-settings: 'wdth' 90` does nothing, and
+  every such declaration was removed. A mono character is 0.7 em wide at every setting (9.1 px at 13 px): lay lines out by that, not
+  by condensing.
 
 ### Accessibility
 
@@ -155,6 +165,10 @@ Measured after review round 1 (`pnpm build`): `dist/index.html` 58.0 KB, all CSS
 4x CPU, gzip on) first paint is 1.8 s; the spec's 1.2 s needs the first screen's CSS inlined in the HTML, which the HTML budget cannot hold
 (deviation 20 below).
 
+Measured after review round 2 (`pnpm build`): `dist/index.html` 59.1 KB (873 B of room), all CSS 23.86 KB gzip (137 B of room), site entry
+61.8 KB gzip, React vendor 59.0 KB, initial JS total 120.8 KB, transferred before interaction 332 KB. The round's CSS was paid for with dead
+code, not a larger budget (deviation 28). Lighthouse and the Fast 3G run were not repeated.
+
 ## 5. Global hooks: `html` attributes, DOM ids, CSS
 
 Set by the inline pre-paint script in `index.html` (before first paint) and kept in sync by the preference
@@ -170,7 +184,9 @@ store. CSS can rely on them; React should read `usePreferences()` instead of the
 | `html[data-tier]` | `full` \| `standard` \| `basic` | Set by `detectTier()` at startup. |
 
 Helper attributes: `data-machine-only` (hidden when the machine is off), `data-machine-off-only` (shown only
-then), `data-js-only` (hidden without JS), `data-no-print` (`display: none` under `@media print`; the header, strip, key sheet
+then), `data-js-only` (hidden without JS), `data-nojs-only` (its twin: words for the page without JavaScript, hidden once the
+pre-paint script set `data-js`; the boot tape and the Chaos Lab lead use it, so the page never promises a boot or buttons it cannot
+deliver), `data-no-print` (`display: none` under `@media print`; the header, strip, key sheet
 and skip link carry it, and S6's `print.css` may put it on anything else that should not reach paper), `data-plain-caption` (set by `PlainCaption`), `data-board`
 (**S1: put it on the board's root element**; telemetry's frame sampler finds it and runs only while it is
 10% visible), `data-panel-heading` (on each ServicePanel heading; `goToId` focuses it), `data-flip` (elements
@@ -346,6 +362,7 @@ interface QuorumState {
   peers: Array<{ id: string; lastSeen: number; isLeader: boolean }>   // the OTHER tabs
   nodes: number            // 1 + peers.length
   members: Array<{ id: string; isSelf: boolean; isLeader: boolean; lastSeen: number | null }>   // every tab, this one first
+  newcomer: boolean        // this tab started after another tab that is still here (it joined a quorum that existed); the tab that was open is not
 }
 ```
 
@@ -407,6 +424,12 @@ announce(text: string, politeness: 'polite' | 'assertive' = 'polite'): void
 ```
 Throttled to one DOM update per 800 ms with coalescing (the first call speaks at once; later calls inside
 the window are joined into one update). `Tape` can forward new lines for you (`announce` prop).
+
+**One voice per event** (review round 2). A tab joining is announced by the hero's notice only (`QuorumPrompt`, a `role="status"`
+line worded for the tab that reads it: "That tab just joined this one" in the tab that was open, "This tab just joined another one" in
+the tab that has just opened, `QuorumState.newcomer`). A leader change is announced by `boot.ts` only, in the first person ("This tab is
+now the leader, term 2."). The Chaos Lab keeps the reward sentences for the eyes and does not announce them again: two voices for one
+event were read twice or dropped, and the new leader heard itself named in the third person.
 
 ```ts
 import { audio } from '../cluster/audio.ts'
@@ -570,14 +593,14 @@ All in `src/components/ui/` (import with explicit `.tsx`). Styles are in `ui.mod
 | `Stamp` | `children`, `tone?: 'ink'\|'cobalt'\|'live'`, `size?: 'sm'\|'md'\|'lg'`, `rotate? = -6`, `shape?`, `animate?`, `as?: 'span'\|'div'` | `sm` is always ink text (tone colours the border); `md`/`lg` may carry the tone as text (>= 18 px). Use `shape` for the severity glyph. |
 | `Readout` | `label?`, `value`, `width? = 2` (ch), `size?: 'sm'\|'md'\|'lg'`, `align?: 'start'\|'end'`, `face?: 'dot'\|'mono'`, `flash? = true` | Doto, round dots, fixed width (CLS 0), 120 ms `--live` flash when `value` changes (primitives only). Doto is for digits and NODES / TERM / UP / MS only. Its decimal point is a plus-shaped cluster of five dots, so a figure with a decimal, and the figure beside a dial, use `face="mono"` (Martian Mono). |
 | `PlainCaption` | `children`, `label? = 'In plain words'` | Visible while `data-plain='on'`. Mandatory on every panel. |
-| `Tape` | `lines: (string \| { id?, text, tone?: 'ink'\|'muted'\|'live'\|'cobalt', plain? })[]` (oldest first), `label` (required), `header?`, `max? = 200`, `announce?`, `empty?`, `height? = '14rem'` | `role="log"`, focusable, sticks to the newest line unless the reader scrolled up. `announce` forwards new lines to the throttled live region (the tape itself is never `aria-live`). Line height is 24 px, aligned to the ruled paper (which scrolls with the entries). An entry has one sprocket hole; a string line breaks between its fields only (`TapeText` / `tape-fields.ts`: a `key=value` pair or a `·` part, never `policy-b` in the middle) and its later rows hang under the hole; on a tape under 560 px wide an entry is one row and the tape pans sideways. `TapeText` and `SoftText` are exported for the sentences next to a tape. |
-| `Meter` | `label`, `value`, `min`, `max`, `unit?`, `warn?`, `decimals? = 0`, `instant?` | `role="meter"`. SVG analog dial; the needle tweens with GSAP (overshoot), instant under lite motion. The ends of the scale sit under the ends of the arc. The Readout under the dial (Martian Mono, bold) is the real value, left-aligned after the label. `warn` draws a hatched zone to `max`. |
+| `Tape` | `lines: (string \| { id?, text, tone?: 'ink'\|'muted'\|'live'\|'cobalt', plain? })[]` (oldest first), `label` (required), `header?`, `max? = 200`, `announce?`, `empty?`, `height? = '14rem'` | `role="log"`, focusable, sticks to the newest line unless the reader scrolled up. `announce` forwards new lines to the throttled live region (the tape itself is never `aria-live`). Line height is 24 px, aligned to the ruled paper (which scrolls with the entries). An entry has one sprocket hole; a string line breaks between its fields only (`TapeText` / `tape-fields.ts`: a `key=value` pair or a `·` part, never `policy-b` in the middle) and its later rows hang under the hole; on a tape under 560 px wide an entry is one row and the tape pans sideways. For the two logs with a fixed shape (the policy audit line, the operator log) a narrow tape prints the same fields with the answer first (`compactLine` in `tape-fields.ts`: `DENY policy=rls.tenant 23:19:38.7 tenant=B ...`, the event before its clock), and the scroller carries `data-pan` while there is more to read to its right, which fades that edge. `TapeText` and `SoftText` are exported for the sentences next to a tape. |
+| `Meter` | `label`, `value: number \| null`, `min`, `max`, `unit?`, `warn?`, `decimals? = 0`, `instant?` | `role="meter"`. With `value: null` (nothing measured yet) it is switched off like an unlit lamp: needle at `min` in the off grey, a dash for the figure, `role="img"` named "<label>: no reading yet" (never a zero it did not measure). SVG analog dial; the needle tweens with GSAP (overshoot), instant under lite motion. The ends of the scale sit under the ends of the arc. The Readout under the dial (Martian Mono, bold) is the real value, left-aligned after the label. `warn` draws a hatched zone to `max`. |
 | `Select` | every `<select>` attribute; `className` goes to the wrapper | The one way to draw a `<select>`: keycap-edged, a hand-set chevron, 44 px tall, 16 px type (iOS zooms under 16). Use it for every choice list. |
-| `DepthSwitch` | `value`, `onChange`, `legend?`, `labels?`, `onIntent?` | Native radio group. ServicePanel already includes one, wired to the preferences. |
+| `DepthSwitch` | `value`, `onChange`, `legend?`, `labels?`, `names?`, `onIntent?` | Native radio group. `names` is what a screen reader says (`30 seconds`; the face `30 s` is set in capitals and would be read "30 S"). ServicePanel already includes one, wired to the preferences. |
 | `ConsentDialog` | `open`, `title`, `children`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, `returnFocus?: RefObject` | Native modal `<dialog>`. "Not now" is first in the DOM, so it gets focus. Esc, backdrop click and the cancel button all call `onCancel` and return focus. It never starts anything: act in `onConfirm`. |
 | `Section` | `id`, `label` (the number), `title`, `lead?`, `children` | `<section id aria-labelledby>` + hex bezel + h2 + lead, content wrapped in `.wrap`. Every section's copy object has `id`, `label`, `title`, `lead`: `<Section id={t.id} label={t.label} title={t.title} lead={t.lead}>`. |
 | `Schematic` | `SchematicProps` (see 7.3) + `depth?` | Real `<button>` parts, native node dialog, focus returns on close. ServicePanel renders it for you. |
-| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `formatStageMs?`, `onShowPipeline?`, `pipelineBusy?`, `demoFooter?` | The shared anatomy. A metric value is never broken across lines: the numeral is sized from the row's width so the widest value ("<30ms") fits a column. From 1024 px the drawing is sticky under the header (when the window is at least 760 px tall) and the stage list sits under the demo's honest caption. Without JavaScript the depth switch is hidden and the schematic's parts are labels, not buttons. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
+| `ServicePanel` | `project`, `copy`, `demo?`, `fallback`, `schematic`, `stamp: 'PORT'\|'RULES ONLY'`, `stages?: Stage[]`, `formatStageMs?`, `onShowPipeline?`, `pipelineBusy?`, `pipelinePaceMs?`, `demoFooter?` | The shared anatomy. A metric value is never broken across lines: the numeral is sized from the row's width so the widest value ("<30ms") fits a column. From 1024 px the drawing is sticky under the header (when the window is at least 760 px tall) and the stage list sits under the demo's honest caption. Without JavaScript the depth switch is hidden and the schematic's parts are labels, not buttons. `fallback` = what the prerender, the Basic tier and a failed load show (a recorded trace if one exists, otherwise `copy.services.panel.noRun`; never invented numbers). `stages` = measured timings from a real run; use the names in `copy.services.<id>.pipeline` where you can. `onShowPipeline` makes the "Show me the pipeline" button appear: run a real job and feed `stages` as results arrive. `pipelinePaceMs` is set while a replay runs on a timer (one stage every N ms, because the real stages take microseconds): the panel then says, under the list, that the pacing is a timer and the times shown are the measured ones. The work trace's "What broke" row takes its label from `copy.trace.brokeLabel` when a service has one: retrieval, vision and review say "What I guard against", because the résumé reports no incident for them; policy keeps "What broke". `demoFooter` is for a model tap and its size label. The panel owns the depth switch (it writes the global depth and reflows with Flip), the 30 s lead size, the work trace, and the nameplate stamp. |
 | `DemoSlot<P>` | `load: () => Promise<{ default: ComponentType<P> }>`, `props?: P`, `fallback?`, `disabled?`, `rootMargin? = '50% 0px'` | Renders the fallback (the panel's, by default) on the server and until the panel is within 50% of the viewport, then imports the demo chunk. The **first Tab key press anywhere** starts every idle slot at once: a demo that has not loaded has no tab stops, so without this a forward Tab walk skipped every lazy demo and the Chaos Lab. It never loads models or the runtime: the demo decides. A render error or a failed import falls back with a one-line note. |
 | `usePanelContext()` / `PanelContext` | `{ headingLevel: 1\|2\|3, standalone }` | Provided by `Services` (h3) and by `/projects/*` (h1). You normally never touch it. |
 
@@ -589,17 +612,20 @@ const { theme, motion, motionLite, motionForced, plain, machine, machineOff, mac
         setTheme, toggleTheme, setMotion, toggleMotion, setMachine, toggleMachine, setPlain, togglePlain,
         setDepth, setSound, toggleSound } = usePreferences()
 ```
+`keys` (default true, stored as `ruphak-keys`, `off` or absent-means-on) says whether the single-key shortcuts are on; `setKeys` / `toggleKeys`.
 Values are **effective**: `motion` is `lite` when the system asks for reduced motion (`motionForced` is then
 true and the toggle is disabled); `machine` is `off` on the Basic tier (`machineForced`). Reduced motion does
 **not** switch the machine off (see section 10). Sound is never stored. Keys: `ruphak-theme`,
-`ruphak-motion`, `ruphak-machine`, `ruphak-plain`, `ruphak-depth`, `ruphak-tier`, `ruphak-operator` (S5).
+`ruphak-motion`, `ruphak-machine`, `ruphak-plain`, `ruphak-depth`, `ruphak-keys`, `ruphak-tier`, `ruphak-operator` (S5).
 
 `PreferenceControls` (`variant?: 'header' | 'menu' | 'panel'`) renders Plain language, Skip the machine,
-Ink, Lite motion and Sound as `aria-pressed` toggle buttons; `variant="panel"` adds the device-tier select.
+Ink, Lite motion, Sound and Key shortcuts as `aria-pressed` toggle buttons; `variant="panel"` adds the device-tier select.
 **The Colophon renders `<PreferenceControls variant="panel" />`.** Also: `Header`, `ClusterStrip`,
 `SkipLink`, `LiveRegion`, `KeySheet` (the `p r c 2 ?` shortcuts live here; keys are ignored while typing,
-with a modifier held, or while a modal dialog is open; Esc is native for dialogs and **S3 listens for Esc
-itself to stop the camera**), `SoundToggle`, `PreferencesProvider` (App renders it).
+with a modifier held, while a modal dialog is open and while focus is in a radio group, a `summary` or a log, and all of them stop when
+the visitor turns the **Key shortcuts** switch off (WCAG 2.1.4, Character Key Shortcuts; the rules are `shortcutFor` in
+`shortcuts.ts`; the switch is in the display options, the menu, the Colophon and on the sheet itself); Esc is native for dialogs and
+**S3 listens for Esc itself to stop the camera**), `SoundToggle`, `PreferencesProvider` (App renders it).
 
 ## 9. Per-workstream notes
 
@@ -614,10 +640,13 @@ The readout flash comes free from `<Readout>`. SENSORS lamp: `typeof DeviceMotio
 decided after mount (never in the first render). The service index links to `#service-<id>`; titles and
 `headlineMetric` come from `projects`. Under `machineOff` render the list from `copy.controlRoom.machineOff`
 (use `data-machine-only` / `data-machine-off-only` or `usePreferences().machineOff`). Quorum prompt: button
-calls `quorum.openSecondTab()`; if it returns false show `copy.controlRoom.quorumPrompt.blocked`; the reward
-line uses `copy.controlRoom.quorumPrompt.joined(q.nodes)` once `q.nodes >= 2`, and `.unsupported` when
-`!q.supported`; mark it a live region (use `announce` too, sparingly). Style frame, USER_TESTS template:
-section 2 item 2.
+calls `quorum.openSecondTab()`; if it returns false show `copy.controlRoom.quorumPrompt.blocked`; the notice
+(`quorum-notice.ts`, a pure reducer of what this tab observed) uses `copy.controlRoom.quorumPrompt.joined(q.nodes)` in the tab that was
+open and `.joinedNew(q.nodes)` in the tab that has just opened (`q.newcomer`) once `q.nodes >= 2`, `.unsupported` when `!q.supported`,
+and, after a leader that was another tab went away and this tab saw the election, the Chaos Lab's `leader.reward` sentence with
+`quorumPrompt.self(id)` ("tab-3b9a (this tab)") as the shown-not-announced failover line. The join line is the one live region
+(`role="status"`) for an arrival: do not `announce` it as well. The hero is a first-screen budget (a phone at 390 x 844, a laptop at
+1280 x 800): see the breakpoints in section 3 and deviation 24. Style frame, USER_TESTS template: section 2 item 2.
 
 **S2: Retrieval.** Replace `src/sections/services/retrieval/index.tsx` (export `RetrievalService`),
 `src/workers/retrieval.worker.ts` and `scripts/build-corpus.ts` / `scripts/embed-corpus.mjs` (F's placeholders
@@ -766,6 +795,38 @@ Manifest: fetch `/profile.json` from the same origin for "View as agent".
     idle slot), `Schematic` (parts are labels until hydrated), `goToId` (one landing at a time, far targets jump and hold), `--fs-micro`,
     `text-wrap: pretty`, `.size-sm` buttons 44 px under 640 px, and the head order described in item 20. Every consumer gets them; no section
     keeps its own copy.
+
+23. **Martian Mono has no width axis.** The spec asks for `wdth 75-112.5` and sets the mono at `wdth 90`. `@fontsource-variable/martian-mono/wght.css`
+    ships the `wght` axis only (read from the shipped file's `fvar` table); the files with `wdth` (`standard.css`, `wdth.css`) are 38.5 KB
+    against 23.6 KB and would put the fonts over their 150 KB budget. So 52 `font-variation-settings: 'wdth' ...` declarations did nothing and were
+    removed, and every mono line is laid out by its fixed advance (0.7 em). Consequence: the Control Room's boot line cannot fit one row in the
+    1360 px column (see item 24).
+24. **The Control Room is a first-screen budget** (review round 2: a recruiter on a 390 x 844 phone and a laptop at 1280 x 800). Differences from the
+    spec's 3.2 layout, all deliberate: below 1024 px the hero is one column in the spec's order, with the plain caption straight after the lead
+    (the right column used to put it under the index); the résumé and contact links are drawn twice (`ServiceIndex.tsx`, `Links`), one copy shown
+    under the button on a phone and one under the index from 1024 px, so the Tab order matches the picture at every width; below 480 x 880 the
+    eyebrow is hidden visually and read aloud; the boot line is a tape of unbreakable measurements (no row begins with a dot) that is **two rows
+    on a desktop** (the spec says one line; at 9.1 px a character it never fits) and, from 1280 px, hangs inside the board's top band so a lamp
+    row is above the fold at 1440 x 900 and 1280 x 800 (on a 1366 x 768 screen it only peeks, and at 1280 x 720 the lamps are below the fold);
+    nothing is reserved for the notice under the button, so it moves the page once when it appears.
+25. **The identity line says no year of study.** The spec's "Third-year B.E. ..." is false from mid-2027 and a static page cannot know the date it
+    is read; the period (`2024 - 2028`) is on the line. Add the ordinal by hand if you want it back (`copy.controlRoom.identity`).
+26. **Work traces say what they can stand behind.** Retrieval, Vision and Review head the third row of their work trace "What I guard against" (`brokeLabel` in
+    `copy.ts`), because the résumé reports no incident for them; Policy keeps "What broke" (its 340 ms to 120 ms is the résumé's own, and the text
+    now says only what the résumé says: N+1 patterns removed, tenant-scoped composite indexes added). The retrieval 30-second and Peer texts keep
+    "87% precision with p95 under 2 s" and "more than 50 concurrent sessions" apart, as the résumé does.
+27. **The single-key shortcuts have an off switch** (WCAG 2.1.4, level A; review round 2). `p r c 2 ?` fire from anywhere, so a speech-input or
+    screen-reader user could jump 14,500 px or leave the page by accident. The "Key shortcuts" toggle (`ruphak-keys`) is in the display options, the
+    menu, the Colophon and the key sheet; with it off no key is a shortcut, and the shortcuts also stay out of radio groups, `summary` and logs.
+28. **Review round 2 moved shared pieces again.** `Meter` takes `value: number | null` (the Vision `Dial` wrapper and its CSS are gone);
+    `ServicePanel` takes `pipelinePaceMs`; `Tape` prints a narrow form of the two fixed-shape logs and fades a pannable edge; `QuorumState` has
+    `newcomer`; `PreferencesSnapshot` has `keys`; the review schematic's cells moved into `LAYOUT.review` (`schematics.ts`); `.grid`, `.span-*` and
+    `.tabular` were removed from `utilities.css`; the CSS data-URI shapes (`ui.module.css` `--box` and the Deploy History and Contact marks) have
+    their path coordinates rounded to one decimal (151 B of gzip, no visible change). They paid for the round's CSS under the 24 KB budget.
+29. **The "pgvector" acceptance depends on window alignment.** `engine.test.ts` pins that hit 1 for "pgvector" holds the Peer paragraph's "pgvector HNSW
+    index" and cites that sentence. The search index is cut into 256-wordpiece windows with a stride of 192, so editing any text before the caption
+    in the retrieval panel moves the windows, and three windows are within 0.5 % of each other for that word. If the test fails after an edit
+    there, adjust the wording by a few wordpieces until the paragraph's window leads again (a note sits above `retrieval` in `copy.ts`).
 
 ## 11. Commands
 

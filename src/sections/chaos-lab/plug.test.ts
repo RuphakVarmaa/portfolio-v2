@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { FromWorker, NodeId, ServiceId, ToWorker } from '../../cluster/protocol.ts'
+import type { QuorumState } from '../../cluster/quorum.ts'
 import { createScheduler, type ClusterSpan } from '../../cluster/scheduler.ts'
 import type { HostHandlers, WorkerHost } from '../../cluster/worker-host.ts'
+import { createChaosStore } from './chaos-store.ts'
+import { plugReceipts } from './format.ts'
 import { BATCH_SCALE_STEP, FUZZ_PER_BATCH, MAX_BATCH_SCALE, PLUG_DELAY_MS, deriveBatches, findRecovery, nextBatchScale, runPlug, runningOn, singleFlight, type PlugRun, type PlugSink } from './plug.ts'
 
 // ---- a real scheduler, fake workers, a manual clock -----------------------------------------------
@@ -67,9 +70,14 @@ class FakeHost implements WorkerHost {
 
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve))
 
-function rig() {
+/**
+ * `respawnLagMs`: the scheduler asks for a respawn with a 0 ms timer, and a browser runs that a beat later,
+ * not at once. With a lag, "from the pull" and "from the spawn" are different (real) intervals, as on a real run.
+ */
+function rig(options: { respawnLagMs?: number } = {}) {
   const clock = new FakeClock()
   const hosts: FakeHost[] = []
+  const lag = options.respawnLagMs ?? 0
   const scheduler = createScheduler({
     createHost: (service: ServiceId, index: number, handlers: HostHandlers) => {
       const host = new FakeHost(`${service}-${'abcdefgh'[index]}`, handlers)
@@ -77,7 +85,7 @@ function rig() {
       return host
     },
     now: clock.now,
-    setTimer: clock.setTimer,
+    setTimer: (fn, ms) => clock.setTimer(fn, ms === 0 ? lag : ms),
     clearTimer: clock.clearTimer,
     isSupported: () => true,
   })
@@ -216,7 +224,66 @@ test('pull the plug: a batch in flight on policy-b is killed, retried, and the f
   assert.equal(result.batches.filter((c) => c.state === 'done').length, 9)
   assert.ok(result.spans.some((s) => s.outcome === 'terminated'), 'the terminated attempt is in the spans')
   assert.ok(r.logs[0].startsWith(`fuzz started · 10 batches × ${FUZZ_PER_BATCH.toLocaleString('en-US')} evaluations`))
-  assert.ok(r.logs.at(-1)?.startsWith('fuzz finished · 10,000 evaluations · 0 leaks · policy-b back in'))
+  assert.equal(r.logs.at(-1), `fuzz finished · 10,000 evaluations · 0 leaks · policy-b back ${Math.round(result.respawnMs)} ms after the pull`)
+})
+
+test('one unplug, two respawn lines: each names where its number starts, and each number is the interval it names', async () => {
+  const lag = 3
+  const r = rig({ respawnLagMs: lag })
+  const store = createChaosStore({
+    scheduler: r.scheduler,
+    quorum: { getState: () => ({ term: 0 }) as QuorumState, subscribe: () => () => undefined },
+    now: r.clock.now,
+    operator: { complete: () => false },
+    announce: () => undefined,
+  })
+  store.start()
+  const run = runPlug(r.deps, { update: (next) => store.setPlug(next), log: (text, tone) => store.log(text, tone) }, { mode: 'plug' })
+  await boot(r)
+  const a = r.hostFor('policy-a')
+  const b = r.hostFor('policy-b')
+  r.clock.advance(3)
+  a.answer(a.pending()[0].id)
+  await flush()
+  r.clock.advance(1)
+  b.answer(b.pending()[0].id)
+  await flush()
+
+  // Two batches are done: the plug is pulled on the one running on policy-b, PLUG_DELAY_MS later. Each step is
+  // followed by a flush, as in a browser where each is its own task: the scheduler tells its listeners in a
+  // microtask, and the store can only say "respawned" if it saw the node dead first.
+  r.clock.advance(PLUG_DELAY_MS)
+  assert.equal(b.terminated, true)
+  const pulledAt = r.clock.now()
+  await flush()
+  // The scheduler respawns `lag` ms after the pull, and the new worker says ready 8 ms after it was spawned.
+  r.clock.advance(lag)
+  const reborn = r.hostFor('policy-b')
+  assert.notEqual(reborn, b, 'a fresh worker replaced the dead one')
+  await flush()
+  r.clock.advance(8)
+  reborn.ready()
+  assert.equal(r.clock.now() - pulledAt, lag + 8)
+  await flush()
+  for (let guard = 0; guard < 60; guard++) {
+    const work = [a, reborn].flatMap((host) => host.pending().map((job) => ({ host, job })))
+    if (work.length === 0) break
+    for (const { host, job } of work) host.answer(job.id)
+    r.clock.advance(2)
+    await flush()
+  }
+  const result = await run
+  assert.equal(result.phase, 'done', result.error ?? '')
+
+  const lines = store.getSnapshot().log.map((line) => line.text)
+  const spunUp = lines.filter((text) => text.includes('worker spun up'))
+  const afterPull = lines.filter((text) => text.includes('after the pull'))
+  assert.deepEqual(spunUp, ['policy-b respawned · worker spun up in 8 ms'], 'the worker\'s own start-up: spawn to ready')
+  assert.equal(afterPull.length, 1)
+  assert.match(afterPull[0], / · policy-b back 11 ms after the pull$/, 'the node was gone from the pull to ready: the 8 ms and the 3 before it')
+  assert.equal(result.respawnMs, 11)
+  assert.ok(plugReceipts(result).includes('policy-b back 11 ms after the pull'), 'the receipts say it the same way')
+  assert.ok(!lines.some((text) => /respawned in|back in/.test(text)), 'no line gives a bare "in N ms" for a respawn')
 })
 
 test('if the aimed batch finishes before the plug is pulled, the next one is aimed at instead', async () => {

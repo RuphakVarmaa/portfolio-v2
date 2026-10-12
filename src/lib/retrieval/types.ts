@@ -10,7 +10,7 @@
  * Types only: erased at build, safe to import anywhere.
  */
 import type { Hit, Stage } from '../../cluster/protocol.ts'
-import type { CorpusPart, CorpusSection, PartDepth, PartKind } from './corpus.ts'
+import type { CorpusPart, CorpusSection, PartDepth, PartKind, TextRange } from './corpus.ts'
 
 export type RetrievalMode = 'bm25' | 'embed'
 
@@ -45,6 +45,11 @@ export interface RichHit extends Hit {
   tokens: number
   /** The page elements this window was cut from. */
   parts: CorpusPart[]
+  /**
+   * The stretch of `text` a card shows, when it is not all of it: the window without the broken ends of words that a
+   * wordpiece cut left at its edges (`CorpusChunk.shown`). `text`, `window` and the offsets in `parts` and `evidence` are the window's own.
+   */
+  shown?: TextRange
   evidence: Evidence | null
   /** The question's words (as typed) that this window matched, by their stems. */
   matched: string[]

@@ -1177,7 +1177,7 @@ export function createPipeline(overrides: Partial<PipelineDeps> = {}): Pipeline 
       stages = [...stages, ...step.stages]
       if (step.annotation) annotations[step.node] = step.annotation
       if (lite) continue
-      panelStore.patch({ stages, annotations: { ...annotations }, active: [step.node] })
+      panelStore.patch({ stages, annotations: { ...annotations }, active: [step.node], paceMs: REVEAL_DWELL_MS })
       await sleep(REVEAL_DWELL_MS)
     }
     if (lite) panelStore.patch({ stages, annotations, active: [] })
@@ -1198,7 +1198,7 @@ export function createPipeline(overrides: Partial<PipelineDeps> = {}): Pipeline 
       else announce(strings.announce.pipelineFailed)
     } finally {
       pipelineBusy = false
-      panelStore.patch({ busy: false, active: baselineActive() })
+      panelStore.patch({ busy: false, paceMs: null, active: baselineActive() })
     }
   }
 

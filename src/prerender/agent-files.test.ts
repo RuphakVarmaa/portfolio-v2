@@ -35,6 +35,27 @@ test('the guard throws if a phone number ever reaches an output', () => {
   assert.ok(phoneForms().length >= 3)
 })
 
+test('the guard also catches the number without its country code, however it is spaced (review round 2)', () => {
+  const national = digits.slice(-10)
+  const spellings = [
+    national,
+    `0${national.slice(0, 5)} ${national.slice(5)}`,
+    `(${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`,
+    `${national.slice(0, 5)} ${national.slice(5)}`,
+    `+${digits.slice(0, -10)} ${national.slice(0, 5)} ${national.slice(5)}`,
+  ]
+  for (const spelling of spellings) {
+    assert.throws(() => assertNoPhone({ 'profile.json': `{"phone": "${spelling}"}` }), /leaked into profile\.json/, spelling)
+    assert.throws(() => assertNoPhone({ 'build-info.json': `call ${spelling} now` }), /leaked into build-info\.json/, spelling)
+  }
+})
+
+test('the guard does not mistake other numbers on the page for the phone number', () => {
+  // Digits next to each other in a data file (a byte count and a year) are two numbers, not one.
+  assert.doesNotThrow(() => assertNoPhone({ 'build-info.json': '{"bytes": 7708, "gzipBytes": 358305, "builtAt": "2026-10-11T17:42:00.000Z"}' }))
+  assert.doesNotThrow(() => assertNoPhone({ 'llms.txt': 'Reached 87% retrieval precision in under 2 s for 50+ sessions, 10K+ evaluations, 2024 - 2028.' }))
+})
+
 // ---- profile.json ----------------------------------------------------------------------------------
 
 test('profile.json parses, ends with a newline, and carries exactly the spec fields', () => {

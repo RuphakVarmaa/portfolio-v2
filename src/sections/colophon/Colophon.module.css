@@ -194,7 +194,6 @@
 .log b {
   margin-right: 0.5ch;
   font-family: var(--font-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 /* ---- this session: live telemetry and the preferences ---- */
@@ -333,7 +332,6 @@
 .rows summary > :last-child {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
@@ -358,7 +356,6 @@
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .rows th,
@@ -399,7 +396,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 /* HTML, CSS and fonts: three figures side by side, a hairline over each. */
@@ -422,7 +418,6 @@
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .stats b {
@@ -531,7 +526,6 @@
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   font-variant-numeric: tabular-nums;
 }
 
@@ -560,7 +554,6 @@
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   text-align: end;
 }
 

@@ -141,7 +141,6 @@
 .stages {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .meta {
@@ -290,12 +289,17 @@
 .facts dd {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   overflow-wrap: anywhere;
 }
 
 /* ===== the index explorer ===== */
 
+/*
+ * The numbers above the explorer: pairs of a label over a value. Each pair is a subgrid of two rows of the
+ * strip, so the labels share the strip's first row and the values share its second. If a label wraps (text
+ * enlarged, a narrow column) the whole row of values stays on one baseline, instead of that one value sitting
+ * lower than its neighbours. A browser without subgrid keeps the plain two-row grid inside each pair.
+ */
 .chips {
   display: grid;
   gap: var(--s-2) var(--s-5);
@@ -303,6 +307,7 @@
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
+/* The pair's own 2px gap stays: the strip's 8px row gap only separates one row of pairs from the next. */
 .chips > div {
   display: grid;
   gap: 2px;
@@ -310,15 +315,27 @@
   border-left: 3px solid var(--ink);
 }
 
+@supports (grid-template-rows: subgrid) {
+  .chips > div {
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+  }
+}
+
 .chips dt,
 .chips dd {
   margin: 0;
 }
 
+/* A label shorter than its neighbours' sits on its own value, and two lines are balanced (no stranded "IN"). */
+.chips dt {
+  align-self: end;
+  text-wrap: balance;
+}
+
 .chips dd {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .chipRow {
@@ -487,7 +504,6 @@
   color: var(--cobalt);
   font-family: var(--font-mono);
   font-size: 1rem;
-  font-variation-settings: 'wdth' 90;
   text-decoration: underline;
   text-underline-offset: 0.2em;
   cursor: pointer;
@@ -519,7 +535,6 @@
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
 }
 
 .why th,

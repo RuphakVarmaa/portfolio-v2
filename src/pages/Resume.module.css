@@ -139,7 +139,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   white-space: nowrap;
 }
 
@@ -157,7 +156,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
 }
 
 .metrics {

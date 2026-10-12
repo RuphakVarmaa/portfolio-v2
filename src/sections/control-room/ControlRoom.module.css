@@ -13,6 +13,13 @@
  * container, so lamp art and nameplates scale in `cqw`. The landscape board needs about 830 px of its own
  * width (a 900 px viewport) before its nameplates, which are set in rem and do not scale with it, fit above
  * and below the lamps: at 700 to 800 px they overprinted the board's frame and crowded each other.
+ *
+ * The hero's first screen is a budget, on a phone (390 x 844) and on a desktop (1440 x 900, 1280 x 800): what the
+ * recruiter needs and the switchboard's top row all have to be above the status strip (review round 2). So below
+ * 1024 px the hero is one column in the spec's order, the plain caption straight after the lead; from 1024 px it is
+ * two columns, tighter on a short screen (`max-height: 860px`); and from 1280 px the boot tape hangs inside the
+ * board's top band instead of taking a row above it. Nothing is reserved for a line that is not there yet, except
+ * the tape's rows, which are measured for each width.
  */
 
 /* ===== shared ==================================================================================== */
@@ -31,7 +38,6 @@
 .boot,
 .plate > span:last-child > span:last-child {
   font-family: var(--font-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 /* All drawn line work: a pen of exactly --stroke-draw at every size, round joins. */
@@ -80,14 +86,28 @@
 /* ===== hero ===================================================================================== */
 
 .hero {
-  padding-block: var(--s-3) var(--s-7);
+  padding-block: var(--s-2) var(--s-7);
 }
 
-/* One column in reading order: eyebrow, identity, headline, lead, prompt, then the index (the four projects are on a phone's first screen). */
+/* The wrap is the containing block of the boot tape that hangs inside the board's top band (from 1280 px, below). */
+.inner {
+  position: relative;
+}
+
+/*
+ * One column in the spec's order (3.2): eyebrow, identity, headline, lead, the lead's plain-language caption (the lead
+ * talks of workers, nodes and a quorum), the prompt, the résumé and contact links, the index, the authorship line.
+ * `.side` is `display: contents` here, so its pieces (the index, the links, the authorship line, the caption) are placed
+ * by this grid; the markup keeps the two-column order, which is what keyboard and screen-reader users get from 1024 px.
+ */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'e' 'i' 't' 'l' 'p' 's';
+  grid-template-areas: 'e' 'i' 't' 'l' 'c' 'p' 'k' 'n' 'a';
+}
+
+.side {
+  display: contents;
 }
 
 .eyebrow {
@@ -117,9 +137,20 @@
 .lead {
   grid-area: l;
   max-width: var(--measure);
-  margin-top: var(--s-3);
+  margin-top: var(--s-2);
   font-size: clamp(1.0625rem, 0.95rem + 0.55vw, 1.625rem);
   line-height: 1.4;
+}
+
+.plain {
+  grid-area: c;
+  margin-top: var(--s-2);
+}
+
+/* The caption's own size (ui.module.css) is the one the other panels use; a phone's first screen has no room for it, so it is a size smaller there. `.side` makes the selector the stronger one, so the order the stylesheets are bundled in does not matter. */
+.side .plain {
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 .prompt {
@@ -127,18 +158,25 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-2) var(--s-4);
-  margin-top: var(--s-3);
+  /* From 1024 px the prompt's row takes the height the taller column leaves over; the button stays under the lead, not in the middle of it. */
+  align-content: flex-start;
+  column-gap: var(--s-4);
+  margin-top: var(--s-2);
 }
 
-.side {
-  grid-area: s;
+.links {
+  grid-area: k;
+}
+
+.indexBox {
+  grid-area: n;
   min-width: 0;
-  margin-top: var(--s-3);
+  margin-top: var(--s-1);
 }
 
-.plain {
-  margin-top: var(--s-4);
+.authorship {
+  grid-area: a;
+  margin-top: var(--s-3);
 }
 
 /* The hexagon with its stencil number: the same bezel as the section numbers (drawn once, in the sprite). */
@@ -166,9 +204,31 @@
   dominant-baseline: central;
 }
 
+/*
+ * A phone's first screen is a budget (390 x 844, the status strip on its bottom 40 px): the lead, its plain-language
+ * translation, the prompt, the résumé links and the four projects all fit above the strip, so the blocks sit close. The
+ * eyebrow says what the header's wordmark, the headline and the identity line say (the name, the field, the city), so on a
+ * phone that is not tall enough for it (under 880 px: a 390 x 844 screen has no row to spare) it is read aloud and not drawn.
+ */
+@media (max-width: 479px) and (max-height: 879px) {
+  .eyebrow {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .identity {
+    margin-top: 0;
+  }
+}
+
+/* A tablet has the room: the old spacing, and the plain caption at the size of the other captions. */
 @media (min-width: 640px) {
   .hero {
-    padding-block: var(--s-6) var(--s-8);
+    padding-block: var(--s-6) var(--s-7);
   }
   .identity {
     margin-top: var(--s-2);
@@ -180,22 +240,31 @@
   .lead {
     margin-top: var(--s-4);
   }
+  .plain {
+    margin-top: var(--s-3);
+  }
+  .side .plain {
+    font-size: var(--fs-small);
+    line-height: 1.5;
+  }
   .prompt {
     margin-top: var(--s-4);
   }
-  .side {
+  .indexBox {
     margin-top: var(--s-5);
-  }
-  .links a {
-    padding-right: var(--s-3);
-  }
-  .links a + a {
-    padding-left: var(--s-3);
   }
 }
 
-/* Two columns: letterhead, headline, lead and prompt on the left; the index, résumé links and authorship line on the right. */
+/*
+ * Two columns: letterhead, headline, lead and prompt on the left; the index, then the résumé links, the authorship line
+ * and the caption on the right (the margins of the right column are set after the index, below). The first screen is a
+ * budget: the switchboard is the signature, and at 1440 x 900 and 1280 x 800 its top row has to be on screen (review round
+ * 2, creative), so the hero starts close under the header and nothing is reserved for a line that is not there.
+ */
 @media (min-width: 1024px) {
+  .hero {
+    padding-block: var(--s-5) var(--s-7);
+  }
   .layout {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     grid-template-areas: 'e s' 'i s' 't s' 'l s' 'p s';
@@ -203,7 +272,15 @@
     column-gap: var(--s-7);
   }
   .side {
-    margin-top: 0;
+    display: block;
+    grid-area: s;
+    min-width: 0;
+  }
+  .lead {
+    margin-top: var(--s-3);
+  }
+  .prompt {
+    margin-top: var(--s-3);
   }
 }
 
@@ -221,19 +298,35 @@
   }
 }
 
-/* The reward line. Empty until a peer tab really joined; from 640 px its two lines are reserved, so it never moves anything. */
-.reward {
+/*
+ * The notice under the button (quorum-notice.ts): empty until a peer tab really joined, the leader was lost, a pop-up
+ * was blocked or the browser cannot run a quorum. Nothing is reserved for it. Two lines used to be, from 640 px: a blank
+ * band of 70 px under the button, which on a desktop was what kept the switchboard below the fold (review round 2,
+ * creative) and on a tablet read as a gap between the button and the links. The notice only ever appears after the visitor
+ * opened another tab (or closed one), so it arrives when the page is not being read, and the page below it moves once.
+ */
+.rewards {
   flex-basis: 100%;
   max-width: 72ch;
+}
+
+.reward {
   font-size: var(--fs-small);
   line-height: 1.45;
+  text-wrap: balance;
 }
 
 .reward[data-shown] {
+  margin-top: var(--s-2);
   padding: var(--s-2) var(--s-3);
   border-left: 4px solid var(--cobalt);
   background: var(--paper-2);
   animation: reward-in var(--dur-3) var(--ease-out) both;
+}
+
+/* A lost leader is something that happened now: the margin is vermilion (the words say it too, so nothing rests on the colour). */
+.reward[data-failover] {
+  border-left-color: var(--live);
 }
 
 @keyframes reward-in {
@@ -242,18 +335,21 @@
   }
 }
 
-@media (min-width: 640px) {
-  .reward {
-    box-sizing: border-box;
-    min-height: 3.75rem;
-  }
-}
-
 /* ===== service index ============================================================================ */
 
-/* A heading that reads as a caption: sentence case under the stencil label. It is kept for the outline and hidden on phones. */
+/*
+ * The label and the caption share a row (the caption is the index's heading, in sentence case: it is kept for the outline
+ * and hidden on phones), then the list.
+ */
+.indexBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--s-3);
+}
+
 .indexHeading {
-  margin: var(--s-1) 0 var(--s-3);
+  margin: 0;
   color: var(--ink-muted);
   font-family: var(--font-text);
   font-size: var(--fs-small);
@@ -276,6 +372,8 @@
 }
 
 .index {
+  flex: 1 0 100%;
+  margin-top: var(--s-1);
   list-style: none;
   border-top: var(--rule-strong);
 }
@@ -287,7 +385,7 @@
   grid-template-areas: 'n a' 'n m';
   column-gap: var(--s-3);
   align-items: center;
-  padding: 0.4rem 0.25rem 0.4rem 0;
+  padding: 0.15rem 0.25rem 0.15rem 0;
   border-bottom: var(--rule);
 }
 
@@ -329,7 +427,7 @@
   grid-area: m;
   font-family: var(--font-display);
   /* 19 px at 390: the longest metric ("120ms query latency, down from 340ms", 294 px) fits one line. */
-  font-size: clamp(1.1875rem, 0.7rem + 1.6vw, 1.625rem);
+  font-size: clamp(1.1875rem, 0.7rem + 1.6vw, 1.4375rem);
   letter-spacing: 0.005em;
   line-height: 1.1;
 }
@@ -367,7 +465,20 @@
 .links {
   display: flex;
   flex-wrap: wrap;
-  margin-top: var(--s-1);
+}
+
+/* Two copies are drawn (ServiceIndex.tsx, `Links`): the first, under the button, on a phone or a tablet; the second, under the list, from 1024 px. The other is not drawn, nor focusable, nor read. */
+.links:not([data-first]) {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .links[data-first] {
+    display: none;
+  }
+  .links:not([data-first]) {
+    display: flex;
+  }
 }
 
 .links a {
@@ -383,21 +494,98 @@
   border-left: var(--rule);
 }
 
+/* On the narrowest phones the three links no longer fit one row, and the one that wraps would start its row with a rule: no rules there. */
+@media (max-width: 389px) {
+  .links a {
+    padding-right: var(--s-4);
+  }
+  .links a + a {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
 .authorship {
   max-width: var(--measure);
-  margin-top: var(--s-2);
   color: var(--ink-muted);
   font-size: var(--fs-small);
   line-height: 1.5;
 }
 
+/* A tablet's rows have more air than a phone's. */
+@media (min-width: 640px) {
+  .index li {
+    padding-block: 0.3rem;
+  }
+  .links {
+    margin-top: var(--s-1);
+  }
+}
+
+/* The right column: the list, then the links, the authorship line that qualifies its numbers, and the plain caption. */
+@media (min-width: 1024px) {
+  .indexBox {
+    margin-top: 0;
+  }
+  .authorship {
+    margin-top: var(--s-2);
+  }
+  .plain {
+    margin-top: var(--s-3);
+  }
+}
+
+/*
+ * A short desktop screen (a laptop at 1280 x 800, or a 1440 x 900 screen under the browser's own bars): the headline is sized
+ * by the height too, and the list and the lines under it are a little tighter, so the same first-screen budget holds: the
+ * switchboard's top row is on screen above the status strip, not under it.
+ */
+@media (min-width: 1024px) and (max-height: 860px) {
+  .hero {
+    padding-top: var(--s-3);
+  }
+  .eyebrow .hx {
+    width: 2rem;
+    height: 2rem;
+  }
+  .identity {
+    margin-top: var(--s-1);
+  }
+  .title {
+    margin-top: var(--s-2);
+    font-size: clamp(2.6rem, 0.85rem + 6.2vw, min(6.75rem, 9.6vh));
+  }
+  .lead {
+    margin-top: var(--s-2);
+  }
+  .prompt {
+    margin-top: var(--s-2);
+  }
+  .index li {
+    padding-block: 0.15rem;
+  }
+  .index b {
+    font-size: clamp(1.1875rem, 0.7rem + 1.6vw, 1.3125rem);
+  }
+  .links {
+    margin-top: 0;
+  }
+  .authorship {
+    margin-top: var(--s-1);
+  }
+  .plain {
+    margin-top: var(--s-2);
+  }
+}
+
 /* ===== boot line: the visitor's own boot, on ruled paper ========================================= */
 
 .boot {
-  /* Lines the tape reserves, so the measured text arriving never moves anything. Martian Mono at 13 px is 9 px
-     a character; the longest line the page can print is about 165 characters, which wraps to this many lines. */
+  /* Rows the tape reserves, so the measured text arriving never moves anything. Martian Mono is 0.7 em wide (9.1 px a
+     character at 13 px: the font has no width axis); --lines is how many rows the longest line the page can print
+     (about 160 characters) needs at each width, now that a row can only end between two measurements. */
   --lines: 2;
-  margin: var(--s-6) 0 0;
+  margin: var(--s-4) 0 0;
   min-height: calc(var(--lines) * 24px + 3px);
   padding: 0 var(--s-3);
   border: var(--rule-strong);
@@ -406,9 +594,19 @@
   background-size: 24px 24px;
   font-size: 0.8125rem;
   line-height: 24px;
-  overflow-wrap: anywhere;
 }
 
+/* Once the line is the visitor's own measurement, a cobalt margin marks it as a trace. */
+.boot[data-measured] {
+  padding-left: calc(var(--s-3) + 4px);
+  box-shadow: inset 4px 0 0 var(--cobalt);
+}
+
+/*
+ * Rows the longest line needs (measured in a browser: every figure four digits wide, twelve nodes, term twelve), by width: two
+ * from 900 px, three to 640 px, and then, in 12 px type, four to 580 px and a row more for every few dozen pixels a phone loses
+ * (a 320 px phone needs eight; 340 to 349 px needs seven and is given eight, one blank ruled row, to save a rule).
+ */
 @media (max-width: 899px) {
   .boot {
     --lines: 3;
@@ -416,19 +614,68 @@
 }
 @media (max-width: 579px) {
   .boot {
+    --lines: 4;
+  }
+}
+@media (max-width: 429px) {
+  .boot {
     --lines: 5;
   }
 }
-@media (max-width: 339px) {
+@media (max-width: 384px) {
   .boot {
     --lines: 6;
   }
 }
+@media (max-width: 349px) {
+  .boot {
+    --lines: 8;
+  }
+}
 
-/* Once the line is the visitor's own measurement, a cobalt margin marks it as a trace. */
-.boot[data-measured] {
-  padding-left: calc(var(--s-3) + 4px);
-  box-shadow: inset 4px 0 0 var(--cobalt);
+/*
+ * A measurement is one unit: nothing inside it breaks, and the separator is glued to its right (boot-tokens.ts), so a
+ * row ends only between two measurements and never begins with a dot. The closing clause stays whole where it fits and
+ * parts after its semicolon on a phone.
+ */
+.tok,
+.tok[data-closing] > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .tok[data-closing] {
+    white-space: normal;
+  }
+  /* A phone's tape is 330 px of text: 12 px type (the smallest the site sets) puts 39 characters on a row instead of 36. */
+  .boot {
+    padding-inline: var(--s-2);
+    font-size: var(--fs-micro);
+  }
+  .boot[data-measured] {
+    padding-left: calc(var(--s-2) + 4px);
+  }
+}
+
+/*
+ * From 1280 px the switchboard's top band has room for the tape: the board's lamp plates start about 66 px (at 1280) to
+ * 75 px (at 1440) below its frame, and that band was empty paper. The tape hangs in it, out of the flow, so the board
+ * rises by the tape's height and a lamp row is on the first screen (review round 2, creative). It sits where it would be
+ * in the flow (`top: auto`), 8 px inside the frame, clear of the rivets in the corners. Only where the board is shown:
+ * with the machine off, without JavaScript and in print it stays a plain row above where the board would be.
+ *
+ * SPEC-GAP: spec 3.2 lists the boot line in the hero's left column and calls it one line. It is a full-width tape above the
+ * board (two rows on a desktop: the measurements, then the closing clause; Martian Mono is shipped without its width axis,
+ * so its 150 characters, 9.1 px each at 13 px, never fit one row inside the 1360 px page column), and from 1280 px it hangs
+ * in the board's top band.
+ */
+@media screen and (min-width: 1280px) {
+  html[data-js]:not([data-machine='off']) .boot {
+    position: absolute;
+    z-index: 3;
+    inset-inline: calc(var(--gutter) + 28px);
+    margin-top: calc(var(--s-4) + 8px);
+  }
 }
 
 /* ===== skip the machine: the board as a list ===================================================== */

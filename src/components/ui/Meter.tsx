@@ -9,7 +9,14 @@ import styles from './ui.module.css'
 export interface MeterProps {
   /** What the meter measures, e.g. `inference p95 (ms)`. Also its accessible name. */
   label: string
-  value: number
+  /**
+   * What was measured, or `null` while nothing has been. Anything on a page that looks like a measurement is one, so a meter
+   * that has measured nothing must not show a number ("0.0 ms" at rest reads as a timing nobody took). With `null` the meter
+   * is switched off like an unlit lamp: the needle rests at `min` and leaves vermilion (the colour of "happening now") for
+   * the one grey, the figure is a dash, and a screen reader hears "<label>: no reading yet" instead of a zero. The first
+   * value switches it on and the needle swings from rest.
+   */
+  value: number | null
   min: number
   max: number
   unit?: string
@@ -36,6 +43,9 @@ const TABLE: ReadonlyArray<readonly [number, number]> = [
   [0.7431448254773942, 0.6691306063588582],
   [0.8660254037844386, 0.5000000000000001],
 ]
+
+/** What a screen reader hears for a meter that has measured nothing. */
+const NO_READING = 'no reading yet'
 
 const CX = 100
 const CY = 114
@@ -73,11 +83,13 @@ const angleOf = (t: number) => -SWEEP + 2 * SWEEP * t
 /**
  * An analog panel meter, drawn by hand: wobbled frame, tick marks, a hatched warning zone, and a
  * vermilion needle that throws with a little overshoot (core GSAP, instant under lite motion).
- * The readout under the dial is the real value; the needle is only a picture of it.
+ * The readout under the dial is the real value; the needle is only a picture of it. With no value yet
+ * (`value: null`) it is switched off: see `MeterProps.value`.
  */
 export function Meter({ label, value, min, max, unit, warn, decimals = 0, instant, className }: MeterProps) {
   const needle = useRef<SVGGElement>(null)
-  const degrees = angleOf(fraction(value, min, max))
+  const rest = value === null
+  const degrees = angleOf(fraction(rest ? min : value, min, max))
   // React renders the needle once at its first angle; every later change is applied imperatively below,
   // so React and the tween never fight over the same attribute.
   const [firstDegrees] = useState(degrees)
@@ -134,18 +146,21 @@ export function Meter({ label, value, min, max, unit, warn, decimals = 0, instan
     }
   }
   const [pivotWobble] = wobblePoints([[CX, CY]], `meter:pivot:${label}`, 0.4)
-  const shown = value.toFixed(decimals)
+  const shown = rest ? '—' : value.toFixed(decimals)
+  // A meter needs a value (aria-valuenow); with none it is a labelled picture that says so, not a meter reading zero.
+  const semantics = rest
+    ? ({ role: 'img', 'aria-label': `${label}: ${NO_READING}` } as const)
+    : ({
+        role: 'meter',
+        'aria-label': label,
+        'aria-valuemin': min,
+        'aria-valuemax': max,
+        'aria-valuenow': value,
+        'aria-valuetext': `${shown}${unit ? ` ${unit}` : ''}${warn !== undefined && value >= warn ? ', over the limit' : ''}`,
+      } as const)
 
   return (
-    <div
-      className={cx(styles.meter, className)}
-      role="meter"
-      aria-label={label}
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      aria-valuetext={`${shown}${unit ? ` ${unit}` : ''}${warn !== undefined && value >= warn ? ', over the limit' : ''}`}
-    >
+    <div className={cx(styles.meter, className)} data-rest={rest || undefined} {...semantics}>
       <div className={styles.meterFace}>
         <svg className={styles.meterDial} viewBox="0 0 200 134" aria-hidden="true">
           <path className={styles.meterFrame} d={frame} />
@@ -173,7 +188,7 @@ export function Meter({ label, value, min, max, unit, warn, decimals = 0, instan
       <div className={styles.meterFoot}>
         <span className="stencil">{label}</span>
         <span className={styles.meterReading}>
-          <Readout value={shown} width={Math.max(2, shown.length)} size="md" align="start" face="mono" />
+          <Readout className={rest ? styles.meterDash : undefined} value={shown} width={Math.max(2, shown.length)} size="md" align="start" face="mono" />
           {unit ? <span className={styles.meterUnit}>{unit}</span> : null}
         </span>
       </div>

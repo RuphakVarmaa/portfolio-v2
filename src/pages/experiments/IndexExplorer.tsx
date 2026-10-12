@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { announce } from '../../cluster/live-region.ts'
-import { formatMs } from '../../cluster/format.ts'
 import { Button } from '../../components/ui/Button.tsx'
 import { Icon } from '../../components/ui/Icon.tsx'
 import { Select } from '../../components/ui/Select.tsx'
@@ -11,6 +10,8 @@ import { RetrievalEngine } from '../../lib/retrieval/engine.ts'
 import type { RichHit, SearchResult } from '../../lib/retrieval/types.ts'
 import chaos from '../../sections/chaos-lab/ChaosLab.module.css'
 import { ScrollBox } from '../../sections/chaos-lab/ScrollBox.tsx'
+// The home panel's time formatter: a stage too short for the clock to resolve reads "<0.1 ms", never "0 ms".
+import { fmtMs } from '../../sections/services/retrieval/format.ts'
 import styles from '../Experiments.module.css'
 import {
   RIBBON_TARGET,
@@ -23,6 +24,7 @@ import {
   ribbonRows,
   ribbonTop,
   snippet,
+  stageTimes,
   type IndexStats,
   type Segment,
   type TermRow,
@@ -186,7 +188,7 @@ export default function IndexExplorer() {
         </div>
         <div>
           <dt className="stencil">{t.stats.built}</dt>
-          <dd>{formatMs(stats.buildMs)}</dd>
+          <dd>{fmtMs(stats.buildMs)}</dd>
         </div>
       </dl>
 
@@ -237,9 +239,9 @@ export default function IndexExplorer() {
       {answer && found ? (
         <div className={styles.stack}>
           <p className={styles.stages}>
-            {found.stages.map((stage) => (
+            {stageTimes(found.stages).map((stage) => (
               <span key={stage.name}>
-                {stage.name} <b>{formatMs(stage.ms)}</b>
+                {stage.name} <b>{stage.time}</b>
               </span>
             ))}
           </p>

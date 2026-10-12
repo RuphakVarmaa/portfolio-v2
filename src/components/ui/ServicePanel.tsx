@@ -48,6 +48,12 @@ export interface ServicePanelProps {
   onShowPipeline?: () => void
   /** True while a pipeline run is in flight (button shows busy). */
   pipelineBusy?: boolean
+  /**
+   * Milliseconds per stage while a replay runs on a timer rather than on the work's own clock (the real stages take
+   * microseconds, which nobody can follow). Set while that replay runs, and the panel says so under the stage list:
+   * the pacing is a timer, the times shown are the measured ones. Leave it out when the panel says so itself.
+   */
+  pipelinePaceMs?: number | null
   /** Extra controls under the demo (e.g. a "load the model" tap and its size label). */
   demoFooter?: ReactNode
 }
@@ -71,6 +77,7 @@ export function ServicePanel({
   formatStageMs = formatMs,
   onShowPipeline,
   pipelineBusy,
+  pipelinePaceMs,
   demoFooter,
 }: ServicePanelProps) {
   const labels = siteCopy.services.panel
@@ -160,7 +167,7 @@ export function ServicePanel({
           <dl className={styles.traceList}>
             {TRACE_ORDER.map((key) => (
               <div key={key} className={styles.traceItem}>
-                <dt className="stencil">{labels.traceLabels[key]}</dt>
+                <dt className="stencil">{key === 'broke' ? (copy.trace.brokeLabel ?? labels.traceLabels.broke) : labels.traceLabels[key]}</dt>
                 <dd>{copy.trace[key]}</dd>
               </div>
             ))}
@@ -197,7 +204,11 @@ export function ServicePanel({
                 </li>
               ))}
             </ol>
-            {measured.size === 0 ? <p className={styles.pipelineIdle}>{labels.pipelineIdle}</p> : null}
+            {pipelineBusy && pipelinePaceMs ? (
+              <p className={styles.pipelineIdle}>{labels.pipelinePace(pipelinePaceMs)}</p>
+            ) : measured.size === 0 ? (
+              <p className={styles.pipelineIdle}>{labels.pipelineIdle}</p>
+            ) : null}
           </div>
         ) : null}
       </div>

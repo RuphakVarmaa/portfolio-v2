@@ -35,9 +35,11 @@ export interface WindowBracketsProps {
   section: SectionWindows
   /** Seed for the pen wobble (the chunk id), so every card is drawn a little differently and the same every time. */
   seed: string
+  /** The 30-second depth: the caption says where the passage sits without wordpieces, and drops the line about what a rule is. */
+  plain?: boolean
 }
 
-export function WindowBrackets({ section, seed }: WindowBracketsProps) {
+export function WindowBrackets({ section, seed, plain = false }: WindowBracketsProps) {
   const { windows, index, tokens } = section
   const patternId = useSvgId('hatch')
   const clipId = useSvgId('clip')
@@ -121,8 +123,14 @@ export function WindowBrackets({ section, seed }: WindowBracketsProps) {
         )}
       </svg>
       <figcaption className={styles.windowsCaption}>
-        <span>{S.windowCaption(index, windows.length, active.start, active.end, tokens, overlap)}</span>
-        <span className={styles.windowsRule}>{S.windowRule}</span>
+        {plain ? (
+          <span>{S.windowPlain(index, windows.length)}</span>
+        ) : (
+          <>
+            <span>{S.windowCaption(index, windows.length, active.start, active.end, tokens, overlap)}</span>
+            <span className={styles.windowsRule}>{S.windowRule}</span>
+          </>
+        )}
       </figcaption>
     </figure>
   )

@@ -15,9 +15,11 @@
  *   assets       what the build found on disk: the vocabulary, the encoder (if published), the ONNX Runtime WASM
  *   sections     reading order; `tokens` is the section's length in tokens, `windows` how many windows cover it,
  *                `context` the heading words BM25 indexes with every window of the section
- *   chunks       one per window: { id, sectionId, anchor, text, tokens, start, end, hash, parts }
+ *   chunks       one per window: { id, sectionId, anchor, text, tokens, start, end, hash, parts, shown? }
  *                `start`/`end` are token offsets inside the section; `parts` says which page elements the
- *                window's text came from (their label, and where they sit inside `text`)
+ *                window's text came from (their label, and where they sit inside `text`); `shown` (only when it
+ *                differs from all of `text`) is the stretch a card shows, the window without the broken ends of
+ *                words that a wordpiece cut left at its edges
  *
  * Pure and DOM-free.
  */
@@ -69,6 +71,12 @@ export interface CorpusPart {
   cut?: 'start' | 'end' | 'both'
 }
 
+/** A range of characters inside a window's `text`: `[from, to)`. */
+export interface TextRange {
+  from: number
+  to: number
+}
+
 export interface CorpusChunk {
   /** `${sectionId}.${window index}`; embeddings are keyed by it. */
   id: string
@@ -83,6 +91,13 @@ export interface CorpusChunk {
   /** FNV-1a of `text`: lets a precomputed embedding prove it was made from this exact text. */
   hash: string
   parts: CorpusPart[]
+  /**
+   * The stretch of `text` a person reads, when it is not all of it (see `shownRange`): a window is cut at wordpieces, so
+   * one can begin "% retrieval precision" where the page says "87% retrieval precision". This is the window with the broken
+   * ends of words left off. The window, its id and offsets, and the text that is indexed, embedded and hashed do not change.
+   * Absent when both ends already sit beside a space or at the edge of the section.
+   */
+  shown?: TextRange
 }
 
 export interface CorpusSection {
@@ -140,6 +155,47 @@ export interface BuildCorpusOptions {
   assets?: Partial<Corpus['assets']>
 }
 
+/** What may sit just before the first character of a window without its word being broken: an opening bracket or quote, nothing else. */
+const OPENING = /^[([{"'“‘«]+$/
+/** What may follow the last character of a window without its word being broken: the full stop, comma or closing bracket that ends it. */
+const CLOSING = /^[.,;:!?)\]}"'’”»…]+$/
+
+/**
+ * The stretch of a window a person should read: the window without the broken ends of words it holds only a piece of.
+ *
+ * Windows are cut at wordpieces (the unit the encoder counts), and BERT makes every punctuation mark a word of its own, so a
+ * window may begin between "87" and "%" ("% retrieval precision"), or end between "sub-" and "2". A cut is harmless where
+ * only an opening bracket lies before the window's first character, or only the full stop, comma or closing bracket of the
+ * word after its last (the window ends "...instead of pgvector" and the page goes on "."). Anywhere else the end that
+ * meets a word is moved in to the nearest space, so the card begins and ends on whole words. `from` and `to` are
+ * offsets into the section's text (the window is `[from, to)`). The answer is in the window's own coordinates (0 is
+ * `from`), or null when nothing needs moving. A window that is one broken word and nothing else is left as it is.
+ */
+export function shownRange(section: string, from: number, to: number): TextRange | null {
+  const space = (at: number): boolean => /\s/.test(section[at])
+  let start = from
+  let head = from
+  while (head > 0 && !space(head - 1)) head -= 1
+  const before = section.slice(head, from)
+  if (before !== '' && !OPENING.test(before)) {
+    let at = from
+    while (at < to && !space(at)) at += 1 // the rest of the word the window begins inside
+    while (at < to && space(at)) at += 1 // and the space after it
+    if (at < to) start = at
+  }
+  let end = to
+  let tail = to
+  while (tail < section.length && !space(tail)) tail += 1
+  const after = section.slice(to, tail)
+  if (after !== '' && !CLOSING.test(after)) {
+    let at = to
+    while (at > start && !space(at - 1)) at -= 1 // back over the word the window ends inside
+    while (at > start && space(at - 1)) at -= 1 // and the space before it
+    if (at > start) end = at
+  }
+  return start === from && end === to ? null : { from: start - from, to: end - from }
+}
+
 /** FNV-1a, 32 bit, as 8 hex digits. Not cryptographic: it only has to notice that a text changed. */
 export function fnv1a(text: string): string {
   let hash = 0x811c9dc5
@@ -195,6 +251,7 @@ export function buildCorpus(options: BuildCorpusOptions): Corpus {
         if (cutStart || cutEnd) part.cut = cutStart && cutEnd ? 'both' : cutStart ? 'start' : 'end'
         parts.push(part)
       }
+      const shown = shownRange(text, slice.from, slice.to)
       chunks.push({
         id: `${definition.id}.${index}`,
         sectionId: definition.id,
@@ -205,6 +262,7 @@ export function buildCorpus(options: BuildCorpusOptions): Corpus {
         end: window.end,
         hash: fnv1a(slice.text),
         parts,
+        ...(shown ? { shown } : {}),
       })
     })
   }

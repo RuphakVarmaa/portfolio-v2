@@ -59,7 +59,8 @@ export const tools = {
       window: 'window',
       overlap: 'overlap',
       tokenizer: 'windows counted in',
-      built: 'index built in this page in',
+      // One line in the narrowest column the strip has (10rem): "index built in this page in" did not fit and stranded "in".
+      built: 'built in this page in',
     },
     tokenizers: { wordpiece: 'wordpieces', words: 'words' },
     ribbonLabel: 'Chunks, in reading order, one row per section. Overlapping windows sit on alternate lines.',

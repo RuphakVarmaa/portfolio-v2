@@ -121,18 +121,11 @@ pre,
 samp {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 pre {
   margin: 0;
   overflow-x: auto;
-}
-
-hr {
-  border: 0;
-  border-top: var(--rule);
-  margin: 0;
 }
 
 img,
@@ -218,6 +211,11 @@ dialog::backdrop {
 
 /* Controls that do nothing without JavaScript are hidden when the pre-paint script did not run. */
 html:not([data-js]) [data-js-only] {
+  display: none;
+}
+
+/* The twin: words for the page without JavaScript (the cluster never starts), hidden as soon as the pre-paint script ran. */
+html[data-js] [data-nojs-only] {
   display: none;
 }
 

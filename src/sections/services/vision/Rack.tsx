@@ -132,25 +132,28 @@ export function Rack({ engine }: { engine: Pipeline }) {
           <path className={styles.flow} d={ARROW_IN} />
           <path className={styles.flow} d={ARROW_OUT} />
         </svg>
-        {placements.map(({ card, slot, ghost }) => (
-          <div
-            key={card.id}
-            className={styles.card}
-            data-kind={card.kind}
-            data-ghost={ghost || undefined}
-            data-idle={(slot === QUEUE_CAPACITY && !state.busy) || undefined}
-            style={{ '--x': cardX(slot).toFixed(3) } as CSSProperties}
-          >
-            {card.kind === 'frame' ? (
-              <>
-                <Thumb card={card} engine={engine} tone={state.tone} box={box} />
-                <span className={styles.cardTag}>{strings.queue.tag(card.n)}</span>
-              </>
-            ) : card.axes ? (
-              <Glyph axes={card.axes} />
-            ) : null}
-          </div>
-        ))}
+        {/* Clipped to the rack: a card bumped out of a slot leaves through the top of it, never over the caption above. */}
+        <div className={styles.cards}>
+          {placements.map(({ card, slot, ghost }) => (
+            <div
+              key={card.id}
+              className={styles.card}
+              data-kind={card.kind}
+              data-ghost={ghost || undefined}
+              data-idle={(slot === QUEUE_CAPACITY && !state.busy) || undefined}
+              style={{ '--x': cardX(slot).toFixed(3) } as CSSProperties}
+            >
+              {card.kind === 'frame' ? (
+                <>
+                  <Thumb card={card} engine={engine} tone={state.tone} box={box} />
+                  <span className={styles.cardTag}>{strings.queue.tag(card.n)}</span>
+                </>
+              ) : card.axes ? (
+                <Glyph axes={card.axes} />
+              ) : null}
+            </div>
+          ))}
+        </div>
         <span className={styles.bayLamp}>
           <Lamp lit={state.busy} />
         </span>

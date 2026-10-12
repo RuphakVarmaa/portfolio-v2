@@ -3,13 +3,15 @@
  *
  *   .sr-only          visually hidden, still read by screen readers
  *   .wrap             page column: max 1360 px, gutters >= 16 px
- *   .grid             12 columns >= 1024 px, 6 at 640-1023, 4 below (set --cols); children: .span-N / .span-md-N
  *   .stencil          stencil label text (Big Shoulders Stencil, uppercase, tracked)
  *   .mono             Martian Mono
  *   .panel            paper-2 panel with a strong ink border, square corners
  *   .ruled            ruled paper behind tape and trace components only
  *   .measure          limits line length to 62 characters
  *   .keycap           a small boxed key hint, e.g. <kbd class="keycap">p</kbd>
+ *
+ * (The 12/6/4-column `.grid` with `.span-N` and `.span-md-N`, and `.tabular`, were here until review round 2: no section used
+ * them, each section lays itself out with its own grid, and they cost stylesheet bytes under a 24 KB budget.)
  */
 
 .sr-only {
@@ -31,57 +33,6 @@
   padding-inline: var(--gutter);
 }
 
-.grid {
-  --cols: 4;
-  display: grid;
-  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  gap: var(--s-5);
-}
-
-@media (min-width: 640px) {
-  .grid {
-    --cols: 6;
-  }
-}
-
-@media (min-width: 1024px) {
-  .grid {
-    --cols: 12;
-  }
-}
-
-/* Column spans. `.span-N` applies at every width (clamped to the columns that exist); `.span-md-N` from 1024 px. */
-.span-full {
-  grid-column: 1 / -1;
-}
-.span-4 {
-  grid-column: span 4;
-}
-.span-6 {
-  grid-column: span 6;
-}
-.span-12 {
-  grid-column: 1 / -1;
-}
-
-@media (min-width: 1024px) {
-  .span-md-5 {
-    grid-column: span 5;
-  }
-  .span-md-7 {
-    grid-column: span 7;
-  }
-  .span-md-6 {
-    grid-column: span 6;
-  }
-  .span-md-4 {
-    grid-column: span 4;
-  }
-  .span-md-8 {
-    grid-column: span 8;
-  }
-}
-
 .stencil {
   font-family: var(--font-stencil);
   font-size: var(--fs-label);
@@ -94,7 +45,6 @@
 .mono {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .lead {
@@ -131,12 +81,6 @@
   background: var(--paper);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  font-variation-settings: 'wdth' 90;
   line-height: 1.5;
   text-align: center;
-}
-
-/* Fixed-width digits, so live numbers never shift the layout. */
-.tabular {
-  font-variant-numeric: tabular-nums;
 }

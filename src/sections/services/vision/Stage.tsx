@@ -105,6 +105,10 @@ export interface StageProps {
  * is never shown: the `<video>` that receives the stream is kept out of sight and only read from. The
  * canvas is shown at its own size (320 px wide), so every dithered pixel is a whole number of screen
  * pixels on 1x, 2x and 3x screens; the paper mat around it takes up the rest of the width.
+ *
+ * Two places on the picture are reserved: the label at the top-left (what this is, and whether anything is
+ * detected on it) is never covered, and everything else that can appear over the picture (the backpressure
+ * stamp, the detector's download, "drop to process") stacks in one dock along the lower edge.
  */
 export function Stage({ engine, canvasRef, videoRef, onFile, canDrop }: StageProps) {
   const phase = useEngine(engine, (s) => s.phase)
@@ -184,19 +188,16 @@ export function Stage({ engine, canvasRef, videoRef, onFile, canDrop }: StagePro
             <video ref={videoRef} className="sr-only" muted playsInline tabIndex={-1} aria-hidden="true" />
             <Boxes engine={engine} />
             <Tag engine={engine} />
-            {backpressure ? (
-              <div className={styles.stamp} aria-hidden="true">
-                <Stamp tone="live" size="md" animate>
+            {/* The lower edge: the stamp, the download and the drop tag stack here, so none covers another or the label above. */}
+            <div className={styles.dock} aria-hidden="true">
+              {backpressure ? (
+                <Stamp tone="live" size="md" animate className={styles.stamp}>
                   {copy.services.vision.demo.backpressure}
                 </Stamp>
-              </div>
-            ) : null}
-            <Loading engine={engine} />
-            {dropping ? (
-              <span className={styles.dropTag} aria-hidden="true">
-                {strings.drop.over}
-              </span>
-            ) : null}
+              ) : null}
+              <Loading engine={engine} />
+              {dropping ? <span className={styles.dropTag}>{strings.drop.over}</span> : null}
+            </div>
           </div>
         </div>
       </figure>

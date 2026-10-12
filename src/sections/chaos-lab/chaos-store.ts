@@ -1,7 +1,6 @@
 import type { Quorum, QuorumState } from '../../cluster/quorum.ts'
 import type { ClusterState, Scheduler } from '../../cluster/scheduler.ts'
-import { copy } from '../../data/copy.ts'
-import { plugReward, toneFor } from './format.ts'
+import { plugReward, toneFor, workerSpunUp } from './format.ts'
 import { createLeaderWatch } from './leader-watch.ts'
 import type { Operator } from './operator.ts'
 import type { PlugRun } from './plug.ts'
@@ -112,7 +111,6 @@ export function createChaosStore(deps: ChaosDeps): ChaosStore {
 
   let prevCluster: ClusterState | null = null
   let prevQuorum: QuorumState | null = null
-  let sawAlone = false
   let announcedStart = false
   /** Tabs the leader watch has reported lost. A lock hand-over can arrive before the BYE, so `isLeader` alone would forget. */
   const lostLeaders = new Set<string>()
@@ -143,8 +141,10 @@ export function createChaosStore(deps: ChaosDeps): ChaosStore {
     for (const [id, node] of Object.entries(state.nodes)) {
       const was = before.nodes[id]
       if (isUp(node.status) && !isUp(was?.status) && node.readyAt !== undefined) {
+        // From the worker's spawn to its `ready`: its own start-up. A run that pulled the plug prints a second
+        // figure for the same respawn, measured from the pull (plug.ts), and each line says where it starts.
         const ms = Math.round(node.readyAt - node.spawnedAt)
-        push(`${id} ${was?.status === 'dead' ? 'respawned' : 'is up'} in ${ms} ms`, 'muted')
+        push(was?.status === 'dead' ? workerSpunUp(id, ms) : `${id} is up in ${ms} ms`, 'muted')
       }
     }
   }
@@ -161,7 +161,6 @@ export function createChaosStore(deps: ChaosDeps): ChaosStore {
       announcedStart = true
       push(`${state.nodeId} (this tab) started · ${state.isLeader ? 'leader' : 'follower'} · term ${state.term}`, 'muted')
     }
-    if (state.nodes === 1) sawAlone = true
 
     if (before !== null) {
       const known = new Set(before.members.map((member) => member.id))
@@ -191,9 +190,9 @@ export function createChaosStore(deps: ChaosDeps): ChaosStore {
         push(`${event.leaderId} took the lock · term ${event.term}${event.self ? ' (this tab)' : ''}`, 'cobalt')
         const result: LeaderResult = { nodeId: event.leaderId, term: event.term, lostId: event.lostId, ms: event.ms, self: event.self }
         publish({ leader: result })
-        // The reward is announced before the step is recorded: if this was the last step, the stamp is
-        // announced by `complete`, and "what you proved" should be heard before "what you earned".
-        deps.announce(copy.chaos.experiments.leader.reward({ nodeId: result.nodeId, term: result.term }))
+        // Not announced here: a leader change is already spoken, once and in the first person, by the cluster (boot.ts:
+        // "This tab is now the leader, term 2."). The reward sentence is for the eyes, here and in the hero; announcing it
+        // as well made the new leader hear itself named in the third person, with the term twice (review round 2).
         deps.operator.complete('leader')
       }
     }
@@ -204,8 +203,9 @@ export function createChaosStore(deps: ChaosDeps): ChaosStore {
       const result: TabResult = { leaderId: state.leaderId, term: state.term, nodes: state.nodes, seenAfterMs: waited }
       publish({ tab: result })
       push(`${result.nodes} tabs agree: ${result.leaderId} leads · term ${result.term}`, 'cobalt')
-      // Only the tab that WAS alone announces; the newcomer would just be repeating it to itself.
-      if (sawAlone) deps.announce(copy.chaos.experiments.tab.reward({ leaderId: result.leaderId, term: result.term }))
+      // Not announced here: the hero's notice is a live region that says a tab joined (and says it from the right side: "that
+      // tab joined" in the old tab, "this tab joined" in the new one). A second voice for the same arrival, in the same
+      // millisecond, was read twice or dropped (review round 2). The reward sentence stays on the page.
       deps.operator.complete('tab')
     }
   }

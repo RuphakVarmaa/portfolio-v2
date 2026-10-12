@@ -606,7 +606,6 @@
 .lampId {
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .lampTags {
@@ -640,7 +639,6 @@
 .nodeId {
   font-family: var(--font-mono);
   font-size: 0.88em;
-  font-variation-settings: 'wdth' 90;
   white-space: nowrap;
 }
 
@@ -664,7 +662,6 @@
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
   line-height: 1.5;
 }
 
@@ -694,7 +691,6 @@
   background: var(--paper);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
   transition: background-color var(--dur-1) linear;
 }
 
@@ -774,7 +770,6 @@
 .dimText {
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  font-variation-settings: 'wdth' 90;
 }
 
 .laneText {
@@ -889,7 +884,6 @@
   list-style: none;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .legend li {
@@ -946,7 +940,6 @@
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
-  font-variation-settings: 'wdth' 90;
 }
 
 .table caption {

@@ -188,7 +188,6 @@
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  font-variation-settings: 'wdth' 90;
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
@@ -208,9 +207,6 @@
 
 .tag,
 .dropTag {
-  position: absolute;
-  left: var(--s-3);
-  top: var(--s-3);
   padding: 0 0.5rem;
   border: 1.5px solid var(--ink);
   background: var(--paper);
@@ -222,23 +218,54 @@
   text-transform: uppercase;
 }
 
-.dropTag {
-  top: auto;
-  bottom: var(--s-3);
-  border-color: var(--cobalt);
+/* The word on the picture, top-left: what this is, and whether anything is being detected on it. Nothing else is ever put there. */
+.tag {
+  position: absolute;
+  left: var(--s-3);
+  top: var(--s-3);
 }
 
-.stamp {
+/*
+ * The picture's lower edge. What can appear there (the backpressure stamp, the "drop to process" tag, the detector's
+ * download) is stacked in one column, in the order it can happen, so none of it lies over another; and none of it
+ * reaches the label at the top-left, because a rubber stamp lands low on the print, not on its caption.
+ */
+.dock {
   position: absolute;
-  top: var(--s-5);
-  right: var(--s-2);
+  inset: auto var(--s-2) var(--s-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  pointer-events: none;
+}
+
+/*
+ * The stamp (a ui Stamp) sits on a paper plate that is tilted with it, so it reads over the dither. It is tilted about its
+ * centre, so one end dips below its box: the margin keeps the whole stamp, and the plate, on the picture.
+ */
+.stamp {
+  margin-bottom: var(--s-3);
   background: var(--paper);
+  box-shadow: 0 0 0 4px var(--paper);
+}
+
+/* On the narrowest stages the picture is barely wider than the stamp, so its letters are set a little closer to stay on it. */
+@container vz (max-width: 21rem) {
+  .dock .stamp {
+    letter-spacing: 0.06em;
+  }
+}
+
+.dropTag {
+  align-self: flex-start;
+  margin: 0 0 var(--s-1) var(--s-1);
+  border-color: var(--cobalt);
 }
 
 /* The detector's download, on the picture it is for. */
 .loading {
-  position: absolute;
-  inset: auto var(--s-2) var(--s-2);
+  align-self: stretch;
   display: grid;
   gap: var(--s-1);
   padding: var(--s-1) var(--s-2);
@@ -309,7 +336,6 @@
   min-height: 2.9em;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
 }
 
 /* ===== The queue: the rack, the motion sensors, the worker's speed ===== */
@@ -333,7 +359,6 @@
 .hint {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-variation-settings: 'wdth' 90;
 }
 
 .queueControls {
@@ -457,6 +482,18 @@
   stroke-width: var(--stroke-draw);
 }
 
+/*
+ * The cards' own layer, clipped to the rack at the top and bottom: a card bumped out of a slot leaves through the top of
+ * the rack and never travels over the caption above it or the labels below it (a card that rose over the line "QUEUE holds
+ * 4, throws out the oldest when full" hid the very sentence that explains it). The sides stay open, so a new card still
+ * slides in from the left over the IN arrow, and a card's hard shadow is never cut.
+ */
+.cards {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 -1rem);
+}
+
 /* A card: positioned by --x (percent of the track), so a change of slot is a slide, never a jump. */
 .card {
   position: absolute;
@@ -486,7 +523,7 @@
   box-shadow: 2px 2px 0 var(--cobalt);
 }
 
-/* Evicted: the oldest card is bumped up and out of the rack to make room for the new one. */
+/* Evicted: the oldest card is bumped up and out of the rack (the cards' layer cuts it at the rack's top edge) to make room for the new one. */
 .card[data-ghost] {
   z-index: 2;
   border-color: var(--live);
@@ -526,7 +563,6 @@
   background: var(--paper);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  font-variation-settings: 'wdth' 90;
   font-weight: 600;
   line-height: 1.35;
 }

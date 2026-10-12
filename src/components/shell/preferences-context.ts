@@ -29,6 +29,8 @@ export interface PreferencesSnapshot {
   depth: Depth
   /** Sound on. Never persisted; always starts off. */
   sound: boolean
+  /** The single-key shortcuts (p, r, c, 2, ?) are on. On by default; the visitor can turn them off (WCAG 2.1.4). Stored as `ruphak-keys`. */
+  keys: boolean
 }
 
 export interface PreferencesActions {
@@ -43,6 +45,8 @@ export interface PreferencesActions {
   setDepth(depth: Depth): void
   setSound(on: boolean): void
   toggleSound(): void
+  setKeys(on: boolean): void
+  toggleKeys(): void
 }
 
 export type PreferencesValue = PreferencesSnapshot & PreferencesActions

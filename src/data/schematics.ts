@@ -117,15 +117,26 @@ const LAYOUT: Record<ServiceKey, { placements: Record<string, Placement>; edges:
   review: {
     // Narrow uses three columns here: docker fans out to three tools that fan back in to the tier, and
     // only a 3-wide grid keeps every connector between neighbouring cells (no line crosses a box).
+    //
+    // Review round 2: the stock grid left the one sideways connector almost no room. In the three-column narrow grid a part
+    // takes 84 % of its column, so two parts side by side are 21 units apart: the PR diff to GitHub Actions connector was a
+    // stub whose arrow head sat on the next box's border (about 26 px at 1440, 17 px on a phone), where every other
+    // connector on the four drawings runs 32 units or more. Now the diff is in the first column and GitHub Actions in the
+    // third, with the empty middle cell between them: 155 units (about 185 px at 1440) to travel, and GitHub Actions hands
+    // down to the Docker stage in the centre with the same swoop the fan-out below it uses. Still five rows, so the sticky
+    // drawing fits between the header and the status strip. Wide was six columns, so every connector had 25.7 units; the
+    // tier and the inline comments now stack in the last column: five columns, the 30 units of gutter the other three
+    // drawings have, and boxes wide enough for "GitHub Actions" on one line. schematics.test.ts keeps the rules: a connector
+    // skips a cell only when that cell is empty, and nothing sideways in the narrow layout is a stub.
     placements: {
       diff: { wide: [0, 1], narrow: [0, 0] },
-      actions: { wide: [1, 1], narrow: [1, 0] },
+      actions: { wide: [1, 1], narrow: [2, 0] },
       docker: { wide: [2, 1], narrow: [1, 1] },
       eslint: { wide: [3, 0], narrow: [0, 2] },
       semgrep: { wide: [3, 1], narrow: [1, 2] },
       llm: { wide: [3, 2], narrow: [2, 2] },
       tier: { wide: [4, 1], narrow: [1, 3] },
-      comments: { wide: [5, 1], narrow: [1, 4] },
+      comments: { wide: [4, 2], narrow: [1, 4] },
     },
     edges: [
       ['diff', 'actions'],

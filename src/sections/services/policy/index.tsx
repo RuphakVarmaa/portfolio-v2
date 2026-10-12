@@ -8,7 +8,7 @@ import { copy } from '../../../data/copy.ts'
 import { projects } from '../../../data/portfolio.ts'
 import { getSchematic } from '../../../data/schematics.ts'
 import { ACTIONS, RESOURCES, RULES, type Rule } from '../../../lib/policy/rulebook.ts'
-import { formatDuration } from '../../../lib/review/timing.ts'
+import { durationFormatter, formatDuration } from '../../../lib/review/timing.ts'
 import styles from './Policy.module.css'
 import { policyStore } from './policy-store.ts'
 
@@ -82,15 +82,19 @@ function Fallback({ reserve }: { reserve: boolean }) {
   )
 }
 
-/** The parts this port runs light up with the time a real fuzz measured for them; the others stay dark. */
-function schematicFor(stages: readonly Stage[]) {
+/**
+ * The parts this port runs light up with the time a real fuzz measured for them; the others stay dark. The times are
+ * printed with the formatter the stage list uses too (`format`: one unit and two figures for the set), so a part of the
+ * drawing and its row in the list always read the same.
+ */
+function schematicFor(stages: readonly Stage[], format: (ms: number) => string) {
   const annotations: Record<string, string> = {}
   const active: string[] = []
   for (const stage of stages) {
     const node = STAGE_NODE[stage.name]
     if (!node) continue
     active.push(node)
-    annotations[node] = formatDuration(stage.ms)
+    annotations[node] = format(stage.ms)
   }
   return { ...getSchematic('policy'), active, annotations }
 }
@@ -103,7 +107,9 @@ export function PolicyService() {
   const workers = useSyncExternalStore(subscribeNothing, () => scheduler.isSupported(), () => true)
   // During a slow-motion replay only the stages revealed so far are lit and listed.
   const visible = useMemo(() => (state.shown === null ? state.stages : state.stages.slice(0, state.shown)), [state.stages, state.shown])
-  const schematic = useMemo(() => schematicFor(visible), [visible])
+  // Built from all three stages of the run, not from the ones revealed so far, so the unit does not change mid-replay.
+  const format = useMemo(() => durationFormatter(state.stages.map((stage) => stage.ms)), [state.stages])
+  const schematic = useMemo(() => schematicFor(visible, format), [visible, format])
   const fallback = <Fallback reserve={workers} />
   return (
     <ServicePanel
@@ -114,6 +120,7 @@ export function PolicyService() {
       fallback={fallback}
       demo={<DemoSlot load={() => import('./Playground.tsx')} disabled={!workers} />}
       stages={visible}
+      formatStageMs={format}
       onShowPipeline={() => void policyStore.start({ plug: false, replay: true })}
       pipelineBusy={state.busy}
       demoFooter={

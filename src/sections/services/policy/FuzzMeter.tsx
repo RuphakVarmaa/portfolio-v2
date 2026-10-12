@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { Icon } from '../../../components/ui/Icon.tsx'
 import { FUZZ_BATCHES, type BatchRow } from '../../../lib/policy/fuzz-run.ts'
+import { formatCell } from '../../../lib/review/timing.ts'
 import styles from './Policy.module.css'
 import { POLICY_STRINGS as t } from './strings.ts'
 
@@ -12,9 +13,6 @@ import { POLICY_STRINGS as t } from './strings.ts'
  *
  * The cells are a list: each carries one full sentence for screen readers; the drawn parts are decoration.
  */
-
-/** 7.94 -> `7.9`, 12.4 -> `12`: the unit is in the ledger's label. */
-const milliseconds = (ms: number): string => (ms < 10 ? String(Math.round(ms * 10) / 10) : String(Math.round(ms)))
 
 /** `policy-b` -> `b`. */
 const letter = (node: string | undefined): string => (node ? node.slice(node.lastIndexOf('-') + 1) : '')
@@ -46,7 +44,8 @@ export function FuzzMeter({ batches }: { batches: readonly BatchRow[] }) {
                 {route || '·'}
               </span>
               <span className={styles.cellText} aria-hidden="true">
-                {cell.ms !== undefined ? milliseconds(cell.ms) : '·'}
+                {/* One rule for every cell, the unit in the ledger's label: 4.0 and 4.7, never a bare 4 beside a 4.7; 12 from 10 up. */}
+                {cell.ms !== undefined ? formatCell(cell.ms) : '·'}
               </span>
             </li>
           )

@@ -4,8 +4,9 @@ import { test } from 'node:test'
 import { certificationLines, educationLine, skillLines } from '../../data/copy.ts'
 import { experience, profile, projects } from '../../data/portfolio.ts'
 import { OVERLAP, STRIDE, WINDOW } from './chunker.ts'
-import { buildCorpus, fnv1a, partText, serializeCorpus, stableStringify, type Corpus, type PageRecord } from './corpus.ts'
+import { buildCorpus, fnv1a, partText, serializeCorpus, shownRange, stableStringify, type Corpus, type PageRecord } from './corpus.ts'
 import { SECTIONS, pageRecords } from './page-records.ts'
+import { leaksPhone } from './phone-guard.ts'
 import { parseVocab, tokenize } from './wordpiece.ts'
 
 const vocab = parseVocab(readFileSync(new URL('../../../public/models/minilm/vocab.txt', import.meta.url), 'utf8'))
@@ -85,6 +86,62 @@ test('parts say where each stretch of a window came from, and tile its text', ()
   assert.ok(retrieval.parts.some((p) => p.depth === 'engineer' || p.depth === 'peer'))
 })
 
+/** `[from, to)` of the first occurrence of `needle` in `text`. */
+const spanOf = (text: string, needle: string): [number, number] => [text.indexOf(needle), text.indexOf(needle) + needle.length]
+
+test('a window that begins or ends inside a word of the page is shown without the broken end (a card never starts "% retrieval precision")', () => {
+  const page = 'The result: 87% retrieval precision, sub-2 s p95, and a 70% cut.'
+  // Begins between "87" and "%": the head of the word is missing, so the window is shown from the next word.
+  const [percent] = spanOf(page, '%')
+  const begun = shownRange(page, percent, page.length)
+  assert.deepEqual(begun, { from: 2, to: page.length - percent })
+  assert.equal(page.slice(percent).slice(begun?.from), 'retrieval precision, sub-2 s p95, and a 70% cut.')
+  // Ends between "sub" and "-2": the word is not finished, so the window is shown up to the word before it.
+  const [dash] = spanOf(page, '-2')
+  const ended = shownRange(page, 0, dash)
+  assert.ok(ended)
+  assert.equal(page.slice(ended.from, ended.to), 'The result: 87% retrieval precision,')
+  // Ends between "87" and "%": "87" without its sign says something else, so the number goes too.
+  const cut = shownRange(page, 0, percent)
+  assert.ok(cut)
+  assert.equal(page.slice(cut.from, cut.to), 'The result:')
+})
+
+test('a cut that breaks nothing leaves the window as it is: beside a space, after an opening bracket, before a full stop or a comma', () => {
+  const page = 'Chunks are sliding windows (adaptive, 512-token) instead of pgvector. No LLM, no API.'
+  assert.equal(shownRange(page, 0, page.length), null, 'the whole section')
+  const [bracket] = spanOf(page, 'adaptive')
+  assert.equal(shownRange(page, bracket, page.length), null, 'after "(": the bracket is not a word')
+  const [word] = spanOf(page, 'sliding')
+  assert.equal(shownRange(page, word, page.indexOf(' windows')), null, 'both ends beside a space')
+  const [, end] = spanOf(page, 'pgvector')
+  assert.equal(shownRange(page, 0, end), null, 'before the full stop that ends the sentence')
+  assert.equal(shownRange(page, 0, page.indexOf(',')), null, 'before a comma')
+})
+
+test('a window that is one broken word and nothing else is left alone: there is no whole word to move to', () => {
+  assert.equal(shownRange('xx%yy zz', 2, 5), null)
+  assert.equal(shownRange('aa bb-cc dd', 3, 5), null)
+})
+
+test('every window of the page is shown from a whole word to a whole word, and `shown` changes nothing about the window', () => {
+  for (const chunk of corpus.chunks) {
+    const shown = chunk.shown ?? { from: 0, to: chunk.text.length }
+    assert.ok(shown.from >= 0 && shown.to <= chunk.text.length && shown.to > shown.from, chunk.id)
+    const read = chunk.text.slice(shown.from, shown.to)
+    assert.ok(!/^\s|\s$/.test(read), `${chunk.id}: the shown text neither starts nor ends on a space`)
+    assert.doesNotMatch(read, /^[%,.;:!?)\]}]/, `${chunk.id}: the shown text starts with the tail of a word: ${JSON.stringify(read.slice(0, 24))}`)
+    // Where `shown` moved an end, it moved it in to a space: that is what it is for.
+    if (shown.from > 0) assert.match(chunk.text[shown.from - 1], /\s/, chunk.id)
+    if (shown.to < chunk.text.length) assert.match(chunk.text[shown.to], /\s/, chunk.id)
+    // A window that begins on the tail of a word has to be moved.
+    if (/^[%,.;:!?)\]}]/.test(chunk.text)) assert.ok(shown.from > 0, `${chunk.id} begins on the tail of a word and is not shown from a whole one`)
+    // The window itself is untouched: its text, its token count and its hash do not depend on `shown`.
+    assert.equal(chunk.hash, fnv1a(chunk.text))
+    assert.equal(chunk.end - chunk.start, chunk.tokens)
+  }
+})
+
 test('every record of the page is in the corpus, first and last characters included', () => {
   for (const record of records) {
     const text = record.text
@@ -108,9 +165,9 @@ test('facts come straight from the data files: titles, metrics, stacks, roles, p
   assert.ok(everything.includes(profile.email))
 })
 
-test('the phone number is on the page but never in this public file', () => {
-  const json = serializeCorpus(corpus).replace(/[\s\-+().]/g, '')
-  assert.ok(!json.includes(profile.phone.replace(/\D/g, '')))
+test('the phone number is on the page but never in this public file, in any spelling: with or without its country code', () => {
+  assert.ok(!leaksPhone(serializeCorpus(corpus), profile.phone), 'the corpus file')
+  assert.ok(!leaksPhone(everything, profile.phone), 'the text of every window')
   assert.ok(!everything.includes(profile.phone))
 })
 

@@ -19,6 +19,43 @@ export function pickRange(value: number, steps: readonly number[], current: numb
   return Math.max(current, fit)
 }
 
+// ---- dials with nothing to show yet --------------------------------------------------------------------
+
+/** What the queue has done so far, as the two queue dials (depth, dropped) see it. */
+export interface QueueActivity {
+  /** Frames completed (painted) this run, and motion samples the consumer has finished. */
+  frames: number
+  samples: number
+  /** The deepest the queue has been since the last update. */
+  depth: number
+  droppedFrames: number
+  droppedSamples: number
+}
+
+/**
+ * Has the queue measured anything yet? Until a frame or a motion sample has been through the consumer, or at least
+ * been offered to the ring, the depth and drop dials have nothing to report, and a "0" there would read as a
+ * measurement nobody took. They show a dash instead, as THIS DEVICE does for the frame rate. Any non-zero count is a
+ * measurement in itself, so it counts before the first frame finishes: a queue that visibly holds a card is not a dash.
+ */
+export function queueHasReading(activity: QueueActivity): boolean {
+  return activity.frames > 0 || activity.samples > 0 || activity.depth > 0 || activity.droppedFrames > 0 || activity.droppedSamples > 0
+}
+
+/** Why the first dial (worker pass or inference p95) has no number, so the line under the dials can say the right thing. */
+export type NoTimingReason = 'no-frames' | 'no-inference' | 'recording-without-detector'
+
+/**
+ * The p95 dial is empty when its window holds no timing. That is so before the first frame is done, in the moment
+ * after a detector loads and before its first inference finishes, and for the whole of a recorded run made without a
+ * detector (the recorder stores an inference time only when a detector ran, so such a recording holds no timing at all).
+ */
+export function noTimingReason(state: { framed: boolean; replay: boolean; kind: 'infer' | 'pass' }): NoTimingReason {
+  if (!state.framed) return 'no-frames'
+  if (state.replay) return 'recording-without-detector'
+  return state.kind === 'infer' ? 'no-inference' : 'no-frames'
+}
+
 // ---- backpressure ------------------------------------------------------------------------------------
 
 export interface BackpressureTracker {

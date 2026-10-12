@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { buildBootLine } from '../../cluster/boot-line.ts'
 import { useQuorum, useTelemetry } from '../../cluster/store.ts'
 import { copy } from '../../data/copy.ts'
 import { NO_FIRST_READY, bootTimings, rememberFirstReady } from './boot-timings.ts'
+import { bootTokens } from './boot-tokens.ts'
 import styles from './ControlRoom.module.css'
 
 /**
@@ -18,10 +19,19 @@ import styles from './ControlRoom.module.css'
  * arriving never moves anything (CLS 0). It is not a live region: the worker-ready events are announced once,
  * by the cluster, through the shared live region.
  *
+ * With JavaScript off the cluster never starts, so "booting ruphak.me v3" would stay on the tape for good: the tape says so instead
+ * (`data-nojs-only`, hidden by the pre-paint script's `data-js`), and the booting text is `data-js-only`. Same tape, same reserved
+ * rows, so nothing moves.
+ *
  * It is the log of the boot, so each service's "up" figure is frozen at its first `ready` (boot-timings.ts).
  * Telemetry's per-node timing is overwritten when a worker is respawned, and a line that read "policy up
  * 36380 ms" after the visitor pulled the plug would no longer be the boot log. The respawn itself is on the
  * chaos lab's tape and in the footer strip.
+ *
+ * The line is drawn as tokens (boot-tokens.ts), not as one string: each measurement is a nowrap unit with its
+ * separator glued to its right, so a row can only end between two measurements. A plain string broke wherever a
+ * space fell (the closing clause cut after "harmed;" at 1440 px, three phone rows starting with a lone dot).
+ * The text a reader or a screen reader gets is the same line.
  */
 export function BootLine() {
   const telemetry = useTelemetry()
@@ -45,7 +55,24 @@ export function BootLine() {
     : copy.controlRoom.boot.prerendered
   return (
     <p className={styles.boot} data-measured={started || undefined}>
-      {text}
+      <span data-js-only="">
+        {bootTokens(text).map((token, index) => (
+          <Fragment key={index}>
+            {index > 0 ? ' ' : null}
+            <span className={styles.tok} data-closing={token.length > 1 || undefined}>
+              {token.length > 1
+                ? token.map((piece, pieceIndex) => (
+                    <Fragment key={pieceIndex}>
+                      {pieceIndex > 0 ? ' ' : null}
+                      <span>{piece}</span>
+                    </Fragment>
+                  ))
+                : token[0]}
+            </span>
+          </Fragment>
+        ))}
+      </span>
+      <span data-nojs-only="">{copy.controlRoom.boot.noScript}</span>
     </p>
   )
 }

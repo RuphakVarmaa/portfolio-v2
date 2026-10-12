@@ -133,7 +133,7 @@ export default function Reviewer() {
                       onClick={() => first && setJump({ line: first.line, seq: (jump?.seq ?? 0) + 1 })}
                     >
                       <TierShape tier={tier} />
-                      <span>{name}</span>
+                      <span className={styles.tallyName}>{name}</span>
                       <span className={styles.count}>{counts[tier]}</span>
                     </button>
                   </li>

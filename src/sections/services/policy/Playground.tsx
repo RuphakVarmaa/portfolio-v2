@@ -230,13 +230,13 @@ export default function Playground() {
               <FuzzMeter batches={run.batches} />
               <dl className={styles.stats}>
                 <Stat label={t.stats.evaluated} value={grouped(run.evaluated)} width={6} />
-                <Stat label={t.stats.across} value={summary ? grouped(summary.crossTenant) : '—'} width={5} />
-                <Stat label={t.stats.allowed} value={summary ? grouped(summary.allowed) : '—'} width={5} />
-                <Stat label={t.stats.denied} value={summary ? grouped(summary.denied) : '—'} width={5} />
-                <Stat label={t.stats.perSecond} value={summary ? grouped(summary.perSecond) : '—'} width={9} />
-                <Stat label={t.stats.p95} value={summary ? formatMs(summary.p95ms) : '—'} width={6} />
-                <Stat label={t.stats.wall} value={summary ? formatMs(summary.wallMs) : '—'} width={6} />
-                <Stat label={t.stats.audit} value={summary ? formatBytes(summary.auditBytes) : '—'} width={8} />
+                <Stat label={t.stats.across} value={summary ? grouped(summary.crossTenant) : '—'} width={6} />
+                <Stat label={t.stats.allowed} value={summary ? grouped(summary.allowed) : '—'} width={6} />
+                <Stat label={t.stats.denied} value={summary ? grouped(summary.denied) : '—'} width={6} />
+                <Stat label={t.stats.perSecond} value={summary ? grouped(summary.perSecond) : '—'} width={7} />
+                <Stat label={t.stats.p95} value={summary ? formatMs(summary.p95ms) : '—'} width={7} />
+                <Stat label={t.stats.wall} value={summary ? formatMs(summary.wallMs) : '—'} width={7} />
+                <Stat label={t.stats.audit} value={summary ? formatBytes(summary.auditBytes) : '—'} width={7} />
               </dl>
               {finished && summary ? (
                 <>
@@ -273,12 +273,20 @@ function PolicyLine({ policy }: { policy: string }) {
   )
 }
 
+/**
+ * One counter of the fuzz summary: the figure over its stencil label. The figure is Martian Mono bold, the face the
+ * meter's own readout uses (Readout's `face="mono"`), set from the left so its edge lines up with the label's.
+ * Doto is for NODES, TERM and UP: at 16 px its one-bit dots read lighter than the 13 px label under them, which
+ * turned the hierarchy upside down, and its decimal point is a plus-shaped cluster (`1.23 MB` read as `1+23`).
+ * `width` is in characters of the mono face (0.7 em each, so 7 is 78 px: it must stay under the 85 px column the
+ * four-up grid gets beside the dial).
+ */
 function Stat({ label: text, value, width }: { label: string; value: string; width: number }) {
   return (
     <div className={styles.stat}>
       <dt className="stencil">{text}</dt>
       <dd className={styles.statValue}>
-        <Readout value={value} width={width} size="sm" />
+        <Readout value={value} width={width} size="sm" face="mono" align="start" />
       </dd>
     </div>
   )
